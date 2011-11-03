@@ -25,6 +25,7 @@ Library
   Hs-source-dirs:      src
   Build-depends:       base          >= 4.3   && < 4.5
                      , blaze-builder >= 0.3   && < 0.4
+                     , blaze-textual >= 0.1   && < 1
                      , vector-space  >= 0.7   && < 0.8
                      , colour
                      , diagrams-core >= 0.4   && < 0.5

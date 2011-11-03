@@ -23,6 +23,9 @@ import qualified Blaze.ByteString.Builder as B
 import qualified Blaze.ByteString.Builder.Char8 as B8
 import qualified Blaze.ByteString.Builder.Html.Utf8 as BH
 
+-- from blaze-textual
+import qualified Blaze.Text as BT
+
 
 newtype Render = R { unR :: T2 -> B.Builder }
 
@@ -43,10 +46,10 @@ str :: String -> Render
 str = builder . B8.fromString
 
 int :: Int -> Render
-int = builder . B8.fromShow
+int = builder . BT.integral
 
 double :: Double -> Render
-double = builder . B8.fromShow
+double = builder . BT.double
 
 escapedStr :: String -> Render
 escapedStr = builder . BH.fromHtmlEscapedString
