@@ -51,17 +51,6 @@ double = builder . B8.fromShow
 escapedStr :: String -> Render
 escapedStr = builder . BH.fromHtmlEscapedString
 
-type Alpha = Double
-
-color :: Color c => c -> (Render, Alpha)
-color c =
-    let (r,g,b,a) = colorToRGBA c
-        t d = round (d * 255)
-        ret =    str "rgb("
-              <> int (t r) <> chr ','
-              <> int (t g) <> chr ','
-              <> int (t b) <> chr ')'
-    in (ret, a)
 
 
 
@@ -80,11 +69,25 @@ svgHeader w h =
  <> int (round w)
  <> sp
  <> int (round h)
- <> str "\" version=\"1.1\">"
+ <> str "\" version=\"1.1\"><g\
+        \ fill=\"rgb(0,0,0)\"\
+        \ fill-opacity=\"0\"\
+        \ fill-rule=\"nonzero\"\
+        \ font-family=\"Sans\"\
+        \ font-size=\"1\"\
+        \ font-style=\"normal\"\
+        \ opacity=\"1\"\
+        \ stroke=\"rgb(0,0,0)\"\
+        \ stroke-opacity=\"1\"\
+        \ stroke-width=\"0.1\"\
+        \ stroke-linecap=\"butt\"\
+        \ stroke-linejoin=\"miter\"\
+        \ text-anchor=\"middle\"\
+        \>"
 
 
 svgFooter :: Render
-svgFooter = str "</svg>"
+svgFooter = str "</g></svg>"
 
 
 renderPath :: Path R2 -> Render
@@ -123,7 +126,7 @@ renderEllipse ellipse =
         Deg angle = convertAngle (ellipseAngle ellipse)
     in    str "<ellipse cx=\"" <> double cx
        <> str "\" cy=\"" <> double cy
-p       <> str "\" rx=\"" <> double rx
+       <> str "\" rx=\"" <> double rx
        <> str "\" ry=\"" <> double ry
        <> str "\" transform=\"rotate(" <> double angle
        <> str ")\"/>"
@@ -132,7 +135,7 @@ p       <> str "\" rx=\"" <> double rx
 
 renderText :: Text -> Render
 renderText (Text t val) =
-    str "<text text-anchor=\"middle\"" <> matrix (t <> reflectionY) <> str ">"
+    str "<text" <> matrix (t <> reflectionY) <> str ">"
  <> escapedStr val
  <> str "</text>"
 
@@ -158,39 +161,41 @@ renderAttrs t xs r = str "<g" <> matrix t <> mconcat (map f xs) <> chr '>' <> r'
       close = chr '"'
       f (AFillRule fr) =
           case getFillRule fr of
-            Winding -> str " fill-rule=\"nonzero\""
+            Winding -> mempty -- default -- str " fill-rule=\"nonzero\""
             EvenOdd -> str " fill-rule=\"evenodd\""
       f (AFont o) =
           str " font-family=\"" <> escapedStr (getFont o) <> close
       f (AFontSize s) =
-          str " font-size=\""<> double (getFontSize s) <> close
+          case getFontSize s of
+            1 -> mempty -- default --
+            d -> str " font-size=\""<> double d <> close
       f (AFontSlant s) =
           case getFontSlant s of
-            FontSlantNormal  -> str " font-style=\"normal\""
+            FontSlantNormal  -> mempty -- default -- str " font-style=\"normal\""
             FontSlantItalic  -> str " font-style=\"italic\""
             FontSlantOblique -> str " font-style=\"oblique\""
       f (AFontWeight s) =
           case getFontWeight s of
-            FontWeightNormal -> str " font-weight=\"normal\""
+            FontWeightNormal -> mempty -- default -- str " font-weight=\"normal\""
             FontWeightBold   -> str " font-weight=\"bold\""
-      f (ALineColor c) =
-          let (c', alpha) = color (getLineColor c)
-          in str " stroke=\"" <> c' <> str "\" stroke-opacity=\"" <> double alpha <> close
-      f (AFillColor c) =
-          let (c', alpha) = color (getFillColor c)
-          in str " fill=\"" <> c' <> str "\" fill-opacity=\"" <> double alpha <> close
+      f (ALineColor c) = color "stroke" 1 c
+      f (AFillColor c) = color "fill"   0 c
       f (AOpacity o) =
-          str " opacity=\"" <> double (getOpacity o) <> close
+          case getOpacity o of
+            1 -> mempty -- default --
+            d -> str " opacity=\"" <> double d <> close
       f (ALineWidth w) =
-          str " stroke-width=\"" <> double (getLineWidth w) <> close
+          case getLineWidth w of
+            0.1 -> mempty -- default --
+            d   -> str " stroke-width=\"" <> double d <> close
       f (ALineCap c) =
           case getLineCap c of
-            LineCapButt   -> str " stroke-linecap=\"butt\""
+            LineCapButt   -> mempty -- default -- str " stroke-linecap=\"butt\""
             LineCapRound  -> str " stroke-linecap=\"round\""
             LineCapSquare -> str " stroke-linecap=\"square\""
       f (ALineJoin j) =
           case getLineJoin j of
-            LineJoinMiter -> str " stroke-linejoin=\"miter\""
+            LineJoinMiter -> mempty -- default -- str " stroke-linejoin=\"miter\""
             LineJoinRound -> str " stroke-linejoin=\"round\""
             LineJoinBevel -> str " stroke-linejoin=\"bevel\""
       f (ADashing d) =
@@ -198,6 +203,23 @@ renderAttrs t xs r = str "<g" <> matrix t <> mconcat (map f xs) <> chr '>' <> r'
               lens' = intersperse (chr ',') (map double lens)
           in    str " stroke-dasharray=\"" <> mconcat lens'
              <> str "\" stroke-dashoffset=\"" <> double offset <> close
+
+color :: Color c => String -> Double -> c -> Render
+color name defAlpha = \c ->
+    let (r',g',b',a) = colorToRGBA c
+        t d = round (d * 255)
+    in (
+        case (t r', t g', t b') of
+          (0,0,0) -> mempty -- default --
+          (r,g,b) ->   str (' ' : name ++ "=\"rgb(")
+                    <> int r <> chr ','
+                    <> int g <> chr ','
+                    <> int b <> str ")\""
+       ) <> (
+        if a == defAlpha
+        then mempty -- default --
+        else str (' ' : name ++ "-opacity=\"") <> double a <> chr '\"'
+       )
 
 
 
