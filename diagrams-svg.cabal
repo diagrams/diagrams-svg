@@ -25,9 +25,10 @@ Library
   Other-modules:       Graphics.Rendering.SVG
   Hs-source-dirs:      src
   Build-depends:       base          >= 4.3   && < 4.6
-                     , old-time >= 1.1
-                     , process  >= 1.1
-                     , directory >= 1.1
+                     , old-time >= 1.0 && < 1.2
+                     , process >= 1.0 && < 1.2
+                     , directory >= 1.0 && < 1.2
+                     , filepath >= 1.2 && < 1.4
                      , bytestring    >= 0.9   && < 1.0
                      , blaze-builder >= 0.3   && < 0.4
                      , blaze-textual >= 0.1   && < 1
