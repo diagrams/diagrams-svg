@@ -1,4 +1,4 @@
-{-# LANGUAGE DeriveDataTypeable, GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE DeriveDataTypeable, GeneralizedNewtypeDeriving, ViewPatterns #-}
 module Graphics.Rendering.SVG
     ( Render(..)
     , svgHeader
@@ -11,10 +11,10 @@ module Graphics.Rendering.SVG
 
 -- from base
 import Data.List (intersperse)
-import Data.Typeable
+import Data.Monoid ((<>))
 
 -- from diagrams-lib
-import Diagrams.Prelude hiding (Render, Attribute, close, e)
+import Diagrams.Prelude hiding (Render, Attribute, close, e, (<>))
 import Diagrams.TwoD.Text
 import Diagrams.TwoD.Path
 
@@ -28,9 +28,6 @@ import qualified Blaze.Text as BT
 
 
 newtype Render = R { unR :: T2 -> B.Builder }
-
-instance Semigroup Render where
-  (<>) = mappend
 
 instance Monoid Render where
     mempty = builder mempty
@@ -104,15 +101,15 @@ renderPath' (Path trs) =    str "<path d=\""
                          <> mconcat (map renderTrail trs)
                          <> str "\"/>"
     where
-      renderTrail (P (x,y), Trail segs c) =
+      renderTrail (unp2 -> (x,y), Trail segs c) =
              chr 'M' <> double x <> sp <> double y
           <> closed (mconcat $ map renderSeg segs)
         where closed = if c then (<> chr 'Z') else id
 
-      renderSeg (Linear (x,0)) = chr 'h' <> double x
-      renderSeg (Linear (0,y)) = chr 'v' <> double y
-      renderSeg (Linear (x,y)) = chr 'l' <> double x <> sp <> double y
-      renderSeg (Cubic (x0,y0) (x1,y1) (x2,y2)) =
+      renderSeg (Linear (unr2 -> (x,0))) = chr 'h' <> double x
+      renderSeg (Linear (unr2 -> (0,y))) = chr 'v' <> double y
+      renderSeg (Linear (unr2 -> (x,y))) = chr 'l' <> double x <> sp <> double y
+      renderSeg (Cubic  (unr2 -> (x0,y0)) (unr2 -> (x1,y1)) (unr2 -> (x2,y2))) =
           chr 'c'
        <> double x0 <> sp
        <> double y0 <> sp
@@ -123,7 +120,7 @@ renderPath' (Path trs) =    str "<path d=\""
 
 
 renderText :: Text -> Render
-renderText (Text t val) =
+renderText (Text t _ val) =
     str "<text" <> matrix (t <> reflectionY) <> str ">"
  <> escapedStr val
  <> str "</text>"
@@ -216,7 +213,7 @@ color name defAlpha = \c ->
 matrix :: T2 -> Render
 matrix t2 = R $ \t1 -> let t = inv t1 <> t2 in unR (m t) t2
     where
-      m t = case (apply t (1,0), apply t (0,1), transl t) of
+      m t = case (unr2 (apply t unitX), unr2 (apply t unitY), unr2 (transl t)) of
               ((1,0), (0,1), (0,0)) -> mempty
               ((1,0), (0,1), (e,0)) ->    str " transform=\"translate("
                                        <> double e

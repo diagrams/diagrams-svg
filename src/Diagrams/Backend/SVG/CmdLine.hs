@@ -14,15 +14,12 @@
 module Diagrams.Backend.SVG.CmdLine
        ( defaultMain
        , multiMain
-
-       , SVG
-       , svgID
        ) where
 
 import qualified Data.ByteString.Lazy as BS
 import qualified Blaze.ByteString.Builder as B
 
-import Diagrams.Prelude hiding (width, height)
+import Diagrams.Prelude hiding (width, height, interval)
 import Diagrams.Backend.SVG
 
 import System.Console.CmdArgs.Implicit hiding (args)

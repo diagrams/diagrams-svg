@@ -1,5 +1,5 @@
 Name:                diagrams-svg
-Version:             0.1
+Version:             0.2
 Synopsis:            SVG backend for diagrams drawing EDSL.
 Homepage:            http://code.haskell.org/diagrams/
 License:             BSD3
@@ -24,17 +24,17 @@ Library
                        Diagrams.Backend.SVG.CmdLine
   Other-modules:       Graphics.Rendering.SVG
   Hs-source-dirs:      src
-  Build-depends:       base          >= 4.3   && < 4.5
+  Build-depends:       base          >= 4.3   && < 4.6
+                     , old-time >= 1.1
+                     , process  >= 1.1
+                     , directory >= 1.1
                      , bytestring    >= 0.9   && < 1.0
                      , blaze-builder >= 0.3   && < 0.4
                      , blaze-textual >= 0.1   && < 1
                      , vector-space  >= 0.7   && < 0.9
                      , colour
-                     , diagrams-core >= 0.4   && < 0.6
-                     , diagrams-lib  >= 0.4   && < 0.6
-                     , process       >= 1.0   && < 1.2
-                     , directory     >= 1.0   && < 1.2
-                     , old-time      >= 1.0   && < 1.1
+                     , diagrams-core >= 0.5   && < 0.6
+                     , diagrams-lib  >= 0.5   && < 0.6
                      , cmdargs       >= 0.6   && < 0.9
                      , split         >= 0.1.2 && < 0.2
   if !os(windows)

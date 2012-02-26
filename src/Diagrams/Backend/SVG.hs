@@ -22,7 +22,7 @@ import Data.Typeable
 import Data.Colour (transparent)
 
 -- from diagrams-lib
-import Diagrams.Prelude
+import Diagrams.Prelude hiding ((<>))
 import Diagrams.TwoD.Adjust (adjustDia2D)
 import Diagrams.TwoD.Text
 
@@ -56,14 +56,14 @@ data SVG = SVG
 
 instance Monoid (Render SVG R2) where
   mempty  = R $ mempty
-  (R r1) `mappend` (R r2) = R (r1 <> r2)
+  (R r1) `mappend` (R r2_) = R (r1 <> r2_)
 
 
 instance Backend SVG R2 where
   data Render  SVG R2 = R (R.Render)
   type Result  SVG R2 = B.Builder
-  data Options SVG R2 = SVGOptions 
-                        { fileName     :: String       -- ^ the name of the file you want generated         
+  data Options SVG R2 = SVGOptions
+                        { fileName     :: String       -- ^ the name of the file you want generated
                         , size :: SizeSpec2D           -- ^ The requested size.
                         }
 
@@ -103,7 +103,7 @@ instance Renderable (Segment R2) SVG where
   render c = render c . flip Trail False . (:[])
 
 instance Renderable (Trail R2) SVG where
-  render c t = render c $ Path [(P (0,0), t)]
+  render c t = render c $ Path [(p2 (0,0), t)]
 
 instance Renderable (Path R2) SVG where
   render _ = R . R.renderPath
