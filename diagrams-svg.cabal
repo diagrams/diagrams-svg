@@ -21,13 +21,24 @@ Source-repository head
 
 Library
   Exposed-modules:     Diagrams.Backend.SVG
+                       Diagrams.Backend.SVG.CmdLine
   Other-modules:       Graphics.Rendering.SVG
   Hs-source-dirs:      src
   Build-depends:       base          >= 4.3   && < 4.5
+                     , bytestring    >= 0.9   && < 1.0
                      , blaze-builder >= 0.3   && < 0.4
                      , blaze-textual >= 0.1   && < 1
-                     , vector-space  >= 0.7   && < 0.8
+                     , vector-space  >= 0.7   && < 0.9
                      , colour
-                     , diagrams-core >= 0.4   && < 0.5
-                     , diagrams-lib  >= 0.4   && < 0.5
+                     , diagrams-core >= 0.4   && < 0.6
+                     , diagrams-lib  >= 0.4   && < 0.6
+                     , process       >= 1.0   && < 1.2
+                     , directory     >= 1.0   && < 1.2
+                     , old-time      >= 1.0   && < 1.1
+                     , cmdargs       >= 0.6   && < 0.9
+                     , split         >= 0.1.2 && < 0.2
+  if !os(windows)
+    cpp-options: -DCMDLINELOOP
+    Build-depends:     unix >= 2.4 && < 2.6
+
   Ghc-options:         -Wall
