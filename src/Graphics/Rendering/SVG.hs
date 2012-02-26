@@ -1,9 +1,9 @@
+{-# LANGUAGE DeriveDataTypeable, GeneralizedNewtypeDeriving #-}
 module Graphics.Rendering.SVG
     ( Render(..)
     , svgHeader
     , svgFooter
     , renderPath
-    , renderEllipse
     , renderText
     , Attribute(..)
     , renderAttrs
@@ -11,10 +11,10 @@ module Graphics.Rendering.SVG
 
 -- from base
 import Data.List (intersperse)
+import Data.Typeable
 
 -- from diagrams-lib
 import Diagrams.Prelude hiding (Render, Attribute, close, e)
-import Diagrams.TwoD.Ellipse
 import Diagrams.TwoD.Text
 import Diagrams.TwoD.Path
 
@@ -28,6 +28,9 @@ import qualified Blaze.Text as BT
 
 
 newtype Render = R { unR :: T2 -> B.Builder }
+
+instance Semigroup Render where
+  (<>) = mappend
 
 instance Monoid Render where
     mempty = builder mempty
@@ -117,23 +120,6 @@ renderPath' (Path trs) =    str "<path d=\""
        <> double y1 <> sp
        <> double x2 <> sp
        <> double y2
-
-
-renderEllipse :: Ellipse -> Render
-renderEllipse (Ellipse t) =
-    str "<circle r=\"1\"" <> matrix t <> str "/>"
-{-
-renderEllipse ellipse =
-    let P (cx,cy) = ellipseCenter ellipse
-        P (rx,ry) = ellipseScale  ellipse
-        Deg angle = convertAngle (ellipseAngle ellipse)
-    in    str "<ellipse cx=\"" <> double cx
-       <> str "\" cy=\"" <> double cy
-       <> str "\" rx=\"" <> double rx
-       <> str "\" ry=\"" <> double ry
-       <> str "\" transform=\"rotate(" <> double angle
-       <> str ")\"/>"
--}
 
 
 renderText :: Text -> Render
