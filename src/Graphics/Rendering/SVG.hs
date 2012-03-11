@@ -1,12 +1,9 @@
-{-# LANGUAGE DeriveDataTypeable, GeneralizedNewtypeDeriving, ViewPatterns #-}
+{-# LANGUAGE DeriveDataTypeable, GeneralizedNewtypeDeriving, ViewPatterns, OverloadedStrings #-}
 module Graphics.Rendering.SVG
-    ( Render(..)
-    , svgHeader
-    , svgFooter
+    ( svgHeader
     , renderPath
     , renderText
-    , Attribute(..)
-    , renderAttrs
+    , applyTransform
     ) where
 
 -- from base
@@ -18,220 +15,79 @@ import Diagrams.Prelude hiding (Render, Attribute, close, e, (<>))
 import Diagrams.TwoD.Text
 import Diagrams.TwoD.Path
 
--- from blaze-builder
-import qualified Blaze.ByteString.Builder as B
-import qualified Blaze.ByteString.Builder.Char8 as B8
-import qualified Blaze.ByteString.Builder.Html.Utf8 as BH
+import Text.Blaze.Svg11 ((!), mkPath, m, cr, hr, vr, lr, z)
+import qualified Text.Blaze.Svg11 as S
+import qualified Text.Blaze.Svg11.Attributes as A
 
--- from blaze-textual
-import qualified Blaze.Text as BT
+svgHeader :: Double -> Double -> S.Svg -> S.Svg
+svgHeader w h_ s =  S.docTypeSvg
+  ! A.version "1.1"
+  ! A.width   (S.toValue w)
+  ! A.height  (S.toValue h_)
+  ! A.viewbox (S.toValue $ concat . intersperse " " $ map show [0, 0, round w, round h_]) $
+    topLevelGroup $ s
 
+topLevelGroup :: S.Svg -> S.Svg
+topLevelGroup = S.g
+  ! A.fill "rgb(0,0,0)"
+  ! A.fillOpacity "0"
+  ! A.fillRule "nonzero"
+  ! A.fontFamily "Sans"
+  ! A.fontSize "1"
+  ! A.fontStyle "normal"
+  ! A.opacity "1"
+  ! A.stroke "rgb(0,0,0)"
+  ! A.strokeOpacity "1"
+  ! A.strokeWidth "0.1"
+  ! A.strokeLinecap "butt"
+  ! A.strokeLinejoin "miter"
+  ! A.textAnchor "middle"
 
-newtype Render = R { unR :: T2 -> B.Builder }
+renderPath :: Path R2 -> S.Svg
+renderPath (Path trs)  = S.path ! A.d makePath
+ where
+  makePath = mkPath $ mapM_ renderTrail trs
 
-instance Monoid Render where
-    mempty = builder mempty
-    x `mappend` y = R $ \t -> unR x t `mappend` unR y t
+renderTrail (unp2 -> (x,y), Trail segs closed) = do
+  m x y
+  mapM_ renderSeg segs
+  if closed then z else return ()
 
-builder :: B.Builder -> Render
-builder = R . const
-
-sp :: Render
-sp = chr ' '
-
-chr :: Char -> Render
-chr = builder . B8.fromChar
-
-str :: String -> Render
-str = builder . B8.fromString
-
-int :: Int -> Render
-int = builder . BT.integral
-
-double :: Double -> Render
-double = builder . BT.double
-
-escapedStr :: String -> Render
-escapedStr = builder . BH.fromHtmlEscapedString
-
-
-
-
-
-
-svgHeader :: Double -> Double -> Render
-svgHeader w h =
-    str "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n\
-        \<svg xmlns=\"http://www.w3.org/2000/svg\" \
-             \xmlns:xlink=\"http://www.w3.org/1999/xlink\" \
-             \width=\""
- <> double w
- <> str "pt\" height=\""
- <> double h
- <> str "pt\" viewBox=\"0 0 "
- <> int (round w)
- <> sp
- <> int (round h)
- <> str "\" version=\"1.1\"><g\
-        \ fill=\"rgb(0,0,0)\"\
-        \ fill-opacity=\"0\"\
-        \ fill-rule=\"nonzero\"\
-        \ font-family=\"Sans\"\
-        \ font-size=\"1\"\
-        \ font-style=\"normal\"\
-        \ opacity=\"1\"\
-        \ stroke=\"rgb(0,0,0)\"\
-        \ stroke-opacity=\"1\"\
-        \ stroke-width=\"0.1\"\
-        \ stroke-linecap=\"butt\"\
-        \ stroke-linejoin=\"miter\"\
-        \ text-anchor=\"middle\"\
-        \>"
+renderSeg (Linear (unr2 -> (x,0))) = hr x
+renderSeg (Linear (unr2 -> (0,y))) = vr y
+renderSeg (Linear (unr2 -> (x,y))) = lr x y
+renderSeg (Cubic  (unr2 -> (x0,y0)) (unr2 -> (x1,y1)) (unr2 -> (x2,y2))) = cr x0 y0 x1 y1 x2 y2
 
 
-svgFooter :: Render
-svgFooter = str "</g></svg>"
+renderText :: Text -> S.Svg
+renderText _ = mempty
 
+applyTransform :: T2 -> S.Svg -> S.Svg
+applyTransform t s = S.g ! A.transform (matrix t) $ s
 
-renderPath :: Path R2 -> Render
-renderPath p = R $ \t -> unR (renderPath' $ transform (inv t) p) t
+matrix t = case (unr2 (apply t unitX), unr2 (apply t unitY), unr2 (transl t)) of
+  ((1,0), (0,1), (0,0)) -> mempty
 
-renderPath' :: Path R2 -> Render
-renderPath' (Path trs) =    str "<path d=\""
-                         <> mconcat (map renderTrail trs)
-                         <> str "\"/>"
-    where
-      renderTrail (unp2 -> (x,y), Trail segs c) =
-             chr 'M' <> double x <> sp <> double y
-          <> closed (mconcat $ map renderSeg segs)
-        where closed = if c then (<> chr 'Z') else id
+  ((1,0), (0,1), (e,0)) ->    "translate("
+                           <> S.toValue e
+                           <> close
 
-      renderSeg (Linear (unr2 -> (x,0))) = chr 'h' <> double x
-      renderSeg (Linear (unr2 -> (0,y))) = chr 'v' <> double y
-      renderSeg (Linear (unr2 -> (x,y))) = chr 'l' <> double x <> sp <> double y
-      renderSeg (Cubic  (unr2 -> (x0,y0)) (unr2 -> (x1,y1)) (unr2 -> (x2,y2))) =
-          chr 'c'
-       <> double x0 <> sp
-       <> double y0 <> sp
-       <> double x1 <> sp
-       <> double y1 <> sp
-       <> double x2 <> sp
-       <> double y2
+  ((1,0), (0,1), (e,f)) ->    "translate("
+                           <> S.toValue e <> " "
+                           <> S.toValue f
+                           <> close
 
+  ((a,0), (0,d), (0,0)) ->    "scale("
+                           <> S.toValue a <> " "
+                           <> S.toValue d
+                           <> close
 
-renderText :: Text -> Render
-renderText (Text t _ val) =
-    str "<text" <> matrix (t <> reflectionY) <> str ">"
- <> escapedStr val
- <> str "</text>"
-
-
-data Attribute =
-    AFillRule   FillRuleA
-  | AFont       Font
-  | AFontSize   FontSize
-  | AFontSlant  FontSlantA
-  | AFontWeight FontWeightA
-  | ALineColor  LineColor
-  | AFillColor  FillColor
-  | AOpacity    Opacity
-  | ALineWidth  LineWidth
-  | ALineCap    LineCapA
-  | ALineJoin   LineJoinA
-  | ADashing    DashingA
-
-renderAttrs :: T2 -> [Attribute] -> Render -> Render
-renderAttrs t xs r = str "<g" <> matrix t <> mconcat (map f xs) <> chr '>' <> r' <> str "</g>"
-    where
-      r' = R $ const $ unR r t
-      close = chr '"'
-      f (AFillRule fr) =
-          case getFillRule fr of
-            Winding -> mempty -- default -- str " fill-rule=\"nonzero\""
-            EvenOdd -> str " fill-rule=\"evenodd\""
-      f (AFont o) =
-          str " font-family=\"" <> escapedStr (getFont o) <> close
-      f (AFontSize s) =
-          case getFontSize s of
-            1 -> mempty -- default --
-            d -> str " font-size=\""<> double d <> close
-      f (AFontSlant s) =
-          case getFontSlant s of
-            FontSlantNormal  -> mempty -- default -- str " font-style=\"normal\""
-            FontSlantItalic  -> str " font-style=\"italic\""
-            FontSlantOblique -> str " font-style=\"oblique\""
-      f (AFontWeight s) =
-          case getFontWeight s of
-            FontWeightNormal -> mempty -- default -- str " font-weight=\"normal\""
-            FontWeightBold   -> str " font-weight=\"bold\""
-      f (ALineColor c) = color "stroke" 1 c
-      f (AFillColor c) = color "fill"   0 c
-      f (AOpacity o) =
-          case getOpacity o of
-            1 -> mempty -- default --
-            d -> str " opacity=\"" <> double d <> close
-      f (ALineWidth w) =
-          case getLineWidth w of
-            0.1 -> mempty -- default --
-            d   -> str " stroke-width=\"" <> double d <> close
-      f (ALineCap c) =
-          case getLineCap c of
-            LineCapButt   -> mempty -- default -- str " stroke-linecap=\"butt\""
-            LineCapRound  -> str " stroke-linecap=\"round\""
-            LineCapSquare -> str " stroke-linecap=\"square\""
-      f (ALineJoin j) =
-          case getLineJoin j of
-            LineJoinMiter -> mempty -- default -- str " stroke-linejoin=\"miter\""
-            LineJoinRound -> str " stroke-linejoin=\"round\""
-            LineJoinBevel -> str " stroke-linejoin=\"bevel\""
-      f (ADashing d) =
-          let Dashing lens offset = getDashing d
-              lens' = intersperse (chr ',') (map double lens)
-          in    str " stroke-dasharray=\"" <> mconcat lens'
-             <> str "\" stroke-dashoffset=\"" <> double offset <> close
-
-color :: Color c => String -> Double -> c -> Render
-color name defAlpha = \c ->
-    let (r',g',b',a) = colorToRGBA c
-        t d = round (d * 255)
-    in (
-        case (t r', t g', t b') of
-          (0,0,0) -> mempty -- default --
-          (r,g,b) ->   str (' ' : name ++ "=\"rgb(")
-                    <> int r <> chr ','
-                    <> int g <> chr ','
-                    <> int b <> str ")\""
-       ) <> (
-        if a == defAlpha
-        then mempty -- default --
-        else str (' ' : name ++ "-opacity=\"") <> double a <> chr '\"'
-       )
-
-
-
-
-matrix :: T2 -> Render
-matrix t2 = R $ \t1 -> let t = inv t1 <> t2 in unR (m t) t2
-    where
-      m t = case (unr2 (apply t unitX), unr2 (apply t unitY), unr2 (transl t)) of
-              ((1,0), (0,1), (0,0)) -> mempty
-              ((1,0), (0,1), (e,0)) ->    str " transform=\"translate("
-                                       <> double e
-                                       <> close
-              ((1,0), (0,1), (e,f)) ->    str " transform=\"translate("
-                                       <> double e <> sp
-                                       <> double f
-                                       <> close
-              ((a,0), (0,d), (0,0)) ->    str " transform=\"scale("
-                                       <> double a <> sp
-                                       <> double d
-                                       <> close
-              ((a,b), (c,d), (e,f)) ->    str " transform=\"matrix("
-                                       <> double a <> sp
-                                       <> double b <> sp
-                                       <> double c <> sp
-                                       <> double d <> sp
-                                       <> double e <> sp
-                                       <> double f
-                                       <> close
-      close = str ")\""
+  ((a,b), (c,d), (e,f)) ->    "matrix("
+                           <> S.toValue a <>  " "
+                           <> S.toValue b <>  " "
+                           <> S.toValue c <>  " "
+                           <> S.toValue d <>  " "
+                           <> S.toValue e <>  " "
+                           <> S.toValue f
+                           <> close
+ where close = ")"

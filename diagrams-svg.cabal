@@ -1,5 +1,5 @@
 Name:                diagrams-svg
-Version:             0.2
+Version:             0.3
 Synopsis:            SVG backend for diagrams drawing EDSL.
 Homepage:            http://code.haskell.org/diagrams/
 License:             BSD3
@@ -13,7 +13,7 @@ Cabal-version:       >=1.6
 Description:
   This package provides a modular backend for rendering diagrams
   created with the diagrams EDSL using SVG.  It uses
-  @blaze-builder@ to be fast, pure-Haskell backend.
+  @blaze-svg@ to be fast, pure-Haskell backend.
 
 Source-repository head
   type:     darcs
@@ -30,12 +30,12 @@ Library
                      , directory >= 1.0 && < 1.2
                      , filepath >= 1.2 && < 1.4
                      , bytestring    >= 0.9   && < 1.0
-                     , blaze-builder >= 0.3   && < 0.4
-                     , blaze-textual >= 0.1   && < 1
                      , vector-space  >= 0.7   && < 0.9
                      , colour
                      , diagrams-core >= 0.5   && < 0.6
                      , diagrams-lib  >= 0.5   && < 0.6
+                     , blaze-svg >= 0.1
+                     , blaze-html >= 0.4 && < 0.5
                      , cmdargs       >= 0.6   && < 0.9
                      , split         >= 0.1.2 && < 0.2
   if !os(windows)

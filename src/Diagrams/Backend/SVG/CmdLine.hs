@@ -16,13 +16,13 @@ module Diagrams.Backend.SVG.CmdLine
        , multiMain
        ) where
 
-import qualified Data.ByteString.Lazy as BS
-import qualified Blaze.ByteString.Builder as B
-
 import Diagrams.Prelude hiding (width, height, interval)
 import Diagrams.Backend.SVG
 
 import System.Console.CmdArgs.Implicit hiding (args)
+
+import Text.Blaze.Renderer.Utf8 (renderHtml)
+import qualified Data.ByteString.Lazy as BS
 
 import Prelude hiding      (catch)
 
@@ -110,7 +110,7 @@ chooseRender opts d =
                                                        (fromIntegral h)
 
                build = renderDia SVG (SVGOptions (output opts) sizeSpec) d
-           BS.writeFile (output opts) (B.toLazyByteString build)
+           BS.writeFile (output opts) (renderHtml build)
        | otherwise -> putStrLn $ "Unknown file type: " ++ last ps
 
 multiMain :: [(String, Diagram SVG R2)] -> IO ()

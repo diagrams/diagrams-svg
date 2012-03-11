@@ -14,7 +14,6 @@ module Diagrams.Backend.SVG
   ) where
 
 -- from base
-import Data.Maybe (catMaybes)
 import Data.Monoid
 import Data.Typeable
 
@@ -26,30 +25,13 @@ import Diagrams.Prelude hiding ((<>))
 import Diagrams.TwoD.Adjust (adjustDia2D)
 import Diagrams.TwoD.Text
 
--- from blaze-builder
-import qualified Blaze.ByteString.Builder as B
+-- from blaze-svg
+import Text.Blaze.Svg11 ((!))
+import qualified Text.Blaze.Svg11 as S
 
 -- from this package
 import qualified Graphics.Rendering.SVG as R
 
-
-
--- | This data declaration is simply used as a token to
--- distinguish this rendering engine.
---
--- The options for an SVG rendering are from the data type
---
--- @
---data Options SVG R2 = SVGOptions { size :: (Double, Double)
---                                   -- ^ The requested size.
---                                 }
--- @
---
--- The result of an SVG rendering is
---
--- @
---data Result SVG R2 = 'B.Builder'
--- @
 data SVG = SVG
     deriving (Show, Typeable)
 
@@ -60,31 +42,14 @@ instance Monoid (Render SVG R2) where
 
 
 instance Backend SVG R2 where
-  data Render  SVG R2 = R (R.Render)
-  type Result  SVG R2 = B.Builder
+  data Render  SVG R2 = R S.Svg
+  type Result  SVG R2 = S.Svg
   data Options SVG R2 = SVGOptions
                         { fileName     :: String       -- ^ the name of the file you want generated
                         , size :: SizeSpec2D           -- ^ The requested size.
                         }
 
--- TODO: Clip
-  withStyle _ s t (R r) = R $
-    let handle :: AttributeClass a => (a -> R.Attribute) -> Maybe R.Attribute
-        handle f = f `fmap` getAttr s
-    in flip (R.renderAttrs t) r $ catMaybes
-         [ handle R.AFillRule
-         , handle R.AFont
-         , handle R.AFontSize
-         , handle R.AFontSlant
-         , handle R.AFontWeight
-         , handle R.ALineColor
-         , handle R.AFillColor
-         , handle R.AOpacity
-         , handle R.ALineWidth
-         , handle R.ALineCap
-         , handle R.ALineJoin
-         , handle R.ADashing
-         ]
+  withStyle _ _ t (R s) = R $ R.applyTransform t s
 
   doRender _ (SVGOptions _ sz) (R r) =
     let (w,h) = case sz of
@@ -92,7 +57,7 @@ instance Backend SVG R2 where
                   Height h'  -> (h',h')
                   Dims w' h' -> (w',h')
                   Absolute   -> (100,100)
-    in R.unR (R.svgHeader w h <> r <> R.svgFooter) mempty
+    in R.svgHeader w h $ r
 
   adjustDia c opts d = adjustDia2D size setSvgSize c opts (d # reflectY
                                                              # fcA transparent
