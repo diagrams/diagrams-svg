@@ -49,7 +49,7 @@ instance Backend SVG R2 where
                         , size :: SizeSpec2D           -- ^ The requested size.
                         }
 
-  withStyle _ _ t (R s) = R $ R.applyTransform t s
+  withStyle _ _ _ d = d
 
   doRender _ (SVGOptions _ sz) (R r) =
     let (w,h) = case sz of

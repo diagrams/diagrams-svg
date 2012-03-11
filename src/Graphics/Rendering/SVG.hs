@@ -3,7 +3,6 @@ module Graphics.Rendering.SVG
     ( svgHeader
     , renderPath
     , renderText
-    , applyTransform
     ) where
 
 -- from base
