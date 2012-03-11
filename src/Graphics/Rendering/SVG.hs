@@ -37,7 +37,7 @@ topLevelGroup = S.g
   ! A.opacity "1"
   ! A.stroke "rgb(0,0,0)"
   ! A.strokeOpacity "1"
-  ! A.strokeWidth "0.1"
+  ! A.strokeWidth "0.5"
   ! A.strokeLinecap "butt"
   ! A.strokeLinejoin "miter"
   ! A.textAnchor "middle"

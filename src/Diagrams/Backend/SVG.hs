@@ -59,9 +59,7 @@ instance Backend SVG R2 where
                   Absolute   -> (100,100)
     in R.svgHeader w h $ r
 
-  adjustDia c opts d = adjustDia2D size setSvgSize c opts (d # reflectY
-                                                             # fcA transparent
-                                                          )
+  adjustDia c opts d = adjustDia2D size setSvgSize c opts d
     where setSvgSize sz o = o { size = sz }
 
 instance Renderable (Segment R2) SVG where
