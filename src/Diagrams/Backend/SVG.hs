@@ -17,16 +17,12 @@ module Diagrams.Backend.SVG
 import Data.Monoid
 import Data.Typeable
 
--- from colour
-import Data.Colour (transparent)
-
 -- from diagrams-lib
 import Diagrams.Prelude hiding ((<>))
 import Diagrams.TwoD.Adjust (adjustDia2D)
 import Diagrams.TwoD.Text
 
 -- from blaze-svg
-import Text.Blaze.Svg11 ((!))
 import qualified Text.Blaze.Svg11 as S
 
 -- from this package
