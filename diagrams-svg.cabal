@@ -16,8 +16,8 @@ Description:
   @blaze-svg@ to be fast, pure-Haskell backend.
 
 Source-repository head
-  type:     darcs
-  location: http://patch-tag.com/r/felipe/diagrams-svg
+  type:     git
+  location: http://github.com/deepakjois/diagrams-svg
 
 Library
   Exposed-modules:     Diagrams.Backend.SVG
