@@ -14,11 +14,10 @@ module Diagrams.Backend.SVG
   ) where
 
 -- from base
-import Data.Monoid
 import Data.Typeable
 
 -- from diagrams-lib
-import Diagrams.Prelude hiding ((<>))
+import Diagrams.Prelude
 import Diagrams.TwoD.Adjust (adjustDia2D)
 import Diagrams.TwoD.Text
 
@@ -34,7 +33,7 @@ data SVG = SVG
 
 instance Monoid (Render SVG R2) where
   mempty  = R $ mempty
-  (R r1) `mappend` (R r2_) = R (r1 <> r2_)
+  (R r1) `mappend` (R r2_) = R (r1 `mappend` r2_)
 
 
 instance Backend SVG R2 where
