@@ -44,6 +44,7 @@ instance Backend SVG R2 where
                         , size :: SizeSpec2D           -- ^ The requested size.
                         }
 
+  -- FIXME implement
   withStyle _ _ _ d = d
 
   doRender _ (SVGOptions _ sz) (R r) =
