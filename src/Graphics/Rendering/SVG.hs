@@ -3,6 +3,7 @@ module Graphics.Rendering.SVG
     ( svgHeader
     , renderPath
     , renderText
+    , renderLineWidth
     ) where
 
 -- from base
@@ -60,3 +61,15 @@ renderSeg (Cubic  (unr2 -> (x0,y0)) (unr2 -> (x1,y1)) (unr2 -> (x2,y2))) = cr x0
 -- FIXME implement
 renderText :: Text -> S.Svg
 renderText _ = mempty
+
+renderLineWidth :: Style v -> S.Attribute
+renderLineWidth s = renderStyle A.strokeWidth lineWidth_
+ where lineWidth_ = getLineWidth `fmap` getAttr s
+
+-- Render a style attribute if available, empty otherwise
+renderStyle :: S.ToValue s => (S.AttributeValue -> S.Attribute)
+                     -> Maybe s
+                     -> S.Attribute
+renderStyle attr valM = case valM of
+  Just val -> attr (S.toValue val)
+  Nothing  -> mempty
