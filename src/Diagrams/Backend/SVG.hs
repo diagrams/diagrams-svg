@@ -47,7 +47,7 @@ instance Backend SVG R2 where
 
   -- FIXME implement
   withStyle _ s _ (R r) = R styledSvg
-   where styledSvg = S.g ! R.renderLineWidth s $ r
+   where styledSvg = S.g ! R.renderStyles s $ r
 
   doRender _ (SVGOptions _ sz) (R r) =
     let (w,h) = case sz of
