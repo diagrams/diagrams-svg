@@ -23,23 +23,7 @@ svgHeader w h_ s =  S.docTypeSvg
   ! A.width   (S.toValue w)
   ! A.height  (S.toValue h_)
   ! A.viewbox (S.toValue $ concat . intersperse " " $ map show ([0, 0, round w, round h_] :: [Int])) $
-    topLevelGroup $ s
-
-topLevelGroup :: S.Svg -> S.Svg
-topLevelGroup = S.g
-  ! A.fill "rgb(0,0,0)"
-  ! A.fillOpacity "0"
-  ! A.fillRule "nonzero"
-  ! A.fontFamily "Sans"
-  ! A.fontSize "1"
-  ! A.fontStyle "normal"
-  ! A.opacity "1"
-  ! A.stroke "rgb(0,0,0)"
-  ! A.strokeOpacity "1"
-  ! A.strokeWidth "0.5"
-  ! A.strokeLinecap "butt"
-  ! A.strokeLinejoin "miter"
-  ! A.textAnchor "middle"
+     S.g $ s
 
 renderPath :: Path R2 -> S.Svg
 renderPath (Path trs)  = S.path ! A.d makePath
