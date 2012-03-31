@@ -34,8 +34,7 @@ Library
                      , colour
                      , diagrams-core >= 0.5   && < 0.6
                      , diagrams-lib  >= 0.5   && < 0.6
-                     , blaze-svg >= 0.1.1
-                     , blaze-html >= 0.4 && < 0.5
+                     , blaze-svg >= 0.2
                      , cmdargs       >= 0.6   && < 0.9
                      , split         >= 0.1.2 && < 0.2
   if !os(windows)

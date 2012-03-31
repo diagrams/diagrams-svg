@@ -21,7 +21,7 @@ import Diagrams.Backend.SVG
 
 import System.Console.CmdArgs.Implicit hiding (args)
 
-import Text.Blaze.Renderer.Utf8 (renderHtml)
+import Text.Blaze.Svg.Renderer.Utf8 (renderSvg)
 import qualified Data.ByteString.Lazy as BS
 
 import Prelude hiding      (catch)
@@ -110,7 +110,7 @@ chooseRender opts d =
                                                        (fromIntegral h)
 
                build = renderDia SVG (SVGOptions (output opts) sizeSpec) d
-           BS.writeFile (output opts) (renderHtml build)
+           BS.writeFile (output opts) (renderSvg build)
        | otherwise -> putStrLn $ "Unknown file type: " ++ last ps
 
 multiMain :: [(String, Diagram SVG R2)] -> IO ()
