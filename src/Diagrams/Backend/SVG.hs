@@ -25,6 +25,9 @@ import Diagrams.TwoD.Text
 import qualified Text.Blaze.Svg11 as S
 import Text.Blaze.Svg11 ((!))
 
+-- from colour
+import Data.Colour (transparent)
+
 -- from this package
 import qualified Graphics.Rendering.SVG as R
 
@@ -57,7 +60,9 @@ instance Backend SVG R2 where
                   Absolute   -> (100,100)
     in R.svgHeader w h $ r
 
-  adjustDia c opts d = adjustDia2D size setSvgSize c opts d
+  adjustDia c opts d = adjustDia2D size setSvgSize c opts (d # reflectY
+                                                               # fcA transparent
+                                                          )
     where setSvgSize sz o = o { size = sz }
 
 instance Renderable (Segment R2) SVG where
