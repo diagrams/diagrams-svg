@@ -51,6 +51,8 @@ renderStyles s = mconcat . map ($ s) $
   [ renderLineColor
   , renderFillColor
   , renderLineWidth
+  , renderLineCap
+  , renderLineJoin
   ]
 
 renderLineColor :: Style v -> S.Attribute
@@ -73,6 +75,22 @@ renderFillColor s =
 renderLineWidth :: Style v -> S.Attribute
 renderLineWidth s = renderAttr A.strokeWidth lineWidth_
  where lineWidth_ = getLineWidth `fmap` getAttr s
+
+renderLineCap :: Style v -> S.Attribute
+renderLineCap s = renderAttr A.strokeLinecap lineCap_
+  where lineCap_ = (lineCapToStr . getLineCap) `fmap` getAttr s
+        lineCapToStr :: LineCap -> String
+        lineCapToStr LineCapButt   = "butt"
+        lineCapToStr LineCapRound  = "round"
+        lineCapToStr LineCapSquare = "square"
+
+renderLineJoin :: Style v -> S.Attribute
+renderLineJoin s = renderAttr A.strokeLinejoin lineJoin_
+  where lineJoin_ = (lineJoinToStr . getLineJoin) `fmap` getAttr s
+        lineJoinToStr :: LineJoin -> String
+        lineJoinToStr LineJoinMiter = "miter"
+        lineJoinToStr LineJoinRound = "round"
+        lineJoinToStr LineJoinBevel = "bevel"
 
 -- Render a style attribute if available, empty otherwise
 renderAttr :: S.ToValue s => (S.AttributeValue -> S.Attribute)
