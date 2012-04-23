@@ -15,10 +15,7 @@ Description:
   created with the diagrams EDSL using SVG.  It uses
   @blaze-svg@ to be a fast, pure-Haskell backend.
   .
-  More documentation:
-  .
-  * Github README : <https://github.com/deepakjois/diagrams-svg/blob/master/README>      
-  * "Diagrams.Backend.SVG.CmdLine"
+  More documentation: Github README : <https://github.com/deepakjois/diagrams-svg/blob/master/README>      
 
 Source-repository head
   type:     git
