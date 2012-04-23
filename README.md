@@ -76,13 +76,9 @@ Here is the SVG file that is generated.
 </svg>
 ```
 
-which looks like this
-
-<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" width="22.0" height="22.0" viewBox="0 0 22 22"><g><g stroke="rgb(0,0,0)" stroke-opacity="1.0" fill="rgb(0,0,0)" fill-opacity="0.0" stroke-width="2.0e-3"><path d="M 21.0,21.0 l -2.220446049250313e-15,-20.0 h -20.0 l -2.220446049250313e-15,20.0 Z" /></g></g></svg>
-
 ## Other Backends
 
-* [diagrams-cairo][http://hackage.haskell.org/package/diagrams-cairo-0.4]
-* [diagrams-postscript][http://patch-tag.com/r/fryguybob/diagrams-postscript]
-* [diagrams-canvas][https://github.com/byorgey/diagrams-canvas/]
+* [diagrams-cairo](http://hackage.haskell.org/package/diagrams-cairo-0.4)
+* [diagrams-postscript](http://patch-tag.com/r/fryguybob/diagrams-postscript)
+* [diagrams-canvas](https://github.com/byorgey/diagrams-canvas/)
 
