@@ -6,9 +6,8 @@ using the [Haskell programming language][haskell].
 [haskell]: http://www.haskell.org/haskellwiki/Haskell
 
 _diagrams-svg_ is a work in progress, and some features are not implemented
-yet. However, it is functional enough that [hs-logo] uses it as the backend to
-do some pretty cool stuff. Check out the [issues page][issues] to get an idea
-of the features that are missing.
+yet. However, it is functional enough that [hs-logo] uses it. Check out the 
+[issues page][issues] to get an idea of the features that are missing.
 
 [issues]: https://github.com/deepakjois/diagrams-svg/issues
 [hs-logo]: http://github.com/deepakjois/hs-logo
@@ -77,7 +76,7 @@ The command above generates the SVG file:
 </svg>
 ```
 
-## Other Backends
+## Other Backends for Diagrams
 
 * [diagrams-cairo](http://hackage.haskell.org/package/diagrams-cairo-0.4)
 * [diagrams-postscript](http://patch-tag.com/r/fryguybob/diagrams-postscript)
