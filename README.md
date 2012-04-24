@@ -11,6 +11,7 @@ do some pretty cool stuff. Check out the [issues page][issues] to get an idea
 of the features that are missing.
 
 [issues]: https://github.com/deepakjois/diagrams-svg/issues
+[hs-logo]: http://github.com/deepakjois/hs-logo
 
 # Installation
 
@@ -20,7 +21,7 @@ cabal update && cabal install diagrams-svg
 
 # Usage
 
-Here is a simple example that uses _diagrams-svg_ to draw a square.
+A simple example that uses _diagrams-svg_ to draw a square.
 
 ```haskell
 import Diagrams.Prelude
@@ -61,7 +62,7 @@ file.
 $ ./Square -o square.svg
 ```
 
-Here is the SVG file that is generated.
+The command above generates the SVG file:
 
 ```
 <?xml version="1.0" encoding="UTF-8"?>
