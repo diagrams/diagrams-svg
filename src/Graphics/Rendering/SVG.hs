@@ -12,6 +12,7 @@ import Data.List (intersperse)
 -- from diagrams-lib
 import Diagrams.Prelude hiding (Render, Attribute, close, e, (<>))
 import Diagrams.TwoD.Text
+import Diagrams.TwoD.Path (getFillRule)
 
 import Text.Blaze.Svg11 ((!), mkPath, m, cr, hr, vr, lr, z)
 import qualified Text.Blaze.Svg11 as S
@@ -53,6 +54,7 @@ renderStyles s = mconcat . map ($ s) $
   , renderLineWidth
   , renderLineCap
   , renderLineJoin
+  , renderFillRule
   ]
 
 renderLineColor :: Style v -> S.Attribute
@@ -71,6 +73,13 @@ renderFillColor s =
        fillColorRgb     = colorToRgbString `fmap` fillColor_
        fillColorOpacity = colorToOpacity `fmap` fillColor_
 
+
+renderFillRule :: Style v -> S.Attribute
+renderFillRule s = renderAttr A.fillRule fillRule_
+  where fillRule_ = (fillRuleToStr . getFillRule) `fmap` getAttr s
+        fillRuleToStr :: FillRule -> String
+        fillRuleToStr Winding = "nonzero"
+        fillRuleToStr EvenOdd = "evenodd"
 
 renderLineWidth :: Style v -> S.Attribute
 renderLineWidth s = renderAttr A.strokeWidth lineWidth_
