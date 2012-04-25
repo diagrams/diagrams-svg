@@ -56,6 +56,7 @@ renderStyles s = mconcat . map ($ s) $
   , renderLineJoin
   , renderFillRule
   , renderDashing
+  , renderOpacity
   ]
 
 renderLineColor :: Style v -> S.Attribute
@@ -74,6 +75,10 @@ renderFillColor s =
        fillColorRgb     = colorToRgbString <$> fillColor_
        fillColorOpacity = colorToOpacity <$> fillColor_
 
+
+renderOpacity :: Style v -> S.Attribute
+renderOpacity s = renderAttr A.opacity opacity_
+ where opacity_ = getOpacity <$> getAttr s
 
 renderFillRule :: Style v -> S.Attribute
 renderFillRule s = renderAttr A.fillRule fillRule_

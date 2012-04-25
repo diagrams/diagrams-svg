@@ -7,3 +7,4 @@ examples/FillRule
 examples/Temp
 # This is just used as scratch space
 examples/Temp.hs
+examples/Opacity
