@@ -61,33 +61,33 @@ renderLineColor :: Style v -> S.Attribute
 renderLineColor s =
   (renderAttr A.stroke lineColorRgb) `mappend`
   (renderAttr A.strokeOpacity lineColorOpacity)
- where lineColor_       = getLineColor `fmap` getAttr s
-       lineColorRgb     = colorToRgbString `fmap` lineColor_
-       lineColorOpacity = colorToOpacity `fmap` lineColor_
+ where lineColor_       = getLineColor <$> getAttr s
+       lineColorRgb     = colorToRgbString <$> lineColor_
+       lineColorOpacity = colorToOpacity <$> lineColor_
 
 renderFillColor :: Style v -> S.Attribute
 renderFillColor s =
   (renderAttr A.fill fillColorRgb) `mappend`
   (renderAttr A.fillOpacity fillColorOpacity)
- where fillColor_       = getFillColor `fmap` getAttr s
-       fillColorRgb     = colorToRgbString `fmap` fillColor_
-       fillColorOpacity = colorToOpacity `fmap` fillColor_
+ where fillColor_       = getFillColor <$> getAttr s
+       fillColorRgb     = colorToRgbString <$> fillColor_
+       fillColorOpacity = colorToOpacity <$> fillColor_
 
 
 renderFillRule :: Style v -> S.Attribute
 renderFillRule s = renderAttr A.fillRule fillRule_
-  where fillRule_ = (fillRuleToStr . getFillRule) `fmap` getAttr s
+  where fillRule_ = (fillRuleToStr . getFillRule) <$> getAttr s
         fillRuleToStr :: FillRule -> String
         fillRuleToStr Winding = "nonzero"
         fillRuleToStr EvenOdd = "evenodd"
 
 renderLineWidth :: Style v -> S.Attribute
 renderLineWidth s = renderAttr A.strokeWidth lineWidth_
- where lineWidth_ = getLineWidth `fmap` getAttr s
+ where lineWidth_ = getLineWidth <$> getAttr s
 
 renderLineCap :: Style v -> S.Attribute
 renderLineCap s = renderAttr A.strokeLinecap lineCap_
-  where lineCap_ = (lineCapToStr . getLineCap) `fmap` getAttr s
+  where lineCap_ = (lineCapToStr . getLineCap) <$> getAttr s
         lineCapToStr :: LineCap -> String
         lineCapToStr LineCapButt   = "butt"
         lineCapToStr LineCapRound  = "round"
@@ -95,7 +95,7 @@ renderLineCap s = renderAttr A.strokeLinecap lineCap_
 
 renderLineJoin :: Style v -> S.Attribute
 renderLineJoin s = renderAttr A.strokeLinejoin lineJoin_
-  where lineJoin_ = (lineJoinToStr . getLineJoin) `fmap` getAttr s
+  where lineJoin_ = (lineJoinToStr . getLineJoin) <$> getAttr s
         lineJoinToStr :: LineJoin -> String
         lineJoinToStr LineJoinMiter = "miter"
         lineJoinToStr LineJoinRound = "round"
