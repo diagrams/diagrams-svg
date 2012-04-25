@@ -87,6 +87,19 @@ diagramOpts prog sel = DiagramOpts
   &= summary "Command-line diagram generation."
   &= program prog
 
+-- | This is the simplest way to render diagrams, and is intended to
+--   be used like so:
+--
+-- > ... definitions ...
+-- >
+-- > main = defaultMain myDiagram
+--
+--   Compiling this file will result in an executable which takes
+--   various command-line options for setting the size, output file,
+--   and so on, and renders @myDiagram@ with the specified options.
+--
+--   Pass @--help@ to the generated executable to see all available
+--   options.
 defaultMain :: Diagram SVG R2 -> IO ()
 defaultMain d = do
   prog <- getProgName
@@ -113,6 +126,14 @@ chooseRender opts d =
            BS.writeFile (output opts) (renderSvg build)
        | otherwise -> putStrLn $ "Unknown file type: " ++ last ps
 
+
+-- | @multiMain@ is like 'defaultMain', except instead of a single
+--   diagram it takes a list of diagrams paired with names as input.
+--   The generated executable then takes an argument specifying the
+--   name of the diagram that should be rendered.  This is a
+--   convenient way to create an executable that can render many
+--   different diagrams without modifying the source code in between
+--   each one.
 multiMain :: [(String, Diagram SVG R2)] -> IO ()
 multiMain ds = do
   prog <- getProgName
