@@ -7,7 +7,7 @@ module Graphics.Rendering.SVG
     ) where
 
 -- from base
-import Data.List (intersperse)
+import Data.List (intersperse, intercalate)
 
 -- from diagrams-lib
 import Diagrams.Prelude hiding (Render, Attribute, close, e, (<>))
@@ -55,6 +55,7 @@ renderStyles s = mconcat . map ($ s) $
   , renderLineCap
   , renderLineJoin
   , renderFillRule
+  , renderDashing
   ]
 
 renderLineColor :: Style v -> S.Attribute
@@ -100,6 +101,18 @@ renderLineJoin s = renderAttr A.strokeLinejoin lineJoin_
         lineJoinToStr LineJoinMiter = "miter"
         lineJoinToStr LineJoinRound = "round"
         lineJoinToStr LineJoinBevel = "bevel"
+
+renderDashing :: Style v -> S.Attribute
+renderDashing s = (renderAttr A.strokeDasharray arr) `mappend`
+                  (renderAttr A.strokeDashoffset offset)
+ where
+  getDasharray  (Dashing a _) = a
+  getDashoffset :: Dashing -> Double
+  getDashoffset (Dashing _ o) = o
+  dashArrayToStr              = intercalate "," . map show
+  dashing_                    = getDashing <$> getAttr s
+  arr                         = (dashArrayToStr . getDasharray) <$> dashing_
+  offset                      = getDashoffset <$> dashing_
 
 -- Render a style attribute if available, empty otherwise
 renderAttr :: S.ToValue s => (S.AttributeValue -> S.Attribute)
