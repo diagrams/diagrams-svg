@@ -1,3 +1,9 @@
+# Example executables
 examples/Explode
 examples/LineStyles
 examples/Pentaflake
+examples/AttrTest
+examples/FillRule
+examples/Temp
+# This is just used as scratch space
+examples/Temp.hs
