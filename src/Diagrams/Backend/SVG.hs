@@ -18,6 +18,7 @@ import Data.Typeable
 
 -- from diagrams-lib
 import Diagrams.Prelude
+import Diagrams.TwoD.Path (getClip)
 import Diagrams.TwoD.Adjust (adjustDia2D)
 import Diagrams.TwoD.Text
 
@@ -50,7 +51,11 @@ instance Backend SVG R2 where
 
   -- FIXME implement
   withStyle _ s _ (R r) = R styledSvg
-   where styledSvg = S.g ! R.renderStyles s $ r
+   where 
+     styledSvg = S.g ! R.renderStyles s $ do 
+                   R.renderClip (getClip <$> getAttr s) -- Clipping if any
+                   r -- The diagram
+
 
   doRender _ (SVGOptions _ sz) (R r) =
     let (w,h) = case sz of

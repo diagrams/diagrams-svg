@@ -5,6 +5,7 @@ examples/Pentaflake
 examples/AttrTest
 examples/FillRule
 examples/Temp
+examples/Opacity
+examples/Clipping
 # This is just used as scratch space
 examples/Temp.hs
-examples/Opacity

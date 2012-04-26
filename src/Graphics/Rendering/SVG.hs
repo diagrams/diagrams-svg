@@ -2,6 +2,7 @@
 module Graphics.Rendering.SVG
     ( svgHeader
     , renderPath
+    , renderClip
     , renderText
     , renderStyles
     ) where
@@ -12,7 +13,7 @@ import Data.List (intersperse, intercalate)
 -- from diagrams-lib
 import Diagrams.Prelude hiding (Render, Attribute, close, e, (<>))
 import Diagrams.TwoD.Text
-import Diagrams.TwoD.Path (getFillRule)
+import Diagrams.TwoD.Path (getFillRule, getClip)
 
 import Text.Blaze.Svg11 ((!), mkPath, m, cr, hr, vr, lr, z)
 import qualified Text.Blaze.Svg11 as S
@@ -43,6 +44,12 @@ renderSeg (Linear (unr2 -> (0,y))) = vr y
 renderSeg (Linear (unr2 -> (x,y))) = lr x y
 renderSeg (Cubic  (unr2 -> (x0,y0)) (unr2 -> (x1,y1)) (unr2 -> (x2,y2))) = cr x0 y0 x1 y1 x2 y2
 
+
+renderClip :: Maybe [Path R2] -> S.Svg
+renderClip Nothing     = mempty
+renderClip (Just pths) = S.clippath ! A.id_ "myClip" $ renderClipPaths
+  where renderClipPaths = mapM_ renderPath pths
+
 -- FIXME implement
 renderText :: Text -> S.Svg
 renderText _ = mempty
@@ -57,6 +64,7 @@ renderStyles s = mconcat . map ($ s) $
   , renderFillRule
   , renderDashing
   , renderOpacity
+  , renderClipPathId
   ]
 
 renderLineColor :: Style v -> S.Attribute
@@ -118,6 +126,14 @@ renderDashing s = (renderAttr A.strokeDasharray arr) `mappend`
   dashing_                    = getDashing <$> getAttr s
   arr                         = (dashArrayToStr . getDasharray) <$> dashing_
   offset                      = getDashoffset <$> dashing_
+
+renderClipPathId :: Style v -> S.Attribute
+renderClipPathId s = renderAttr A.clipPath clipPathId
+ where
+  clipPathId :: Maybe String
+  clipPathId = case getClip <$> getAttr s of
+                 Nothing -> Nothing
+                 Just _ -> Just "url(#myClip)"
 
 -- Render a style attribute if available, empty otherwise
 renderAttr :: S.ToValue s => (S.AttributeValue -> S.Attribute)
