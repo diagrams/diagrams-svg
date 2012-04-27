@@ -3,6 +3,7 @@ module Graphics.Rendering.SVG
     ( svgHeader
     , renderPath
     , renderClip
+    , renderClipPathId
     , renderText
     , renderStyles
     ) where
@@ -45,10 +46,11 @@ renderSeg (Linear (unr2 -> (x,y))) = lr x y
 renderSeg (Cubic  (unr2 -> (x0,y0)) (unr2 -> (x1,y1)) (unr2 -> (x2,y2))) = cr x0 y0 x1 y1 x2 y2
 
 
-renderClip :: Maybe [Path R2] -> S.Svg
-renderClip Nothing     = mempty
-renderClip (Just pths) = S.clippath ! A.id_ "myClip" $ renderClipPaths
+renderClip :: Maybe [Path R2] -> Int -> S.Svg
+renderClip Nothing _       = mempty
+renderClip (Just pths) id_ = S.clippath ! A.id_ clipPathId $ renderClipPaths
   where renderClipPaths = mapM_ renderPath pths
+        clipPathId      = S.toValue $ "myClip" ++ show id_
 
 -- FIXME take alignment into account
 renderText :: Text -> S.Svg
@@ -65,7 +67,6 @@ renderStyles s = mconcat . map ($ s) $
   , renderFillRule
   , renderDashing
   , renderOpacity
-  , renderClipPathId
   ]
 
 renderLineColor :: Style v -> S.Attribute
@@ -128,13 +129,13 @@ renderDashing s = (renderAttr A.strokeDasharray arr) `mappend`
   arr                         = (dashArrayToStr . getDasharray) <$> dashing_
   offset                      = getDashoffset <$> dashing_
 
-renderClipPathId :: Style v -> S.Attribute
-renderClipPathId s = renderAttr A.clipPath clipPathId
+renderClipPathId :: Style v -> Int -> S.Attribute
+renderClipPathId s id_ = renderAttr A.clipPath clipPathId
  where
   clipPathId :: Maybe String
   clipPathId = case getClip <$> getAttr s of
                  Nothing -> Nothing
-                 Just _ -> Just "url(#myClip)"
+                 Just _ -> Just ("url(#myClip" ++ show id_ ++ ")")
 
 -- Render a style attribute if available, empty otherwise
 renderAttr :: S.ToValue s => (S.AttributeValue -> S.Attribute)

@@ -15,6 +15,7 @@ module Diagrams.Backend.SVG
 
 -- from base
 import Data.Typeable
+import Control.Monad.State
 
 -- from diagrams-lib
 import Diagrams.Prelude
@@ -36,34 +37,66 @@ data SVG = SVG
     deriving (Show, Typeable)
 
 
-instance Monoid (Render SVG R2) where
-  mempty  = R $ mempty
-  (R r1) `mappend` (R r2_) = R (r1 `mappend` r2_)
+data SvgRenderState = SvgRenderState { clipPathId :: Int }
 
+initialSvgRenderState :: SvgRenderState
+initialSvgRenderState = SvgRenderState 0
+
+-- Monad to keep track of state when rendering an SVG.
+-- Currently just keeps a monotonically increasing counter
+-- for assiging unique clip path ID
+type SvgRenderM = State SvgRenderState S.Svg
+
+incrementClipPath :: State SvgRenderState ()
+incrementClipPath = modify (\(SvgRenderState x) -> SvgRenderState (x + 1))
+
+instance Monoid (Render SVG R2) where
+  mempty  = R $ return mempty
+  (R r1) `mappend` (R r2_) =
+    R $ do
+      svg1 <- r1
+      svg2 <- r2_
+      return (svg1 `mappend` svg2)
+
+-- renders a <g> element with styles applied
+renderStyledGroup :: Style v -> (S.Svg -> S.Svg)
+renderStyledGroup s = S.g ! R.renderStyles s
+
+renderSvgWithClipping :: S.Svg     -- Input SVG
+                      -> Style v -- Styles
+                      -> Int     -- Clip Path ID
+                      -> S.Svg   -- Resulting svg
+renderSvgWithClipping svg s id_ = do
+  R.renderClip (getClip <$> getAttr s) id_  -- Clipping if any
+  svg  -- The diagram
 
 instance Backend SVG R2 where
-  data Render  SVG R2 = R S.Svg
+  data Render  SVG R2 = R SvgRenderM
   type Result  SVG R2 = S.Svg
   data Options SVG R2 = SVGOptions
                         { fileName     :: String       -- ^ the name of the file you want generated
                         , size :: SizeSpec2D           -- ^ The requested size.
                         }
 
-  -- FIXME implement
-  withStyle _ s _ (R r) = R styledSvg
-   where 
-     styledSvg = S.g ! R.renderStyles s $ do 
-                   R.renderClip (getClip <$> getAttr s) -- Clipping if any
-                   r -- The diagram
-
+  withStyle _ s _ (R r) =
+    R $ do
+      incrementClipPath
+      clipPathId_ <- gets clipPathId
+      svg <- r
+      let styledSvg = renderStyledGroup s ! (R.renderClipPathId s clipPathId_) $ renderSvgWithClipping svg s clipPathId_
+      return styledSvg
 
   doRender _ (SVGOptions _ sz) (R r) =
-    let (w,h) = case sz of
-                  Width w'   -> (w',w')
-                  Height h'  -> (h',h')
-                  Dims w' h' -> (w',h')
-                  Absolute   -> (100,100)
-    in R.svgHeader w h $ r
+    evalState svgOutput initialSvgRenderState
+   where
+    svgOutput = do
+      svg <- r
+      let (w,h) = case sz of
+                    Width w'   -> (w',w')
+                    Height h'  -> (h',h')
+                    Dims w' h' -> (w',h')
+                    Absolute   -> (100,100)
+      return $ R.svgHeader w h $ svg
 
   adjustDia c opts d = adjustDia2D size setSvgSize c opts (d # reflectY
                                                                # fcA transparent
@@ -77,9 +110,9 @@ instance Renderable (Trail R2) SVG where
   render c t = render c $ Path [(p2 (0,0), t)]
 
 instance Renderable (Path R2) SVG where
-  render _ = R . R.renderPath
+  render _ = R . return . R.renderPath
 
 instance Renderable Text SVG where
-  render _ = R . R.renderText
+  render _ = R . return . R.renderText
 
 -- TODO: instance Renderable Image SVG where
