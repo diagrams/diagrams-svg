@@ -50,9 +50,10 @@ renderClip Nothing     = mempty
 renderClip (Just pths) = S.clippath ! A.id_ "myClip" $ renderClipPaths
   where renderClipPaths = mapM_ renderPath pths
 
--- FIXME implement
+-- FIXME take alignment into account
 renderText :: Text -> S.Svg
-renderText _ = mempty
+renderText (Text tr _ str) = S.text_ ! A.x (S.toValue x) ! A.y (S.toValue y) $ S.toMarkup str
+ where (unr2 -> (x,y)) = transl tr
 
 renderStyles :: forall v. Style v -> S.Attribute
 renderStyles s = mconcat . map ($ s) $

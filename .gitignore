@@ -7,5 +7,6 @@ examples/FillRule
 examples/Temp
 examples/Opacity
 examples/Clipping
+examples/Text
 # This is just used as scratch space
 examples/Temp.hs
