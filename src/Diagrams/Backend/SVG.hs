@@ -58,7 +58,7 @@ instance Monoid (Render SVG R2) where
       svg2 <- r2_
       return (svg1 `mappend` svg2)
 
--- renders a <g> element with styles applied
+-- renders a <g> element with styles applied as attributes.
 renderStyledGroup :: Style v -> (S.Svg -> S.Svg)
 renderStyledGroup s = S.g ! R.renderStyles s
 
