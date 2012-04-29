@@ -23,8 +23,9 @@ import qualified Text.Blaze.Svg11.Attributes as A
 svgHeader :: Double -> Double -> S.Svg -> S.Svg
 svgHeader w h_ s =  S.docTypeSvg
   ! A.version "1.1"
-  ! A.width   (S.toValue w)
-  ! A.height  (S.toValue h_)
+  ! A.width    (S.toValue w)
+  ! A.height   (S.toValue h_)
+  ! A.fontSize "1"
   ! A.viewbox (S.toValue $ concat . intersperse " " $ map show ([0, 0, round w, round h_] :: [Int])) $
      S.g $ s
 
@@ -54,8 +55,32 @@ renderClip (Just pths) id_ = S.clippath ! A.id_ clipPathId $ renderClipPaths
 
 -- FIXME take alignment into account
 renderText :: Text -> S.Svg
-renderText (Text tr _ str) = S.text_ ! A.x (S.toValue x) ! A.y (S.toValue y) $ S.toMarkup str
- where (unr2 -> (x,y)) = transl tr
+renderText (Text tr _ str) =
+  S.g ! A.transform transformAttr $
+    S.text_
+      ! A.fontSize (S.toValue fontSize_)
+      ! A.dominantBaseline "middle"
+      ! A.textAnchor "middle" $
+        S.toMarkup str
+ where
+   -- This is SVG co-ordinate system, so we reflect tr around Y
+   t = tr `mappend` reflectionY
+   -- Determine translation
+   (unr2 -> (x,y))  = transl t
+   -- Apply transformation mapping to unitY vector
+   unitY'           = apply t unitY
+   -- Set the font size to the magnitude of the transformed unitY
+   fs               = magnitude unitY'
+   -- Find how much the unitY vector has rotated
+   rotAngle         = getDeg $ direction unitY' - direction unitY
+   -- Set font size unit to em
+   fontSize_        = show fs ++ "em"
+   -- Calculate transform attribute: translation
+   translateT       = S.translate x y
+   -- Calculate transform attribure: rotation
+   rotateT          = S.rotate rotAngle
+   -- Set final transform attribute
+   transformAttr    = translateT `mappend` " " `mappend` rotateT
 
 renderStyles :: forall v. Style v -> S.Attribute
 renderStyles s = mconcat . map ($ s) $
@@ -159,3 +184,4 @@ colorToRgbString c = concat
 colorToOpacity :: forall c . Color c => c -> Double
 colorToOpacity c = a
  where (_,_,_,a) = colorToRGBA c
+
