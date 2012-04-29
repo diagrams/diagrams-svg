@@ -77,7 +77,7 @@ renderText (Text tr _ str) =
    fontSize_        = show fs ++ "em"
    -- Calculate transform attribute: translation
    translateT       = S.translate x y
-   -- Calculate transform attribure: rotation
+   -- Calculate transform attribute: rotation
    rotateT          = S.rotate rotAngle
    -- Set final transform attribute
    transformAttr    = translateT `mappend` " " `mappend` rotateT
