@@ -56,31 +56,23 @@ renderClip (Just pths) id_ = S.clippath ! A.id_ clipPathId $ renderClipPaths
 -- FIXME take alignment into account
 renderText :: Text -> S.Svg
 renderText (Text tr _ str) =
-  S.g ! A.transform transformAttr $
-    S.text_
-      ! A.fontSize (S.toValue fontSize_)
-      ! A.dominantBaseline "middle"
-      ! A.textAnchor "middle" $
-        S.toMarkup str
+  S.text_
+    ! A.transform transformMatrix
+    ! A.dominantBaseline "middle"
+    ! A.textAnchor "middle"
+    ! A.stroke "none" $
+      S.toMarkup str
  where
-   -- This is SVG co-ordinate system, so we reflect tr around Y
-   t = tr `mappend` reflectionY
-   -- Determine translation
-   (unr2 -> (x,y))  = transl t
-   -- Apply transformation mapping to unitY vector
-   unitY'           = apply t unitY
-   -- Set the font size to the magnitude of the transformed unitY
-   fs               = magnitude unitY'
-   -- Find how much the unitY vector has rotated
-   rotAngle         = getDeg $ direction unitY' - direction unitY
-   -- Set font size unit to em
-   fontSize_        = show fs ++ "em"
-   -- Calculate transform attribute: translation
-   translateT       = S.translate x y
-   -- Calculate transform attribute: rotation
-   rotateT          = S.rotate rotAngle
-   -- Set final transform attribute
-   transformAttr    = translateT `mappend` " " `mappend` rotateT
+  t                   = tr `mappend` reflectionY
+  (a,b,c,d,e,f)       = getMatrix t
+  transformMatrix     =  S.matrix a b c d e f
+
+getMatrix :: Transformation R2 -> (Double, Double, Double, Double, Double, Double)
+getMatrix t = (a1,a2,b1,b2,c1,c2)
+ where
+  (unr2 -> (a1,a2)) = apply t unitX
+  (unr2 -> (b1,b2)) = apply t unitY
+  (unr2 -> (c1,c2)) = transl t
 
 renderStyles :: forall v. Style v -> S.Attribute
 renderStyles s = mconcat . map ($ s) $
