@@ -38,7 +38,7 @@ Library
                      , diagrams-core >= 0.5   && < 0.6
                      , diagrams-lib  >= 0.5   && < 0.6
                      , blaze-svg >= 0.3.3
-                     , cmdargs       >= 0.6   && < 0.9
+                     , cmdargs       >= 0.6   && < 0.10
                      , split         >= 0.1.2 && < 0.2
   if !os(windows)
     cpp-options: -DCMDLINELOOP
