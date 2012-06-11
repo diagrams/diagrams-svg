@@ -35,7 +35,7 @@ Library
                      , bytestring    >= 0.9   && < 1.0
                      , vector-space  >= 0.7   && < 0.9
                      , colour
-                     , diagrams-core >= 0.5   && < 0.6
+                     , diagrams-core >= 0.5.0.1  && < 0.6
                      , diagrams-lib  >= 0.5   && < 0.6
                      , blaze-svg >= 0.3.3
                      , cmdargs       >= 0.6   && < 0.10
