@@ -87,6 +87,7 @@ renderStyles s = mconcat . map ($ s) $
   , renderFontSize
   , renderFontSlant
   , renderFontWeight
+  , renderFontFamily
   ]
 
 renderLineColor :: Style v -> S.Attribute
@@ -170,6 +171,11 @@ renderFontWeight s = renderAttr A.fontWeight fontWeight_
   fontWeightAttr :: FontWeight -> String
   fontWeightAttr FontWeightNormal = "normal"
   fontWeightAttr FontWeightBold   = "bold"
+
+renderFontFamily :: Style v -> S.Attribute
+renderFontFamily s = renderAttr A.fontFamily fontFamily_
+ where
+  fontFamily_ = getFont <$> getAttr s
 
 renderClipPathId :: Style v -> Int -> S.Attribute
 renderClipPathId s id_ = renderAttr A.clipPath clipPathId
