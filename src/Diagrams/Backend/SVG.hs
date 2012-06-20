@@ -62,13 +62,13 @@ instance Monoid (Render SVG R2) where
 renderStyledGroup :: Style v -> (S.Svg -> S.Svg)
 renderStyledGroup s = S.g ! R.renderStyles s
 
-renderSvgWithClipping :: S.Svg     -- Input SVG
+renderSvgWithClipping :: S.Svg   -- Input SVG
                       -> Style v -- Styles
                       -> Int     -- Clip Path ID
                       -> S.Svg   -- Resulting svg
 renderSvgWithClipping svg s id_ = do
   R.renderClip (getClip <$> getAttr s) id_  -- Clipping if any
-  svg  -- The diagram
+  svg                                       -- The diagram
 
 instance Backend SVG R2 where
   data Render  SVG R2 = R SvgRenderM
@@ -99,7 +99,7 @@ instance Backend SVG R2 where
       return $ R.svgHeader w h $ svg
 
   adjustDia c opts d = adjustDia2D size setSvgSize c opts (d # reflectY
-                                                               # fcA transparent
+                                                             # fcA transparent
                                                           )
     where setSvgSize sz o = o { size = sz }
 
