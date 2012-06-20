@@ -9,5 +9,6 @@ examples/Opacity
 examples/Clipping
 examples/Text
 examples/TextScaling
+examples/TextSize
 # This is just used as scratch space
 examples/Temp.hs

@@ -84,6 +84,7 @@ renderStyles s = mconcat . map ($ s) $
   , renderFillRule
   , renderDashing
   , renderOpacity
+  , renderFontSize
   ]
 
 renderLineColor :: Style v -> S.Attribute
@@ -145,6 +146,12 @@ renderDashing s = (renderAttr A.strokeDasharray arr) `mappend`
   dashing_                    = getDashing <$> getAttr s
   arr                         = (dashArrayToStr . getDasharray) <$> dashing_
   offset                      = getDashoffset <$> dashing_
+
+renderFontSize :: Style v -> S.Attribute
+renderFontSize s = renderAttr A.fontSize fontSize_
+ where
+  fontSize_ = ((++ "em") . show . getFontSize) <$> getAttr s
+
 
 renderClipPathId :: Style v -> Int -> S.Attribute
 renderClipPathId s id_ = renderAttr A.clipPath clipPathId
