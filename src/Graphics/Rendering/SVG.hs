@@ -85,6 +85,8 @@ renderStyles s = mconcat . map ($ s) $
   , renderDashing
   , renderOpacity
   , renderFontSize
+  , renderFontSlant
+  , renderFontWeight
   ]
 
 renderLineColor :: Style v -> S.Attribute
@@ -152,6 +154,22 @@ renderFontSize s = renderAttr A.fontSize fontSize_
  where
   fontSize_ = ((++ "em") . show . getFontSize) <$> getAttr s
 
+renderFontSlant :: Style v -> S.Attribute
+renderFontSlant s = renderAttr A.fontStyle fontSlant_
+ where
+  fontSlant_ = (fontSlantAttr . getFontSlant) <$> getAttr s
+  fontSlantAttr :: FontSlant -> String
+  fontSlantAttr FontSlantItalic  = "italic"
+  fontSlantAttr FontSlantOblique = "oblique"
+  fontSlantAttr FontSlantNormal  = "normal"
+
+renderFontWeight :: Style v -> S.Attribute
+renderFontWeight s = renderAttr A.fontWeight fontWeight_
+ where
+  fontWeight_ = (fontWeightAttr . getFontWeight) <$> getAttr s
+  fontWeightAttr :: FontWeight -> String
+  fontWeightAttr FontWeightNormal = "normal"
+  fontWeightAttr FontWeightBold   = "bold"
 
 renderClipPathId :: Style v -> Int -> S.Attribute
 renderClipPathId s id_ = renderAttr A.clipPath clipPathId
