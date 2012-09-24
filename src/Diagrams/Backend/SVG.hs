@@ -27,9 +27,6 @@ import Diagrams.TwoD.Text
 import qualified Text.Blaze.Svg11 as S
 import Text.Blaze.Svg11 ((!))
 
--- from colour
-import Data.Colour (transparent)
-
 -- from this package
 import qualified Graphics.Rendering.SVG as R
 
