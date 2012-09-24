@@ -26,7 +26,7 @@ Library
                        Diagrams.Backend.SVG.CmdLine
   Other-modules:       Graphics.Rendering.SVG
   Hs-source-dirs:      src
-  Build-depends:       base          >= 4.3   && < 4.6
+  Build-depends:       base          >= 4.3   && < 4.7
                      , old-time >= 1.0 && < 1.2
                      , process >= 1.0 && < 1.2
                      , directory >= 1.0 && < 1.2
@@ -38,8 +38,8 @@ Library
                      , diagrams-core >= 0.5.0.1  && < 0.6
                      , diagrams-lib  >= 0.5   && < 0.6
                      , blaze-svg >= 0.3.3
-                     , cmdargs       >= 0.6   && < 0.10
-                     , split         >= 0.1.2 && < 0.2
+                     , cmdargs       >= 0.6   && < 0.11
+                     , split         >= 0.1.2 && < 0.3
   if !os(windows)
     cpp-options: -DCMDLINELOOP
     Build-depends:     unix >= 2.4 && < 2.6
