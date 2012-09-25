@@ -9,17 +9,17 @@ Maintainer:          deepak.jois@gmail.com
 Stability:           Experimental
 Category:            Graphics
 Build-type:          Simple
-Cabal-version:       >=1.8
+Cabal-version:       >=1.10
 Description:
   This package provides a modular backend for rendering diagrams
   created with the diagrams EDSL using SVG.  It uses
   @blaze-svg@ to be a fast, pure-Haskell backend.
   .
-  More documentation: Github README : <https://github.com/deepakjois/diagrams-svg/blob/master/README>      
+  More documentation: Github README : <https://github.com/diagrams/diagrams-svg/blob/master/README>      
 
 Source-repository head
   type:     git
-  location: http://github.com/deepakjois/diagrams-svg
+  location: http://github.com/diagrams/diagrams-svg
 
 Library
   Exposed-modules:     Diagrams.Backend.SVG
@@ -45,3 +45,5 @@ Library
     Build-depends:     unix >= 2.4 && < 2.6
 
   Ghc-options:         -Wall
+
+  Default-language:  Haskell2010
