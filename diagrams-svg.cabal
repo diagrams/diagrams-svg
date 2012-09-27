@@ -6,6 +6,7 @@ License:             BSD3
 License-file:        LICENSE
 Author:              Felipe Lessa, Deepak Jois
 Maintainer:          deepak.jois@gmail.com
+Bug-reports:         http://github.com/diagrams/diagrams-svg/issues
 Stability:           Experimental
 Category:            Graphics
 Build-type:          Simple
