@@ -1,3 +1,5 @@
+[![Build Status](https://secure.travis-ci.org/diagrams/diagrams-svg.png)](http://travis-ci.org/diagrams/diagrams-svg)
+
 _diagrams-svg_ is a an SVG backend for [diagrams]. Diagrams is a powerful,
 flexible, declarative domain-specific language for creating vector graphics,
 using the [Haskell programming language][haskell].
@@ -78,7 +80,7 @@ The command above generates the SVG file:
 
 ## Other Backends for Diagrams
 
-* [diagrams-cairo](http://hackage.haskell.org/package/diagrams-cairo-0.4)
-* [diagrams-postscript](http://patch-tag.com/r/fryguybob/diagrams-postscript)
+* [diagrams-cairo](http://github.com/diagrams/diagrams-cairo)
+* [diagrams-postscript](https://github.com/fryguybob/diagrams-postscript)
 * [diagrams-canvas](https://github.com/byorgey/diagrams-canvas/)
 
