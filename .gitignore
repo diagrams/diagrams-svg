@@ -12,3 +12,16 @@ examples/TextScaling
 examples/TextSize
 # This is just used as scratch space
 examples/Temp.hs
+
+dist
+cabal-dev
+*.o
+*.hi
+*.chi
+*.chs.h
+.virthualenv
+*~
+.hsenv_*
+dist_*
+history
+TAGS
