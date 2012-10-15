@@ -28,22 +28,22 @@ Library
   Other-modules:       Graphics.Rendering.SVG
   Hs-source-dirs:      src
   Build-depends:       base          >= 4.3   && < 4.7
-                     , old-time >= 1.0 && < 1.2
-                     , process >= 1.0 && < 1.2
-                     , directory >= 1.0 && < 1.2
-                     , filepath >= 1.2 && < 1.4
-                     , mtl         >= 1      && < 3.0
+                     , old-time
+                     , process
+                     , directory
+                     , filepath
+                     , mtl           >= 1     && < 2.2
                      , bytestring    >= 0.9   && < 1.0
                      , vector-space  >= 0.7   && < 0.9
                      , colour
                      , diagrams-core >= 0.6   && < 0.7
                      , diagrams-lib  >= 0.6   && < 0.7
-                     , blaze-svg >= 0.3.3
+                     , blaze-svg     >= 0.3.3
                      , cmdargs       >= 0.6   && < 0.11
                      , split         >= 0.1.2 && < 0.3
   if !os(windows)
     cpp-options: -DCMDLINELOOP
-    Build-depends:     unix >= 2.4 && < 2.6
+    Build-depends:     unix >= 2.4 && < 2.7
 
   Ghc-options:         -Wall
 
