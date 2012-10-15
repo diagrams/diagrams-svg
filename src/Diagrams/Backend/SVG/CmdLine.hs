@@ -24,7 +24,6 @@ import System.Console.CmdArgs.Implicit hiding (args)
 import Text.Blaze.Svg.Renderer.Utf8 (renderSvg)
 import qualified Data.ByteString.Lazy as BS
 
-import Prelude hiding      (catch)
 
 import Data.Maybe          (fromMaybe)
 import Control.Monad       (when)
@@ -36,13 +35,27 @@ import System.Process      (runProcess, waitForProcess)
 import System.IO           (openFile, hClose, IOMode(..),
                             hSetBuffering, BufferMode(..), stdout)
 import System.Exit         (ExitCode(..))
-import System.Time         (ClockTime, getClockTime)
 import Control.Concurrent  (threadDelay)
-import Control.Exception   (catch, SomeException(..), bracket)
+import qualified Control.Exception as Exc  (catch,  bracket)
+import Control.Exception (SomeException(..))
 
 #ifdef CMDLINELOOP
 import System.Posix.Process (executeFile)
 #endif
+
+
+# if MIN_VERSION_directory(1,2,0)
+import Data.Time.Clock (UTCTime,getCurrentTime)
+type ModuleTime = UTCTime
+getModuleTime :: IO  ModuleTime
+getModuleTime = getCurrentTime
+#else
+import System.Time         (ClockTime, getClockTime)
+type ModuleTime = ClockTime
+getModuleTime :: IO  ModuleTime
+getModuleTime = getClockTime
+#endif
+
 
 data DiagramOpts = DiagramOpts
                    { width     :: Maybe Int
@@ -145,7 +158,7 @@ multiMain ds = do
       Just d  -> chooseRender opts d
 
 #ifdef CMDLINELOOP
-waitForChange :: Maybe ClockTime -> DiagramOpts -> String -> [String] -> IO ()
+waitForChange :: Maybe ModuleTime -> DiagramOpts -> String -> [String] -> IO ()
 waitForChange lastAttempt opts prog args = do
     hSetBuffering stdout NoBuffering
     go lastAttempt
@@ -165,7 +178,7 @@ waitForChange lastAttempt opts prog args = do
 --   of this attempt.  Otherwise (if nothing has changed since the
 --   last attempt), return @Nothing@.  Also return a Bool saying
 --   whether a successful recompilation happened.
-recompile :: Maybe ClockTime -> String -> Maybe String -> IO (Bool, Maybe ClockTime)
+recompile :: Maybe ModuleTime -> String -> Maybe String -> IO (Bool, Maybe ModuleTime)
 recompile lastAttempt prog mSrc = do
   let errFile = prog ++ ".errors"
       srcFile = fromMaybe (prog ++ ".hs") mSrc
@@ -174,7 +187,7 @@ recompile lastAttempt prog mSrc = do
   if (srcT > binT)
     then do
       putStr "Recompiling..."
-      status <- bracket (openFile errFile WriteMode) hClose $ \h ->
+      status <- Exc.bracket (openFile errFile WriteMode) hClose $ \h ->
         waitForProcess =<< runProcess "ghc" ["--make", srcFile]
                            Nothing Nothing Nothing Nothing (Just h)
 
@@ -182,11 +195,11 @@ recompile lastAttempt prog mSrc = do
         then putStrLn "" >> putStrLn (replicate 75 '-') >> readFile errFile >>= putStr
         else putStrLn "done."
 
-      curTime <- getClockTime
+      curTime <- getModuleTime
       return (status == ExitSuccess, Just curTime)
 
     else return (False, Nothing)
 
- where getModTime f = catch (Just <$> getModificationTime f)
+ where getModTime f = Exc.catch (Just <$> getModificationTime f)
                             (\(SomeException _) -> return Nothing)
 #endif

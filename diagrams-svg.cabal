@@ -41,6 +41,7 @@ Library
                      , blaze-svg     >= 0.3.3
                      , cmdargs       >= 0.6   && < 0.11
                      , split         >= 0.1.2 && < 0.3
+                     , time
   if !os(windows)
     cpp-options: -DCMDLINELOOP
     Build-depends:     unix >= 2.4 && < 2.7
