@@ -36,28 +36,25 @@ import System.IO           (openFile, hClose, IOMode(..),
                             hSetBuffering, BufferMode(..), stdout)
 import System.Exit         (ExitCode(..))
 import Control.Concurrent  (threadDelay)
-import Control.Exception   (catch, SomeException(..), bracket)
+import qualified Control.Exception as Exc  (catch,  bracket)
+import Control.Exception (SomeException(..))
 
 #ifdef CMDLINELOOP
 import System.Posix.Process (executeFile)
 #endif
 
-#if __GLASGOW_HASKELL__ >= 705
+
+# if MIN_VERSION_directory(1,2,0)
 import Data.Time.Clock (UTCTime,getCurrentTime)
 type ModuleTime = UTCTime
 getModuleTime :: IO  ModuleTime
 getModuleTime = getCurrentTime
-
 #else
-import Prelude hiding      (catch)
 import System.Time         (ClockTime, getClockTime)
 type ModuleTime = ClockTime
 getModuleTime :: IO  ModuleTime
 getModuleTime = getClockTime
 #endif
-
-
-
 
 
 data DiagramOpts = DiagramOpts
@@ -190,7 +187,7 @@ recompile lastAttempt prog mSrc = do
   if (srcT > binT)
     then do
       putStr "Recompiling..."
-      status <- bracket (openFile errFile WriteMode) hClose $ \h ->
+      status <- Exc.bracket (openFile errFile WriteMode) hClose $ \h ->
         waitForProcess =<< runProcess "ghc" ["--make", srcFile]
                            Nothing Nothing Nothing Nothing (Just h)
 
@@ -203,6 +200,6 @@ recompile lastAttempt prog mSrc = do
 
     else return (False, Nothing)
 
- where getModTime f = catch (Just <$> getModificationTime f)
+ where getModTime f = Exc.catch (Just <$> getModificationTime f)
                             (\(SomeException _) -> return Nothing)
 #endif
