@@ -71,8 +71,7 @@ instance Backend SVG R2 where
   data Render  SVG R2 = R SvgRenderM
   type Result  SVG R2 = S.Svg
   data Options SVG R2 = SVGOptions
-                        { fileName     :: String       -- ^ the name of the file you want generated
-                        , size :: SizeSpec2D           -- ^ The requested size.
+                        { size :: SizeSpec2D   -- ^ The requested size.
                         }
 
   withStyle _ s _ (R r) =
@@ -83,7 +82,7 @@ instance Backend SVG R2 where
       let styledSvg = renderStyledGroup s ! (R.renderClipPathId s clipPathId_) $ renderSvgWithClipping svg s clipPathId_
       return styledSvg
 
-  doRender _ (SVGOptions _ sz) (R r) =
+  doRender _ (SVGOptions sz) (R r) =
     evalState svgOutput initialSvgRenderState
    where
     svgOutput = do
