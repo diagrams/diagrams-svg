@@ -6,6 +6,7 @@ module Graphics.Rendering.SVG
     , renderClipPathId
     , renderText
     , renderStyles
+    , renderTransform
     ) where
 
 -- from base
@@ -73,6 +74,11 @@ getMatrix t = (a1,a2,b1,b2,c1,c2)
   (unr2 -> (a1,a2)) = apply t unitX
   (unr2 -> (b1,b2)) = apply t unitY
   (unr2 -> (c1,c2)) = transl t
+
+-- Apply a transformation to some already-rendered SVG.
+renderTransform :: Transformation R2 -> S.Svg -> S.Svg
+renderTransform t svg = S.g svg ! (A.transform $ S.matrix a1 a2 b1 b2 c1 c2)
+  where (a1,a2,b1,b2,c1,c2) = getMatrix t
 
 renderStyles :: forall v. Style v -> S.Attribute
 renderStyles s = mconcat . map ($ s) $

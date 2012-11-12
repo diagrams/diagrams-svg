@@ -23,6 +23,9 @@ import Diagrams.TwoD.Path (getClip)
 import Diagrams.TwoD.Adjust (adjustDia2D)
 import Diagrams.TwoD.Text
 
+-- from monoid-extras
+import Data.Monoid.Split (Split(..))
+
 -- from blaze-svg
 import qualified Text.Blaze.Svg11 as S
 import Text.Blaze.Svg11 ((!))
@@ -74,13 +77,21 @@ instance Backend SVG R2 where
                         { size :: SizeSpec2D   -- ^ The requested size.
                         }
 
-  withStyle _ s _ (R r) =
+  -- Here the SVG backend is different from the other backends.  We
+  -- give a different definition of renderDia, where only the
+  -- non-frozen transformation is applied to the primitives before
+  -- they are passed to render.  This means that withStyle is
+  -- responsible for applying the frozen transformation to the
+  -- primitives.
+  withStyle _ s t (R r) =
     R $ do
       incrementClipPath
       clipPathId_ <- gets clipPathId
       svg <- r
-      let styledSvg = renderStyledGroup s ! (R.renderClipPathId s clipPathId_) $ renderSvgWithClipping svg s clipPathId_
-      return styledSvg
+      let styledSvg = renderStyledGroup s ! (R.renderClipPathId s clipPathId_) $
+                        renderSvgWithClipping svg s clipPathId_
+      -- This is where the frozen transformation is applied.
+      return (R.renderTransform t styledSvg)
 
   doRender _ (SVGOptions sz) (R r) =
     evalState svgOutput initialSvgRenderState
@@ -98,6 +109,22 @@ instance Backend SVG R2 where
                                                              # fcA transparent
                                                           )
     where setSvgSize sz o = o { size = sz }
+
+  -- This implementation of renderDia is the same as the default one,
+  -- except that it only applies the non-frozen transformation to the
+  -- primitives before passing them to render.
+  renderDia SVG opts d =
+    doRender SVG opts' . mconcat . map renderOne . prims $ d'
+      where (opts', d') = adjustDia SVG opts d
+            renderOne :: (Prim SVG R2, (Split (Transformation R2), Style R2))
+                      -> Render SVG R2
+            renderOne (p, (M t,      s))
+              = withStyle SVG s mempty (render SVG (transform t p))
+
+            renderOne (p, (t1 :| t2, s))
+              -- Here is the difference from the default
+              -- implementation: "t2" instead of "t1 <> t2".
+              = withStyle SVG s t1 (render SVG (transform t2 p))
 
 instance Renderable (Segment R2) SVG where
   render c = render c . flip Trail False . (:[])
