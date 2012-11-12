@@ -62,12 +62,13 @@ instance Monoid (Render SVG R2) where
 renderStyledGroup :: Style v -> (S.Svg -> S.Svg)
 renderStyledGroup s = S.g ! R.renderStyles s
 
-renderSvgWithClipping :: S.Svg   -- Input SVG
-                      -> Style v -- Styles
-                      -> Int     -- Clip Path ID
-                      -> S.Svg   -- Resulting svg
-renderSvgWithClipping svg s id_ = do
-  R.renderClip (getClip <$> getAttr s) id_  -- Clipping if any
+renderSvgWithClipping :: S.Svg             -- Input SVG
+                      -> Style v           -- Styles
+                      -> Int               -- Clip Path ID
+                      -> Transformation R2 -- Freeze transform
+                      -> S.Svg             -- Resulting svg
+renderSvgWithClipping svg s id_ t = do
+  R.renderClip (transform (inv t) <$> getClip <$> getAttr s) id_  -- Clipping if any
   svg                                       -- The diagram
 
 instance Backend SVG R2 where
@@ -89,7 +90,7 @@ instance Backend SVG R2 where
       clipPathId_ <- gets clipPathId
       svg <- r
       let styledSvg = renderStyledGroup s ! (R.renderClipPathId s clipPathId_) $
-                        renderSvgWithClipping svg s clipPathId_
+                        renderSvgWithClipping svg s clipPathId_ t
       -- This is where the frozen transformation is applied.
       return (R.renderTransform t styledSvg)
 
