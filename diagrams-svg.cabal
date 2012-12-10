@@ -4,8 +4,9 @@ Synopsis:            SVG backend for diagrams drawing EDSL.
 Homepage:            http://projects.haskell.org/diagrams/
 License:             BSD3
 License-file:        LICENSE
+Extra-source-files:  README.md, CHANGES
 Author:              Felipe Lessa, Deepak Jois
-Maintainer:          deepak.jois@gmail.com
+Maintainer:          diagrams-discuss@googlegroups.com
 Bug-reports:         http://github.com/diagrams/diagrams-svg/issues
 Stability:           Experimental
 Category:            Graphics
