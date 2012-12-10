@@ -106,9 +106,11 @@ instance Backend SVG R2 where
                     Absolute   -> (100,100)
       return $ R.svgHeader w h $ svg
 
-  adjustDia c opts d = adjustDia2D size setSvgSize c opts (d # reflectY
-                                                             # fcA transparent
-                                                          )
+  adjustDia c opts d = adjustDia2D size setSvgSize c opts
+                         (d # reflectY
+                            # recommendFillColor
+                                (transparent :: AlphaColour Double)
+                         )
     where setSvgSize sz o = o { size = sz }
 
   -- This implementation of renderDia is the same as the default one,
