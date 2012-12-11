@@ -12,6 +12,7 @@ Stability:           Experimental
 Category:            Graphics
 Build-type:          Simple
 Cabal-version:       >=1.10
+Tested-with:         GHC == 7.0.4, GHC == 7.2.1, GHC == 7.4.2, GHC == 7.6.1
 Description:
   This package provides a modular backend for rendering diagrams
   created with the diagrams EDSL using SVG.  It uses
