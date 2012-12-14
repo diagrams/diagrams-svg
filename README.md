@@ -11,7 +11,7 @@ _diagrams-svg_ is a work in progress, and some features are not implemented
 yet. However, it is functional enough that [hs-logo] uses it. Check out the 
 [issues page][issues] to get an idea of the features that are missing.
 
-[issues]: https://github.com/deepakjois/diagrams-svg/issues
+[issues]: https://github.com/diagrams/diagrams-svg/issues
 [hs-logo]: http://github.com/deepakjois/hs-logo
 
 # Installation
