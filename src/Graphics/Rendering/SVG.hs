@@ -208,9 +208,9 @@ colorToRgbString c = concat
   , ")"
   ]
  where int d = show (round (d * 255) :: Int)
-       (r,g,b,_) = colorToRGBA c
+       (r,g,b,_) = colorToSRGBA c
 
 colorToOpacity :: forall c . Color c => c -> Double
 colorToOpacity c = a
- where (_,_,_,a) = colorToRGBA c
+ where (_,_,_,a) = colorToSRGBA c
 
