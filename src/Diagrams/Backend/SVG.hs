@@ -1,10 +1,9 @@
-{-# LANGUAGE TypeFamilies
-           , MultiParamTypeClasses
-           , FlexibleInstances
-           , FlexibleContexts
-           , TypeSynonymInstances
-           , DeriveDataTypeable
-  #-}
+{-# LANGUAGE TypeFamilies          #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE FlexibleInstances     #-}
+{-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE TypeSynonymInstances  #-}
+{-# LANGUAGE DeriveDataTypeable    #-}
 
 -----------------------------------------------------------------------------
 -- |
@@ -82,6 +81,7 @@ module Diagrams.Backend.SVG
 import Data.Typeable
 import Control.Monad.State
 
+-- from bytestring
 import qualified Data.ByteString.Lazy as BS
 
 -- from diagrams-lib
@@ -111,9 +111,9 @@ data SvgRenderState = SvgRenderState { clipPathId :: Int }
 initialSvgRenderState :: SvgRenderState
 initialSvgRenderState = SvgRenderState 0
 
--- Monad to keep track of state when rendering an SVG.
--- Currently just keeps a monotonically increasing counter
--- for assiging unique clip path ID
+-- | Monad to keep track of state when rendering an SVG.
+--   Currently just keeps a monotonically increasing counter
+--   for assiging a unique clip path ID.
 type SvgRenderM = State SvgRenderState S.Svg
 
 incrementClipPath :: State SvgRenderState ()
@@ -127,15 +127,15 @@ instance Monoid (Render SVG R2) where
       svg2 <- r2_
       return (svg1 `mappend` svg2)
 
--- renders a <g> element with styles applied as attributes.
+-- | Renders a <g> element with styles applied as attributes.
 renderStyledGroup :: Style v -> (S.Svg -> S.Svg)
 renderStyledGroup s = S.g ! R.renderStyles s
 
-renderSvgWithClipping :: S.Svg             -- Input SVG
-                      -> Style v           -- Styles
-                      -> Int               -- Clip Path ID
-                      -> Transformation R2 -- Freeze transform
-                      -> S.Svg             -- Resulting svg
+renderSvgWithClipping :: S.Svg             -- ^ Input SVG
+                      -> Style v           -- ^ Styles
+                      -> Int               -- ^ Clip Path ID
+                      -> Transformation R2 -- ^ Freeze transform
+                      -> S.Svg             -- ^ Resulting svg
 renderSvgWithClipping svg s id_ t = do
   R.renderClip (transform (inv t) <$> getClip <$> getAttr s) id_  -- Clipping if any
   svg                                       -- The diagram
@@ -147,12 +147,12 @@ instance Backend SVG R2 where
                         { size :: SizeSpec2D   -- ^ The requested size.
                         }
 
-  -- Here the SVG backend is different from the other backends.  We
-  -- give a different definition of renderDia, where only the
-  -- non-frozen transformation is applied to the primitives before
-  -- they are passed to render.  This means that withStyle is
-  -- responsible for applying the frozen transformation to the
-  -- primitives.
+  -- | Here the SVG backend is different from the other backends.  We
+  --   give a different definition of renderDia, where only the
+  --   non-frozen transformation is applied to the primitives before
+  --   they are passed to render.  This means that withStyle is
+  --   responsible for applying the frozen transformation to the
+  --   primitives.
   withStyle _ s t (R r) =
     R $ do
       incrementClipPath
@@ -182,9 +182,9 @@ instance Backend SVG R2 where
                          )
     where setSvgSize sz o = o { size = sz }
 
-  -- This implementation of renderDia is the same as the default one,
-  -- except that it only applies the non-frozen transformation to the
-  -- primitives before passing them to render.
+  -- | This implementation of renderDia is the same as the default one,
+  --   except that it only applies the non-frozen transformation to the
+  --   primitives before passing them to render.
   renderDia SVG opts d =
     doRender SVG opts' . mconcat . map renderOne . prims $ d'
       where (opts', d') = adjustDia SVG opts d
