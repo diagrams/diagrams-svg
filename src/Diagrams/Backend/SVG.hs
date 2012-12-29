@@ -11,11 +11,15 @@
 module Diagrams.Backend.SVG
   ( SVG(..) -- rendering token
   , Options(..) -- for rendering options specific to SVG
+
+  , renderSVG
   ) where
 
 -- from base
 import Data.Typeable
 import Control.Monad.State
+
+import qualified Data.ByteString.Lazy as BS
 
 -- from diagrams-lib
 import Diagrams.Prelude
@@ -29,6 +33,7 @@ import Data.Monoid.Split (Split(..))
 -- from blaze-svg
 import qualified Text.Blaze.Svg11 as S
 import Text.Blaze.Svg11 ((!))
+import Text.Blaze.Svg.Renderer.Utf8 (renderSvg)
 
 -- from this package
 import qualified Graphics.Rendering.SVG as R
@@ -142,3 +147,11 @@ instance Renderable Text SVG where
   render _ = R . return . R.renderText
 
 -- TODO: instance Renderable Image SVG where
+
+------------------------------------------------------------
+
+renderSVG :: FilePath -> SizeSpec2D -> Diagram SVG R2 -> IO ()
+renderSVG outFile sizeSpec
+  = BS.writeFile outFile
+  . renderSvg
+  . renderDia SVG (SVGOptions sizeSpec)
