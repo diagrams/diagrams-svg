@@ -9,6 +9,26 @@
 -- Convenient creation of command-line-driven executables for
 -- rendering diagrams using the SVG backend.
 --
+-- * 'defaultMain' creates an executable which can render a single
+--   diagram at various options.
+--
+-- * 'multiMain' is like 'defaultMain' but allows for a list of
+--   diagrams from which the user can choose one to render.
+--
+-- If you want to generate diagrams programmatically---/i.e./ if you
+-- want to do anything more complex than what the below functions
+-- provide---you have several options.
+--
+-- * A simple but somewhat inflexible approach is to wrap up
+--   'defaultMain' (or 'multiMain') in a call to
+--   'System.Environment.withArgs'.
+--
+-- * You can use 'Diagrams.Backend.SVG.renderSVG' to render a diagram
+--   to a file directly.
+--
+-- * A more flexible approach is to directly call 'renderDia'; see
+--   "Diagrams.Backend.SVG" for more information.
+
 -----------------------------------------------------------------------------
 
 module Diagrams.Backend.SVG.CmdLine
