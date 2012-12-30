@@ -24,7 +24,7 @@
 --   'System.Environment.withArgs'.
 --
 -- * You can use 'Diagrams.Backend.SVG.renderSVG' to render a diagram
---   to a file directly.
+--   to a file directly; see "Diagrams.Backend.SVG".
 --
 -- * A more flexible approach is to directly call 'renderDia'; see
 --   "Diagrams.Backend.SVG" for more information.
@@ -43,7 +43,6 @@ import System.Console.CmdArgs.Implicit hiding (args)
 
 import Text.Blaze.Svg.Renderer.Utf8 (renderSvg)
 import qualified Data.ByteString.Lazy as BS
-
 
 import Data.Maybe          (fromMaybe)
 import Control.Monad       (when)
