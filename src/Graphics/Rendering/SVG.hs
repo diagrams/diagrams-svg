@@ -1,4 +1,20 @@
-{-# LANGUAGE DeriveDataTypeable, GeneralizedNewtypeDeriving, ViewPatterns, OverloadedStrings, RankNTypes #-}
+{-# LANGUAGE DeriveDataTypeable         #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE ViewPatterns               #-}
+{-# LANGUAGE OverloadedStrings          #-}
+{-# LANGUAGE RankNTypes                 #-}
+
+-----------------------------------------------------------------------------
+-- |
+-- Module      :  Graphics.Rendering.SVG
+-- Copyright   :  (c) 2011 diagrams-svg team (see LICENSE)
+-- License     :  BSD-style (see LICENSE)
+-- Maintainer  :  diagrams-discuss@googlegroups.com
+--
+-- Generic tools for generating SVG files.
+--
+-----------------------------------------------------------------------------
+
 module Graphics.Rendering.SVG
     ( svgHeader
     , renderPath
@@ -17,6 +33,7 @@ import Diagrams.Prelude hiding (Render, Attribute, close, e, (<>))
 import Diagrams.TwoD.Text
 import Diagrams.TwoD.Path (getFillRule, getClip)
 
+-- from blaze-svg
 import Text.Blaze.Svg11 ((!), mkPath, m, cr, hr, vr, lr, z)
 import qualified Text.Blaze.Svg11 as S
 import qualified Text.Blaze.Svg11.Attributes as A
@@ -75,7 +92,7 @@ getMatrix t = (a1,a2,b1,b2,c1,c2)
   (unr2 -> (b1,b2)) = apply t unitY
   (unr2 -> (c1,c2)) = transl t
 
--- Apply a transformation to some already-rendered SVG.
+-- | Apply a transformation to some already-rendered SVG.
 renderTransform :: Transformation R2 -> S.Svg -> S.Svg
 renderTransform t svg = S.g svg ! (A.transform $ S.matrix a1 a2 b1 b2 c1 c2)
   where (a1,a2,b1,b2,c1,c2) = getMatrix t
@@ -191,7 +208,7 @@ renderClipPathId s id_ = renderAttr A.clipPath clipPathId
                  Nothing -> Nothing
                  Just _ -> Just ("url(#myClip" ++ show id_ ++ ")")
 
--- Render a style attribute if available, empty otherwise
+-- | Render a style attribute if available, empty otherwise.
 renderAttr :: S.ToValue s => (S.AttributeValue -> S.Attribute)
            -> Maybe s
            -> S.Attribute
