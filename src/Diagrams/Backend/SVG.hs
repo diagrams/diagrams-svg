@@ -1,9 +1,9 @@
-{-# LANGUAGE TypeFamilies          #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE FlexibleInstances     #-}
-{-# LANGUAGE FlexibleContexts      #-}
-{-# LANGUAGE TypeSynonymInstances  #-}
 {-# LANGUAGE DeriveDataTypeable    #-}
+{-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE FlexibleInstances     #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE TypeFamilies          #-}
+{-# LANGUAGE TypeSynonymInstances  #-}
 
 -----------------------------------------------------------------------------
 -- |
@@ -78,28 +78,28 @@ module Diagrams.Backend.SVG
   ) where
 
 -- from base
-import Data.Typeable
-import Control.Monad.State
+import           Control.Monad.State
+import           Data.Typeable
 
 -- from bytestring
-import qualified Data.ByteString.Lazy as BS
+import qualified Data.ByteString.Lazy         as BS
 
 -- from diagrams-lib
-import Diagrams.Prelude
-import Diagrams.TwoD.Path (getClip)
-import Diagrams.TwoD.Adjust (adjustDia2D)
-import Diagrams.TwoD.Text
+import           Diagrams.Prelude
+import           Diagrams.TwoD.Adjust         (adjustDia2D)
+import           Diagrams.TwoD.Path           (getClip)
+import           Diagrams.TwoD.Text
 
 -- from monoid-extras
-import Data.Monoid.Split (Split(..))
+import           Data.Monoid.Split            (Split (..))
 
 -- from blaze-svg
-import qualified Text.Blaze.Svg11 as S
-import Text.Blaze.Svg11 ((!))
-import Text.Blaze.Svg.Renderer.Utf8 (renderSvg)
+import           Text.Blaze.Svg.Renderer.Utf8 (renderSvg)
+import           Text.Blaze.Svg11             ((!))
+import qualified Text.Blaze.Svg11             as S
 
 -- from this package
-import qualified Graphics.Rendering.SVG as R
+import qualified Graphics.Rendering.SVG       as R
 
 -- | @SVG@ is simply a token used to identify this rendering backend
 --   (to aid type inference).
