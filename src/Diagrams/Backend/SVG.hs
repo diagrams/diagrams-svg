@@ -146,6 +146,7 @@ instance Backend SVG R2 where
   data Options SVG R2 = SVGOptions
                         { size :: SizeSpec2D   -- ^ The requested size.
                         }
+                        deriving Show
 
   -- | Here the SVG backend is different from the other backends.  We
   --   give a different definition of renderDia, where only the
