@@ -43,7 +43,7 @@
 -- particular backend.  For @b ~ SVG@ and @v ~ R2@, we have
 --
 -- > data Options SVG R2 = SVGOptions
--- >                       { size :: SizeSpec2D   -- ^ The requested size.
+-- >                       { size :: SizeSpec2D Double  -- ^ The requested size.
 -- >                       }
 --
 -- @
@@ -144,7 +144,7 @@ instance Backend SVG R2 where
   data Render  SVG R2 = R SvgRenderM
   type Result  SVG R2 = S.Svg
   data Options SVG R2 = SVGOptions
-                        { size :: SizeSpec2D   -- ^ The requested size.
+                        { size :: SizeSpec2D Double  -- ^ The requested size.
                         }
                         deriving Show
 
@@ -208,7 +208,7 @@ instance Renderable (Trail R2) SVG where
 instance Renderable (Path R2) SVG where
   render _ = R . return . R.renderPath
 
-instance Renderable Text SVG where
+instance Renderable (Text Double) SVG where
   render _ = R . return . R.renderText
 
 -- TODO: instance Renderable Image SVG where
@@ -216,7 +216,7 @@ instance Renderable Text SVG where
 
 -- | Render a diagram as an SVG, writing to the specified output file
 --   and using the requested size.
-renderSVG :: FilePath -> SizeSpec2D -> Diagram SVG R2 -> IO ()
+renderSVG :: FilePath -> SizeSpec2D Double -> Diagram SVG R2 -> IO ()
 renderSVG outFile sizeSpec
   = BS.writeFile outFile
   . renderSvg

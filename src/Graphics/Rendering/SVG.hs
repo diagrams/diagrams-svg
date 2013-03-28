@@ -1,8 +1,8 @@
 {-# LANGUAGE DeriveDataTypeable         #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE ViewPatterns               #-}
 {-# LANGUAGE OverloadedStrings          #-}
 {-# LANGUAGE RankNTypes                 #-}
+{-# LANGUAGE ViewPatterns               #-}
 
 -----------------------------------------------------------------------------
 -- |
@@ -26,16 +26,17 @@ module Graphics.Rendering.SVG
     ) where
 
 -- from base
-import Data.List (intersperse, intercalate)
+import           Data.List                   (intercalate, intersperse)
 
 -- from diagrams-lib
-import Diagrams.Prelude hiding (Render, Attribute, close, e, (<>))
-import Diagrams.TwoD.Text
-import Diagrams.TwoD.Path (getFillRule, getClip)
+import           Diagrams.Prelude            hiding (Attribute, Render, close,
+                                              e, (<>))
+import           Diagrams.TwoD.Path          (getClip, getFillRule)
+import           Diagrams.TwoD.Text
 
 -- from blaze-svg
-import Text.Blaze.Svg11 ((!), mkPath, m, cr, hr, vr, lr, z)
-import qualified Text.Blaze.Svg11 as S
+import           Text.Blaze.Svg11            (cr, hr, lr, m, mkPath, vr, z, (!))
+import qualified Text.Blaze.Svg11            as S
 import qualified Text.Blaze.Svg11.Attributes as A
 
 svgHeader :: Double -> Double -> S.Svg -> S.Svg
@@ -52,7 +53,7 @@ renderPath (Path trs)  = S.path ! A.d makePath
  where
   makePath = mkPath $ mapM_ renderTrail trs
 
-renderTrail :: (P2, Trail R2) -> S.Path
+renderTrail :: (P2D, Trail R2) -> S.Path
 renderTrail (unp2 -> (x,y), Trail segs closed) = do
   m x y
   mapM_ renderSeg segs
@@ -72,7 +73,7 @@ renderClip (Just pths) id_ = S.clippath ! A.id_ clipPathId $ renderClipPaths
         clipPathId      = S.toValue $ "myClip" ++ show id_
 
 -- FIXME take alignment into account
-renderText :: Text -> S.Svg
+renderText :: Text Double -> S.Svg
 renderText (Text tr _ str) =
   S.text_
     ! A.transform transformMatrix
@@ -204,7 +205,7 @@ renderClipPathId :: Style v -> Int -> S.Attribute
 renderClipPathId s id_ = renderAttr A.clipPath clipPathId
  where
   clipPathId :: Maybe String
-  clipPathId = case getClip <$> getAttr s of
+  clipPathId = case (getClip <$> getAttr s :: Maybe [Path R2]) of
                  Nothing -> Nothing
                  Just _ -> Just ("url(#myClip" ++ show id_ ++ ")")
 
