@@ -34,6 +34,8 @@
 module Diagrams.Backend.SVG.CmdLine
        ( defaultMain
        , multiMain
+
+       , SVG
        ) where
 
 import Diagrams.Prelude hiding (width, height, interval)
