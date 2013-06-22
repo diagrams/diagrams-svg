@@ -199,11 +199,11 @@ instance Backend SVG R2 where
               -- implementation: "t2" instead of "t1 <> t2".
               = withStyle SVG s t1 (render SVG (transform t2 p))
 
-instance Renderable (Segment R2) SVG where
-  render c = render c . flip Trail False . (:[])
+instance Renderable (Segment Closed R2) SVG where
+  render c = render c . (fromSegments :: [Segment Closed R2] -> Path R2) . (:[])
 
 instance Renderable (Trail R2) SVG where
-  render c t = render c $ Path [(p2 (0,0), t)]
+  render c = render c . pathFromTrail
 
 instance Renderable (Path R2) SVG where
   render _ = R . return . R.renderPath

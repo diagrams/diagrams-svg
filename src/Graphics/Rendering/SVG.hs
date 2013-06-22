@@ -1,8 +1,9 @@
 {-# LANGUAGE DeriveDataTypeable         #-}
+{-# LANGUAGE GADTs                      #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE ViewPatterns               #-}
 {-# LANGUAGE OverloadedStrings          #-}
 {-# LANGUAGE RankNTypes                 #-}
+{-# LANGUAGE ViewPatterns               #-}
 
 -----------------------------------------------------------------------------
 -- |
@@ -26,16 +27,16 @@ module Graphics.Rendering.SVG
     ) where
 
 -- from base
-import Data.List (intersperse, intercalate)
+import           Data.List                   (intercalate, intersperse)
 
 -- from diagrams-lib
-import Diagrams.Prelude hiding (Render, Attribute, close, e, (<>))
-import Diagrams.TwoD.Text
-import Diagrams.TwoD.Path (getFillRule, getClip)
+import           Diagrams.Prelude            hiding (Attribute, Render, e, (<>))
+import           Diagrams.TwoD.Path          (getClip, getFillRule)
+import           Diagrams.TwoD.Text
 
 -- from blaze-svg
-import Text.Blaze.Svg11 ((!), mkPath, m, cr, hr, vr, lr, z)
-import qualified Text.Blaze.Svg11 as S
+import           Text.Blaze.Svg11            (cr, hr, lr, m, mkPath, vr, z, (!))
+import qualified Text.Blaze.Svg11            as S
 import qualified Text.Blaze.Svg11.Attributes as A
 
 svgHeader :: Double -> Double -> S.Svg -> S.Svg
@@ -52,18 +53,20 @@ renderPath (Path trs)  = S.path ! A.d makePath
  where
   makePath = mkPath $ mapM_ renderTrail trs
 
-renderTrail :: (P2, Trail R2) -> S.Path
-renderTrail (unp2 -> (x,y), Trail segs closed) = do
+renderTrail :: Located (Trail R2) -> S.Path
+renderTrail (viewLoc -> (unp2 -> (x,y), t)) = flip withLine t $ \l -> do
   m x y
-  mapM_ renderSeg segs
-  if closed then z else return ()
+  mapM_ renderSeg (lineSegments l)
+  if isLoop t then z else return ()
 
-renderSeg :: Segment R2 -> S.Path
-renderSeg (Linear (unr2 -> (x,0))) = hr x
-renderSeg (Linear (unr2 -> (0,y))) = vr y
-renderSeg (Linear (unr2 -> (x,y))) = lr x y
-renderSeg (Cubic  (unr2 -> (x0,y0)) (unr2 -> (x1,y1)) (unr2 -> (x2,y2))) = cr x0 y0 x1 y1 x2 y2
-
+renderSeg :: Segment Closed R2 -> S.Path
+renderSeg (Linear (OffsetClosed (unr2 -> (x,0)))) = hr x
+renderSeg (Linear (OffsetClosed (unr2 -> (0,y)))) = vr y
+renderSeg (Linear (OffsetClosed (unr2 -> (x,y)))) = lr x y
+renderSeg (Cubic  (unr2 -> (x0,y0))
+                  (unr2 -> (x1,y1))
+                  (OffsetClosed (unr2 -> (x2,y2))))
+  = cr x0 y0 x1 y1 x2 y2
 
 renderClip :: Maybe [Path R2] -> Int -> S.Svg
 renderClip Nothing _       = mempty
