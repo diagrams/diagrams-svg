@@ -166,7 +166,7 @@ renderLineJoin s = renderAttr A.strokeLinejoin lineJoin_
 
 renderDashing :: Style v -> S.Attribute
 renderDashing s = (renderAttr A.strokeDasharray arr) `mappend`
-                  (renderAttr A.strokeDashoffset offset)
+                  (renderAttr A.strokeDashoffset dOffset)
  where
   getDasharray  (Dashing a _) = a
   getDashoffset :: Dashing -> Double
@@ -174,7 +174,7 @@ renderDashing s = (renderAttr A.strokeDasharray arr) `mappend`
   dashArrayToStr              = intercalate "," . map show
   dashing_                    = getDashing <$> getAttr s
   arr                         = (dashArrayToStr . getDasharray) <$> dashing_
-  offset                      = getDashoffset <$> dashing_
+  dOffset                     = getDashoffset <$> dashing_
 
 renderFontSize :: Style v -> S.Attribute
 renderFontSize s = renderAttr A.fontSize fontSize_
