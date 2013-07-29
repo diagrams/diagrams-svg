@@ -1,5 +1,5 @@
 Name:                diagrams-svg
-Version:             0.6.1
+Version:             0.7
 Synopsis:            SVG backend for diagrams drawing EDSL.
 Homepage:            http://projects.haskell.org/diagrams/
 License:             BSD3
@@ -49,8 +49,8 @@ Library
                      , bytestring    >= 0.9   && < 1.0
                      , vector-space  >= 0.7   && < 0.9
                      , colour
-                     , diagrams-core >= 0.6   && < 0.7
-                     , diagrams-lib  >= 0.6   && < 0.7
+                     , diagrams-core >= 0.7   && < 0.8
+                     , diagrams-lib  >= 0.7   && < 0.8
                      , monoid-extras >= 0.3   && < 0.4
                      , blaze-svg     >= 0.3.3
                      , cmdargs       >= 0.6   && < 0.11
