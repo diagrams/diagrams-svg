@@ -1,3 +1,19 @@
+0.7: XXX
+--------
+
+* **New features**
+
+    - New `renderToSVG` convenience function
+    - Vastly improved Haddock documentation
+
+* **New instances**
+
+    - `Show` instance for `Options SVG R2`
+
+* **Dependency/version changes**
+    - allow `base-4.7` and `unix-2.7`
+    - Upgrade to `monoid-extras-0.3`
+
 0.6.0.1: 14 December 2012
 -------------------------
 
