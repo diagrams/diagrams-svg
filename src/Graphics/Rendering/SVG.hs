@@ -100,10 +100,12 @@ renderTransform :: Transformation R2 -> S.Svg -> S.Svg
 renderTransform t svg = S.g svg ! (A.transform $ S.matrix a1 a2 b1 b2 c1 c2)
   where (a1,a2,b1,b2,c1,c2) = getMatrix t
 
-renderStyles :: forall v. Style v -> S.Attribute
-renderStyles s = mconcat . map ($ s) $
+renderStyles :: Bool -> Style v -> S.Attribute
+renderStyles ignoreFill s = mconcat . map ($ s) $
   [ renderLineColor
-  , renderFillColor
+  , if ignoreFill
+      then const (renderAttr A.fillOpacity (Just (0 :: Double)))
+      else renderFillColor
   , renderLineWidth
   , renderLineCap
   , renderLineJoin
@@ -233,4 +235,3 @@ colorToRgbString c = concat
 colorToOpacity :: forall c . Color c => c -> Double
 colorToOpacity c = a
  where (_,_,_,a) = colorToSRGBA c
-

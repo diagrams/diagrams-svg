@@ -106,10 +106,10 @@ import qualified Graphics.Rendering.SVG       as R
 data SVG = SVG
     deriving (Show, Typeable)
 
-data SvgRenderState = SvgRenderState { clipPathId :: Int }
+data SvgRenderState = SvgRenderState { clipPathId :: Int, ignoreFill :: Bool }
 
 initialSvgRenderState :: SvgRenderState
-initialSvgRenderState = SvgRenderState 0
+initialSvgRenderState = SvgRenderState 0 False
 
 -- | Monad to keep track of state when rendering an SVG.
 --   Currently just keeps a monotonically increasing counter
@@ -117,7 +117,10 @@ initialSvgRenderState = SvgRenderState 0
 type SvgRenderM = State SvgRenderState S.Svg
 
 incrementClipPath :: State SvgRenderState ()
-incrementClipPath = modify (\(SvgRenderState x) -> SvgRenderState (x + 1))
+incrementClipPath = modify (\st -> st { clipPathId = clipPathId st + 1 })
+
+setIgnoreFill :: Bool -> State SvgRenderState ()
+setIgnoreFill b = modify (\st -> st { ignoreFill = b })
 
 instance Monoid (Render SVG R2) where
   mempty  = R $ return mempty
@@ -128,8 +131,8 @@ instance Monoid (Render SVG R2) where
       return (svg1 `mappend` svg2)
 
 -- | Renders a <g> element with styles applied as attributes.
-renderStyledGroup :: Style v -> (S.Svg -> S.Svg)
-renderStyledGroup s = S.g ! R.renderStyles s
+renderStyledGroup :: Bool -> Style v -> (S.Svg -> S.Svg)
+renderStyledGroup ignFill s = S.g ! R.renderStyles ignFill s
 
 renderSvgWithClipping :: S.Svg             -- ^ Input SVG
                       -> Style v           -- ^ Styles
@@ -157,9 +160,11 @@ instance Backend SVG R2 where
   withStyle _ s t (R r) =
     R $ do
       incrementClipPath
+      setIgnoreFill False
       clipPathId_ <- gets clipPathId
       svg <- r
-      let styledSvg = renderStyledGroup s ! (R.renderClipPathId s clipPathId_) $
+      ign <- gets ignoreFill
+      let styledSvg = renderStyledGroup ign s ! (R.renderClipPathId s clipPathId_) $
                         renderSvgWithClipping svg s clipPathId_ t
       -- This is where the frozen transformation is applied.
       return (R.renderTransform t styledSvg)
@@ -206,7 +211,11 @@ instance Renderable (Trail R2) SVG where
   render c = render c . pathFromTrail
 
 instance Renderable (Path R2) SVG where
-  render _ = R . return . R.renderPath
+  render _ p = R $ do
+    -- Don't fill lines.  diagrams-lib separates out lines and loops
+    -- for us, so if we see one line, they are all lines.
+    when (any (isLine . unLoc) . pathTrails $ p) $ setIgnoreFill True
+    return (R.renderPath p)
 
 instance Renderable Text SVG where
   render _ = R . return . R.renderText
