@@ -83,7 +83,6 @@ renderText (Text tr tAlign str) =
     ! A.stroke "none" $
       S.toMarkup str
  where
-  -- TextAlignment = BaselineText | BoxAlignedText Double Double
   vAlign = case tAlign of
              BaselineText -> "alphabetic"
              BoxAlignedText _ h -> case h of -- A mere approximation
