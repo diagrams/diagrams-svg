@@ -148,8 +148,10 @@ instance Backend SVG R2 where
   type Result  SVG R2 = S.Svg
   data Options SVG R2 = SVGOptions
                         { size :: SizeSpec2D   -- ^ The requested size.
+                        , svgDefinitions :: Maybe S.Svg
+                          -- ^ Custom definitions that will be added to the @defs@ 
+                          --   section of the output.
                         }
-                        deriving Show
 
   -- | Here the SVG backend is different from the other backends.  We
   --   give a different definition of renderDia, where only the
@@ -169,17 +171,17 @@ instance Backend SVG R2 where
       -- This is where the frozen transformation is applied.
       return (R.renderTransform t styledSvg)
 
-  doRender _ (SVGOptions sz) (R r) =
+  doRender _ opts (R r) =
     evalState svgOutput initialSvgRenderState
    where
     svgOutput = do
       svg <- r
-      let (w,h) = case sz of
+      let (w,h) = case size opts of
                     Width w'   -> (w',w')
                     Height h'  -> (h',h')
                     Dims w' h' -> (w',h')
                     Absolute   -> (100,100)
-      return $ R.svgHeader w h Nothing $ svg
+      return $ R.svgHeader w h (svgDefinitions opts) $ svg
 
   adjustDia c opts d = adjustDia2D size setSvgSize c opts
                          (d # reflectY
@@ -229,4 +231,4 @@ renderSVG :: FilePath -> SizeSpec2D -> Diagram SVG R2 -> IO ()
 renderSVG outFile sizeSpec
   = BS.writeFile outFile
   . renderSvg
-  . renderDia SVG (SVGOptions sizeSpec)
+  . renderDia SVG (SVGOptions sizeSpec Nothing)
