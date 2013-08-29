@@ -41,14 +41,16 @@ import qualified Text.Blaze.Svg11.Attributes as A
 
 -- | @svgHeader w h defs s@: @w@ width, @h@ height, 
 --   @defs@ global definitions for defs sections, @s@ actual SVG content.
-svgHeader :: Double -> Double -> S.Svg -> S.Svg -> S.Svg
+svgHeader :: Double -> Double -> Maybe S.Svg -> S.Svg -> S.Svg
 svgHeader w h_ defines s =  S.docTypeSvg
   ! A.version "1.1"
   ! A.width    (S.toValue w)
   ! A.height   (S.toValue h_)
   ! A.fontSize "1"
   ! A.viewbox (S.toValue $ concat . intersperse " " $ map show ([0, 0, round w, round h_] :: [Int])) 
-  $ do S.defs $ defines
+  $ do case defines of 
+         Nothing -> return ()
+         Just defs -> S.defs $ defs
        S.g $ s
 
 renderPath :: Path R2 -> S.Svg
