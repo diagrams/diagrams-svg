@@ -39,14 +39,17 @@ import           Text.Blaze.Svg11            (cr, hr, lr, m, mkPath, vr, z, (!))
 import qualified Text.Blaze.Svg11            as S
 import qualified Text.Blaze.Svg11.Attributes as A
 
-svgHeader :: Double -> Double -> S.Svg -> S.Svg
-svgHeader w h_ s =  S.docTypeSvg
+-- | @svgHeader w h defs s@: @w@ width, @h@ height, 
+--   @defs@ global definitions for defs sections, @s@ actual SVG content.
+svgHeader :: Double -> Double -> S.Svg -> S.Svg -> S.Svg
+svgHeader w h_ defines s =  S.docTypeSvg
   ! A.version "1.1"
   ! A.width    (S.toValue w)
   ! A.height   (S.toValue h_)
   ! A.fontSize "1"
-  ! A.viewbox (S.toValue $ concat . intersperse " " $ map show ([0, 0, round w, round h_] :: [Int])) $
-     S.g $ s
+  ! A.viewbox (S.toValue $ concat . intersperse " " $ map show ([0, 0, round w, round h_] :: [Int])) 
+  $ do S.defs $ defines
+       S.g $ s
 
 renderPath :: Path R2 -> S.Svg
 renderPath (Path trs)  = S.path ! A.d makePath

@@ -179,7 +179,7 @@ instance Backend SVG R2 where
                     Height h'  -> (h',h')
                     Dims w' h' -> (w',h')
                     Absolute   -> (100,100)
-      return $ R.svgHeader w h $ svg
+      return $ R.svgHeader w h (return ()) $ svg
 
   adjustDia c opts d = adjustDia2D size setSvgSize c opts
                          (d # reflectY
