@@ -81,14 +81,27 @@ renderClip (Just pths) id_ = S.clippath ! A.id_ clipPathId $ renderClipPaths
 
 -- FIXME take alignment into account
 renderText :: Text -> S.Svg
-renderText (Text tr _ str) =
+renderText (Text tr tAlign str) =
   S.text_
     ! A.transform transformMatrix
-    ! A.dominantBaseline "middle"
-    ! A.textAnchor "middle"
+    ! A.dominantBaseline vAlign
+    ! A.textAnchor hAlign
     ! A.stroke "none" $
       S.toMarkup str
  where
+  -- TextAlignment = BaselineText | BoxAlignedText Double Double
+  vAlign = case tAlign of
+             BaselineText -> "alphabetic"
+             BoxAlignedText _ h -> case h of -- A mere approximation
+               h' | h' <= 0.25 -> "text-after-edge" 
+               h' | h' >= 0.75 -> "text-before-edge"
+               _ -> "middle"
+  hAlign = case tAlign of
+             BaselineText -> "start"
+             BoxAlignedText w _ -> case w of -- A mere approximation
+               w' | w' <= 0.25 -> "start"
+               w' | w' >= 0.75 -> "end"
+               _ -> "middle"
   t                   = tr `mappend` reflectionY
   (a,b,c,d,e,f)       = getMatrix t
   transformMatrix     =  S.matrix a b c d e f
