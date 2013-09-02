@@ -86,7 +86,7 @@ import qualified Data.ByteString.Lazy         as BS
 
 -- from diagrams-lib
 import           Diagrams.Prelude
-import           Diagrams.TwoD.Adjust         (adjustDia2D)
+import           Diagrams.TwoD.Adjust         (adjustDia2D, setDefault2DAttributes)
 import           Diagrams.TwoD.Path           (getClip)
 import           Diagrams.TwoD.Text
 
@@ -133,7 +133,6 @@ instance Monoid (Render SVG R2) where
 -- | Renders a <g> element with styles applied as attributes.
 renderStyledGroup :: Bool -> Style v -> (S.Svg -> S.Svg)
 renderStyledGroup ignFill s = S.g ! R.renderStyles ignFill s
-                                  ! R.renderMiterLimit 100
 
 renderSvgWithClipping :: S.Svg             -- ^ Input SVG
                       -> Style v           -- ^ Styles
@@ -201,7 +200,7 @@ instance Backend SVG R2 where
   --   primitives before passing them to render.
   renderDia SVG opts d =
     doRender SVG opts' . mconcat . map renderOne . prims $ d'
-      where (opts', d') = adjustDia SVG opts d
+      where (opts', d') = adjustDia SVG opts $ setDefault2DAttributes d
             renderOne :: (Prim SVG R2, (Split (Transformation R2), Style R2))
                       -> Render SVG R2
             renderOne (p, (M t,      s))

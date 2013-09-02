@@ -133,10 +133,12 @@ renderStyles ignoreFill s = mconcat . map ($ s) $
   , renderFontSlant
   , renderFontWeight
   , renderFontFamily
+  , renderMiterLimit
   ]
   
-renderMiterLimit :: Double -> S.Attribute
-renderMiterLimit ml = renderAttr A.strokeMiterlimit (Just ml)
+renderMiterLimit :: Style v -> S.Attribute
+renderMiterLimit s = renderAttr A.strokeWidth miterLimit
+ where miterLimit = getLineMiterLimit <$> getAttr s
 
 renderLineColor :: Style v -> S.Attribute
 renderLineColor s =
