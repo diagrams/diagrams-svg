@@ -24,6 +24,7 @@ module Graphics.Rendering.SVG
     , renderText
     , renderStyles
     , renderTransform
+    , renderMiterLimit
     ) where
 
 -- from base
@@ -133,6 +134,9 @@ renderStyles ignoreFill s = mconcat . map ($ s) $
   , renderFontWeight
   , renderFontFamily
   ]
+  
+renderMiterLimit :: Double -> S.Attribute
+renderMiterLimit ml = renderAttr A.strokeMiterlimit (Just ml)
 
 renderLineColor :: Style v -> S.Attribute
 renderLineColor s =
