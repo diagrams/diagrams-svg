@@ -137,7 +137,7 @@ renderStyles ignoreFill s = mconcat . map ($ s) $
   ]
   
 renderMiterLimit :: Style v -> S.Attribute
-renderMiterLimit s = renderAttr A.strokeWidth miterLimit
+renderMiterLimit s = renderAttr A.strokeMiterlimit miterLimit
  where miterLimit = getLineMiterLimit <$> getAttr s
 
 renderLineColor :: Style v -> S.Attribute
