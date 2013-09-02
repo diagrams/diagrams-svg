@@ -137,12 +137,19 @@ renderStyledGroup ignFill s = S.g ! R.renderStyles ignFill s
 
 renderSvgWithClipping :: S.Svg             -- ^ Input SVG
                       -> Style v           -- ^ Styles
-                      -> Int               -- ^ Clip Path ID
                       -> Transformation R2 -- ^ Freeze transform
-                      -> S.Svg             -- ^ Resulting svg
-renderSvgWithClipping svg s id_ t = do
-  R.renderClip (transform (inv t) <$> getClip <$> getAttr s) id_  -- Clipping if any
-  svg                                       -- The diagram
+                      -> SvgRenderM        -- ^ Resulting svg
+renderSvgWithClipping svg s t =
+  case (transform (inv t) <$> getClip <$> getAttr s) of
+    Nothing -> return $ svg
+    Just paths -> renderClips paths
+  where
+    renderClips :: [Path R2] -> SvgRenderM
+    renderClips [] = return $ svg
+    renderClips (p:ps) = do
+      incrementClipPath
+      id_ <- gets clipPathId
+      R.renderClip p id_ <$> renderClips ps
 
 instance Backend SVG R2 where
   data Render  SVG R2 = R SvgRenderM
@@ -160,13 +167,11 @@ instance Backend SVG R2 where
   --   primitives.
   withStyle _ s t (R r) =
     R $ do
-      incrementClipPath
       setIgnoreFill False
-      clipPathId_ <- gets clipPathId
       svg <- r
       ign <- gets ignoreFill
-      let styledSvg = renderStyledGroup ign s ! (R.renderClipPathId s clipPathId_) $
-                        renderSvgWithClipping svg s clipPathId_ t
+      clippedSvg <- renderSvgWithClipping svg s t
+      let styledSvg = renderStyledGroup ign s clippedSvg
       -- This is where the frozen transformation is applied.
       return (R.renderTransform t styledSvg)
 
