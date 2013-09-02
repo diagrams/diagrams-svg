@@ -79,7 +79,6 @@ renderClip (Just pths) id_ = S.clippath ! A.id_ clipPathId $ renderClipPaths
   where renderClipPaths = mapM_ renderPath pths
         clipPathId      = S.toValue $ "myClip" ++ show id_
 
--- FIXME take alignment into account
 renderText :: Text -> S.Svg
 renderText (Text tr tAlign str) =
   S.text_
@@ -89,7 +88,6 @@ renderText (Text tr tAlign str) =
     ! A.stroke "none" $
       S.toMarkup str
  where
-  -- TextAlignment = BaselineText | BoxAlignedText Double Double
   vAlign = case tAlign of
              BaselineText -> "alphabetic"
              BoxAlignedText _ h -> case h of -- A mere approximation
