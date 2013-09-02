@@ -133,6 +133,7 @@ instance Monoid (Render SVG R2) where
 -- | Renders a <g> element with styles applied as attributes.
 renderStyledGroup :: Bool -> Style v -> (S.Svg -> S.Svg)
 renderStyledGroup ignFill s = S.g ! R.renderStyles ignFill s
+                                  ! R.renderMiterLimit 100
 
 renderSvgWithClipping :: S.Svg             -- ^ Input SVG
                       -> Style v           -- ^ Styles
