@@ -20,10 +20,10 @@ module Graphics.Rendering.SVG
     ( svgHeader
     , renderPath
     , renderClip
-    , renderClipPathId
     , renderText
     , renderStyles
     , renderTransform
+    , renderMiterLimit
     ) where
 
 -- from base
@@ -31,7 +31,7 @@ import           Data.List                   (intercalate, intersperse)
 
 -- from diagrams-lib
 import           Diagrams.Prelude            hiding (Attribute, Render, e, (<>))
-import           Diagrams.TwoD.Path          (getClip, getFillRule)
+import           Diagrams.TwoD.Path          (getFillRule)
 import           Diagrams.TwoD.Text
 
 -- from blaze-svg
@@ -68,11 +68,12 @@ renderSeg (Cubic  (unr2 -> (x0,y0))
                   (OffsetClosed (unr2 -> (x2,y2))))
   = cr x0 y0 x1 y1 x2 y2
 
-renderClip :: Maybe [Path R2] -> Int -> S.Svg
-renderClip Nothing _       = mempty
-renderClip (Just pths) id_ = S.clippath ! A.id_ clipPathId $ renderClipPaths
-  where renderClipPaths = mapM_ renderPath pths
-        clipPathId      = S.toValue $ "myClip" ++ show id_
+renderClip :: Path R2 -> Int -> S.Svg -> S.Svg
+renderClip p id_ svg = do 
+  S.g ! A.clipPath (S.toValue $ "url(#" ++ clipPathId id_ ++ ")") $ do 
+    S.clippath ! A.id_ (S.toValue $ clipPathId id_) $ renderPath p
+    svg
+  where clipPathId i = "myClip" ++ show i
 
 renderText :: Text -> S.Svg
 renderText (Text tr tAlign str) =
@@ -127,7 +128,12 @@ renderStyles ignoreFill s = mconcat . map ($ s) $
   , renderFontSlant
   , renderFontWeight
   , renderFontFamily
+  , renderMiterLimit
   ]
+  
+renderMiterLimit :: Style v -> S.Attribute
+renderMiterLimit s = renderAttr A.strokeMiterlimit miterLimit
+ where miterLimit = getLineMiterLimit <$> getAttr s
 
 renderLineColor :: Style v -> S.Attribute
 renderLineColor s =
@@ -215,14 +221,6 @@ renderFontFamily :: Style v -> S.Attribute
 renderFontFamily s = renderAttr A.fontFamily fontFamily_
  where
   fontFamily_ = getFont <$> getAttr s
-
-renderClipPathId :: Style v -> Int -> S.Attribute
-renderClipPathId s id_ = renderAttr A.clipPath clipPathId
- where
-  clipPathId :: Maybe String
-  clipPathId = case getClip <$> getAttr s of
-                 Nothing -> Nothing
-                 Just _ -> Just ("url(#myClip" ++ show id_ ++ ")")
 
 -- | Render a style attribute if available, empty otherwise.
 renderAttr :: S.ToValue s => (S.AttributeValue -> S.Attribute)
