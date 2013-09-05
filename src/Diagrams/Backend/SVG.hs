@@ -97,6 +97,7 @@ import           Data.Monoid.Split            (Split (..))
 import           Text.Blaze.Svg.Renderer.Utf8 (renderSvg)
 import           Text.Blaze.Svg11             ((!))
 import qualified Text.Blaze.Svg11             as S
+import qualified Text.Blaze.Svg.Renderer.Pretty as PrettySvg
 
 -- from this package
 import qualified Graphics.Rendering.SVG       as R
@@ -210,6 +211,19 @@ instance Backend SVG R2 where
               -- Here is the difference from the default
               -- implementation: "t2" instead of "t1 <> t2".
               = withStyle SVG s t1 (render SVG (transform t2 p))
+
+instance Show (Options SVG R2) where
+  show opts = concat $
+            [ "SVGOptions { "
+            , "size = "
+            , show $ size opts
+            , " , "
+            , "svgDefinitions = "
+            , case svgDefinitions opts of
+                Nothing -> "Nothing"
+                Just svg -> "Just " ++ PrettySvg.renderSvg svg
+            , " }"
+            ]
 
 instance Renderable (Segment Closed R2) SVG where
   render c = render c . (fromSegments :: [Segment Closed R2] -> Path R2) . (:[])
