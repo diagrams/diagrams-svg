@@ -97,6 +97,7 @@ import           Data.Monoid.Split            (Split (..))
 import           Text.Blaze.Svg.Renderer.Utf8 (renderSvg)
 import           Text.Blaze.Svg11             ((!))
 import qualified Text.Blaze.Svg11             as S
+import qualified Text.Blaze.Svg.Renderer.String as StringSvg
 
 -- from this package
 import qualified Graphics.Rendering.SVG       as R
@@ -136,20 +137,29 @@ renderStyledGroup ignFill s = S.g ! R.renderStyles ignFill s
 
 renderSvgWithClipping :: S.Svg             -- ^ Input SVG
                       -> Style v           -- ^ Styles
-                      -> Int               -- ^ Clip Path ID
                       -> Transformation R2 -- ^ Freeze transform
-                      -> S.Svg             -- ^ Resulting svg
-renderSvgWithClipping svg s id_ t = do
-  R.renderClip (transform (inv t) <$> getClip <$> getAttr s) id_  -- Clipping if any
-  svg                                       -- The diagram
+                      -> SvgRenderM        -- ^ Resulting svg
+renderSvgWithClipping svg s t =
+  case (transform (inv t) <$> getClip <$> getAttr s) of
+    Nothing -> return $ svg
+    Just paths -> renderClips paths
+  where
+    renderClips :: [Path R2] -> SvgRenderM
+    renderClips [] = return $ svg
+    renderClips (p:ps) = do
+      incrementClipPath
+      id_ <- gets clipPathId
+      R.renderClip p id_ <$> renderClips ps
 
 instance Backend SVG R2 where
   data Render  SVG R2 = R SvgRenderM
   type Result  SVG R2 = S.Svg
   data Options SVG R2 = SVGOptions
                         { size :: SizeSpec2D   -- ^ The requested size.
+                        , svgDefinitions :: Maybe S.Svg
+                          -- ^ Custom definitions that will be added to the @defs@ 
+                          --   section of the output.
                         }
-                        deriving Show
 
   -- | Here the SVG backend is different from the other backends.  We
   --   give a different definition of renderDia, where only the
@@ -159,27 +169,25 @@ instance Backend SVG R2 where
   --   primitives.
   withStyle _ s t (R r) =
     R $ do
-      incrementClipPath
       setIgnoreFill False
-      clipPathId_ <- gets clipPathId
       svg <- r
       ign <- gets ignoreFill
-      let styledSvg = renderStyledGroup ign s ! (R.renderClipPathId s clipPathId_) $
-                        renderSvgWithClipping svg s clipPathId_ t
+      clippedSvg <- renderSvgWithClipping svg s t
+      let styledSvg = renderStyledGroup ign s clippedSvg
       -- This is where the frozen transformation is applied.
       return (R.renderTransform t styledSvg)
 
-  doRender _ (SVGOptions sz) (R r) =
+  doRender _ opts (R r) =
     evalState svgOutput initialSvgRenderState
    where
     svgOutput = do
       svg <- r
-      let (w,h) = case sz of
+      let (w,h) = case size opts of
                     Width w'   -> (w',w')
                     Height h'  -> (h',h')
                     Dims w' h' -> (w',h')
                     Absolute   -> (100,100)
-      return $ R.svgHeader w h $ svg
+      return $ R.svgHeader w h (svgDefinitions opts) $ svg
 
   adjustDia c opts d = adjustDia2D size setSvgSize c opts
                          (d # reflectY
@@ -203,6 +211,19 @@ instance Backend SVG R2 where
               -- Here is the difference from the default
               -- implementation: "t2" instead of "t1 <> t2".
               = withStyle SVG s t1 (render SVG (transform t2 p))
+
+instance Show (Options SVG R2) where
+  show opts = concat $
+            [ "SVGOptions { "
+            , "size = "
+            , show $ size opts
+            , " , "
+            , "svgDefinitions = "
+            , case svgDefinitions opts of
+                Nothing -> "Nothing"
+                Just svg -> "Just " ++ StringSvg.renderSvg svg
+            , " }"
+            ]
 
 instance Renderable (Segment Closed R2) SVG where
   render c = render c . (fromSegments :: [Segment Closed R2] -> Path R2) . (:[])
@@ -229,4 +250,4 @@ renderSVG :: FilePath -> SizeSpec2D -> Diagram SVG R2 -> IO ()
 renderSVG outFile sizeSpec
   = BS.writeFile outFile
   . renderSvg
-  . renderDia SVG (SVGOptions sizeSpec)
+  . renderDia SVG (SVGOptions sizeSpec Nothing)

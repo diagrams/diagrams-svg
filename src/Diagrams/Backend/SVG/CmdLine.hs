@@ -156,7 +156,7 @@ chooseRender opts d =
                             (Just w, Just h)   -> Dims (fromIntegral w)
                                                        (fromIntegral h)
 
-               build = renderDia SVG (SVGOptions sizeSpec) d
+               build = renderDia SVG (SVGOptions sizeSpec Nothing) d
            BS.writeFile (output opts) (renderSvg build)
        | otherwise -> putStrLn $ "Unknown file type: " ++ last ps
 
