@@ -97,7 +97,7 @@ import           Data.Monoid.Split            (Split (..))
 import           Text.Blaze.Svg.Renderer.Utf8 (renderSvg)
 import           Text.Blaze.Svg11             ((!))
 import qualified Text.Blaze.Svg11             as S
-import qualified Text.Blaze.Svg.Renderer.Pretty as PrettySvg
+import qualified Text.Blaze.Svg.Renderer.String as StringSvg
 
 -- from this package
 import qualified Graphics.Rendering.SVG       as R
@@ -221,7 +221,7 @@ instance Show (Options SVG R2) where
             , "svgDefinitions = "
             , case svgDefinitions opts of
                 Nothing -> "Nothing"
-                Just svg -> "Just " ++ PrettySvg.renderSvg svg
+                Just svg -> "Just " ++ StringSvg.renderSvg svg
             , " }"
             ]
 
