@@ -1,3 +1,17 @@
+0.8: 10 September 2013
+----------------------
+
+* **New features**
+
+    - Extra SVG definitions, to be inserted in the output, may be
+      passed as an argument
+    - Support for new miter limit attribute
+    - Approximate text alignment
+
+* **Bug fixes**
+
+    - Stacking multiple clip regions now works properly
+
 0.7: 9 August 2013
 ------------------
 
