@@ -50,7 +50,7 @@ Library
                      , vector-space  >= 0.7   && < 0.9
                      , colour
                      , diagrams-core >= 0.7   && < 0.8
-                     , diagrams-lib  >= 0.7   && < 0.8
+                     , diagrams-lib  >= 0.7.1 && < 0.8
                      , monoid-extras >= 0.3   && < 0.4
                      , blaze-svg     >= 0.3.3
                      , cmdargs       >= 0.6   && < 0.11
