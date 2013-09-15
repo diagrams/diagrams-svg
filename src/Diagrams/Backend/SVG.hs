@@ -160,15 +160,13 @@ renderDTree :: DTree SVG R2 () -> Render SVG R2
 renderDTree (Node (DPrim p) _) =
   withStyle SVG mempty mempty (render SVG p)
 renderDTree (Node (DStyle sty) ts) =
-  withStyle SVG sty mempty (foldMap renderDTree (Node DEmpty ts))
-renderDTree (Node (DTransform (M tr)) ts) =
-  withStyle SVG mempty mempty (foldMap renderDTree (Node DEmpty ts))
+  withStyle SVG sty mempty (mconcat $ map renderDTree ts)
+renderDTree (Node (DTransform (M _)) ts) =
+  withStyle SVG mempty mempty (mconcat $ map renderDTree ts)
 renderDTree (Node (DTransform (tr1 :| _)) ts) =
-  withStyle SVG mempty tr1 (foldMap renderDTree (Node DEmpty ts))
-renderDTree (Node (DAnnot ()) ts) =
-  withStyle SVG mempty mempty (foldMap renderDTree (Node DEmpty ts))
-renderDTree (Node  DEmpty ts) =
-  withStyle SVG mempty mempty (foldMap renderDTree (Node DEmpty ts))
+  withStyle SVG mempty tr1 (mconcat $ map renderDTree ts)
+renderDTree (Node (DAnnot ()) ts) = mconcat $ map renderDTree ts
+renderDTree (Node  DEmpty ts) = mconcat $ map renderDTree ts
 
 instance Backend SVG R2 where
   data Render  SVG R2 = R SvgRenderM
