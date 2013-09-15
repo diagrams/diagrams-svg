@@ -77,6 +77,11 @@ module Diagrams.Backend.SVG
   , renderSVG
   ) where
 
+-- for testing
+import           Diagrams.Core.Compile
+import           Data.Maybe (fromMaybe)
+import           Data.Tree
+
 -- from base
 import           Control.Monad.State
 import           Data.Typeable
@@ -151,13 +156,27 @@ renderSvgWithClipping svg s t =
       id_ <- gets clipPathId
       R.renderClip p id_ <$> renderClips ps
 
+renderDTree :: DTree SVG R2 () -> Render SVG R2
+renderDTree (Node (DPrim p) _) =
+  withStyle SVG mempty mempty (render SVG p)
+renderDTree (Node (DStyle sty) ts) =
+  withStyle SVG sty mempty (foldMap renderDTree (Node DEmpty ts))
+renderDTree (Node (DTransform (M tr)) ts) =
+  withStyle SVG mempty mempty (foldMap renderDTree (Node DEmpty ts))
+renderDTree (Node (DTransform (tr1 :| _)) ts) =
+  withStyle SVG mempty tr1 (foldMap renderDTree (Node DEmpty ts))
+renderDTree (Node (DAnnot ()) ts) =
+  withStyle SVG mempty mempty (foldMap renderDTree (Node DEmpty ts))
+renderDTree (Node  DEmpty ts) =
+  withStyle SVG mempty mempty (foldMap renderDTree (Node DEmpty ts))
+
 instance Backend SVG R2 where
   data Render  SVG R2 = R SvgRenderM
   type Result  SVG R2 = S.Svg
   data Options SVG R2 = SVGOptions
                         { size :: SizeSpec2D   -- ^ The requested size.
                         , svgDefinitions :: Maybe S.Svg
-                          -- ^ Custom definitions that will be added to the @defs@ 
+                          -- ^ Custom definitions that will be added to the @defs@
                           --   section of the output.
                         }
 
@@ -200,9 +219,11 @@ instance Backend SVG R2 where
   --   except that it only applies the non-frozen transformation to the
   --   primitives before passing them to render.
   renderDia SVG opts d =
-    doRender SVG opts' . mconcat . map renderOne . prims $ d'
+    doRender SVG opts' . renderDUAL $ d'
       where (opts', d') = adjustDia SVG opts d
-            renderOne :: (Prim SVG R2, (Split (Transformation R2), Style R2))
+            renderDUAL dia =
+              renderDTree $ fromMaybe (Node DEmpty []) (toTree dia)
+            {- renderOne :: (Prim SVG R2, (Split (Transformation R2), Style R2))
                       -> Render SVG R2
             renderOne (p, (M t,      s))
               = withStyle SVG s mempty (render SVG (transform t p))
@@ -210,7 +231,7 @@ instance Backend SVG R2 where
             renderOne (p, (t1 :| t2, s))
               -- Here is the difference from the default
               -- implementation: "t2" instead of "t1 <> t2".
-              = withStyle SVG s t1 (render SVG (transform t2 p))
+              = withStyle SVG s t1 (render SVG (transform t2 p)) -}
 
 instance Show (Options SVG R2) where
   show opts = concat $
