@@ -81,6 +81,9 @@ module Diagrams.Backend.SVG
 import           Diagrams.Core.Compile
 import           Data.Maybe (fromMaybe)
 import           Data.Tree
+import           Data.Foldable (foldMap)
+import           Data.Monoid.Action
+import qualified Text.Blaze.Svg11.Attributes as A
 
 -- from base
 import           Control.Monad.State
@@ -160,13 +163,13 @@ renderDTree :: DTree SVG R2 () -> Render SVG R2
 renderDTree (Node (DPrim p) _) =
   withStyle SVG mempty mempty (render SVG p)
 renderDTree (Node (DStyle sty) ts) =
-  withStyle SVG sty mempty (mconcat $ map renderDTree ts)
-renderDTree (Node (DTransform (M _)) ts) =
-  withStyle SVG mempty mempty (mconcat $ map renderDTree ts)
-renderDTree (Node (DTransform (tr1 :| _)) ts) =
-  withStyle SVG mempty tr1 (mconcat $ map renderDTree ts)
-renderDTree (Node (DAnnot ()) ts) = mconcat $ map renderDTree ts
-renderDTree (Node  DEmpty ts) = mconcat $ map renderDTree ts
+  withStyle SVG sty mempty (foldMap renderDTree ts)
+renderDTree (Node (DTransform (M tr)) ts) =
+  withStyle SVG mempty tr (foldMap renderDTree ts)
+renderDTree (Node (DTransform (tr :| _)) ts) =
+  withStyle SVG mempty tr (foldMap renderDTree ts)
+renderDTree (Node (DAnnot ()) ts) = foldMap renderDTree ts
+renderDTree (Node  DEmpty ts) = foldMap renderDTree ts
 
 instance Backend SVG R2 where
   data Render  SVG R2 = R SvgRenderM
@@ -190,9 +193,9 @@ instance Backend SVG R2 where
       svg <- r
       ign <- gets ignoreFill
       clippedSvg <- renderSvgWithClipping svg s t
-      let styledSvg = renderStyledGroup ign s clippedSvg
+      let styledSvg =(R.renderTransform t . renderStyledGroup ign s) clippedSvg
       -- This is where the frozen transformation is applied.
-      return (R.renderTransform t styledSvg)
+      return (styledSvg)
 
   doRender _ opts (R r) =
     evalState svgOutput initialSvgRenderState
