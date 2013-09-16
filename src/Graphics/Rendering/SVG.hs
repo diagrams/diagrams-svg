@@ -115,8 +115,11 @@ getMatrix t = (a1,a2,b1,b2,c1,c2)
 
 -- | Apply a transformation to some already-rendered SVG.
 renderTransform :: Transformation R2 -> S.Svg -> S.Svg
-renderTransform t svg = S.g svg ! (A.transform $ S.matrix a1 a2 b1 b2 c1 c2)
-  where (a1,a2,b1,b2,c1,c2) = getMatrix t
+renderTransform t svg =
+  if i then svg
+  else S.g svg ! (A.transform $ S.matrix a1 a2 b1 b2 c1 c2)
+    where (a1,a2,b1,b2,c1,c2) = getMatrix t
+          i = a1 == 1 && a2 == 0 && b1 == 0 && b2 == 1 && c1 == 0 && c2 == 0
 
 renderStyles :: Bool -> Style v -> S.Attribute
 renderStyles ignoreFill s = mconcat . map ($ s) $

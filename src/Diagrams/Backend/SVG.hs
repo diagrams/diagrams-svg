@@ -194,8 +194,14 @@ instance Backend SVG R2 where
       ign <- gets ignoreFill
       clippedSvg <- renderSvgWithClipping svg s t
       let styledSvg =(R.renderTransform t . renderStyledGroup ign s) clippedSvg
+      --let styledSvg = case () of
+      --                _ | s == mempty && t == mempty -> clippedSvg
+      --                  | s == mempty -> renderStyledGroup ign s clippedSvg
+      --                  | t == mempty -> R.renderTransform t clippedSvg
+      --                  | otherwise -> clippedSvg
+
       -- This is where the frozen transformation is applied.
-      return (styledSvg)
+      return styledSvg
 
   doRender _ opts (R r) =
     evalState svgOutput initialSvgRenderState
@@ -210,7 +216,7 @@ instance Backend SVG R2 where
       return $ R.svgHeader w h (svgDefinitions opts) $ svg
 
   adjustDia c opts d = adjustDia2D size setSvgSize c opts
-                         (d # reflectY
+                         (d {- # reflectY -}
                             # recommendFillColor
                                 (transparent :: AlphaColour Double)
                          )
