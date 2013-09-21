@@ -159,17 +159,17 @@ renderSvgWithClipping svg s t =
       id_ <- gets clipPathId
       R.renderClip p id_ <$> renderClips ps
 
-renderDTree :: DTree SVG R2 () -> Render SVG R2
-renderDTree (Node (DPrim p) _) =
-  withStyle SVG mempty mempty (render SVG p)
-renderDTree (Node (DStyle sty) ts) =
-  withStyle SVG sty mempty (foldMap renderDTree ts)
-renderDTree (Node (DTransform (M tr)) ts) =
-  withStyle SVG mempty tr (foldMap renderDTree ts)
-renderDTree (Node (DTransform (tr :| _)) ts) =
-  withStyle SVG mempty tr (foldMap renderDTree ts)
-renderDTree (Node (DAnnot ()) ts) = foldMap renderDTree ts
-renderDTree (Node  DEmpty ts) = foldMap renderDTree ts
+renderDTree :: Transformation R2 -> DTree SVG R2 () -> Render SVG R2
+renderDTree accTr (Node (DPrim p) _) =
+  withStyle SVG mempty mempty (render SVG (transform accTr p))
+renderDTree accTr (Node (DStyle sty) ts) =
+  withStyle SVG sty mempty (foldMap (renderDTree accTr) ts)
+renderDTree accTr (Node (DTransform (M tr)) ts) =
+  withStyle SVG mempty mempty (foldMap (renderDTree (accTr <> tr)) ts)
+renderDTree accTr (Node (DTransform (tr1 :| tr2)) ts) =
+  withStyle SVG mempty tr1 (foldMap (renderDTree (accTr <> tr2)) ts)
+renderDTree accTr (Node (DAnnot ()) ts) = foldMap (renderDTree accTr) ts
+renderDTree accTr (Node  DEmpty ts) = foldMap (renderDTree accTr) ts
 
 instance Backend SVG R2 where
   data Render  SVG R2 = R SvgRenderM
@@ -180,13 +180,6 @@ instance Backend SVG R2 where
                           -- ^ Custom definitions that will be added to the @defs@
                           --   section of the output.
                         }
-
-  -- | Here the SVG backend is different from the other backends.  We
-  --   give a different definition of renderDia, where only the
-  --   non-frozen transformation is applied to the primitives before
-  --   they are passed to render.  This means that withStyle is
-  --   responsible for applying the frozen transformation to the
-  --   primitives.
   withStyle _ s t (R r) =
     R $ do
       setIgnoreFill False
@@ -194,12 +187,6 @@ instance Backend SVG R2 where
       ign <- gets ignoreFill
       clippedSvg <- renderSvgWithClipping svg s t
       let styledSvg =(R.renderTransform t . renderStyledGroup ign s) clippedSvg
-      --let styledSvg = case () of
-      --                _ | s == mempty && t == mempty -> clippedSvg
-      --                  | s == mempty -> renderStyledGroup ign s clippedSvg
-      --                  | t == mempty -> R.renderTransform t clippedSvg
-      --                  | otherwise -> clippedSvg
-
       -- This is where the frozen transformation is applied.
       return styledSvg
 
@@ -229,16 +216,7 @@ instance Backend SVG R2 where
     doRender SVG opts' . renderDUAL $ d'
       where (opts', d') = adjustDia SVG opts d
             renderDUAL dia =
-              renderDTree $ fromMaybe (Node DEmpty []) (toTree dia)
-            {- renderOne :: (Prim SVG R2, (Split (Transformation R2), Style R2))
-                      -> Render SVG R2
-            renderOne (p, (M t,      s))
-              = withStyle SVG s mempty (render SVG (transform t p))
-
-            renderOne (p, (t1 :| t2, s))
-              -- Here is the difference from the default
-              -- implementation: "t2" instead of "t1 <> t2".
-              = withStyle SVG s t1 (render SVG (transform t2 p)) -}
+              renderDTree mempty $ fromMaybe (Node DEmpty []) (toTree dia)
 
 instance Show (Options SVG R2) where
   show opts = concat $
