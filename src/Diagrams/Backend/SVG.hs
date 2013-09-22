@@ -75,6 +75,7 @@ module Diagrams.Backend.SVG
   , Options(..) -- for rendering options specific to SVG
 
   , renderSVG
+  , toTree
   ) where
 
 -- for testing
@@ -186,9 +187,9 @@ instance Backend SVG R2 where
       svg <- r
       ign <- gets ignoreFill
       clippedSvg <- renderSvgWithClipping svg s t
-      let styledSvg =(R.renderTransform t . renderStyledGroup ign s) clippedSvg
+      let styledSvg =(renderStyledGroup ign s) clippedSvg
       -- This is where the frozen transformation is applied.
-      return styledSvg
+      return (R.renderTransform t styledSvg)
 
   doRender _ opts (R r) =
     evalState svgOutput initialSvgRenderState
@@ -203,7 +204,7 @@ instance Backend SVG R2 where
       return $ R.svgHeader w h (svgDefinitions opts) $ svg
 
   adjustDia c opts d = adjustDia2D size setSvgSize c opts
-                         (d {- # reflectY -}
+                         (d # reflectY
                             # recommendFillColor
                                 (transparent :: AlphaColour Double)
                          )
@@ -212,11 +213,11 @@ instance Backend SVG R2 where
   -- | This implementation of renderDia is the same as the default one,
   --   except that it only applies the non-frozen transformation to the
   --   primitives before passing them to render.
-  renderDia SVG opts d =
-    doRender SVG opts' . renderDUAL $ d'
-      where (opts', d') = adjustDia SVG opts d
-            renderDUAL dia =
-              renderDTree mempty $ fromMaybe (Node DEmpty []) (toTree dia)
+  renderDia SVG opts d = doRender SVG opts' . renderDUAL $ d'
+    where
+      (opts', d') = adjustDia SVG opts d
+      renderDUAL dia =
+        renderDTree mempty $ fromMaybe (Node DEmpty []) (toTree dia)
 
 instance Show (Options SVG R2) where
   show opts = concat $
