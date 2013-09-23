@@ -44,6 +44,9 @@
 --
 -- > data Options SVG R2 = SVGOptions
 -- >                       { size :: SizeSpec2D   -- ^ The requested size.
+-- >                       , svgDefinitions :: Maybe S.Svg
+-- >                       -- ^ Custom definitions that will be added to the @defs@ 
+-- >                       --  section of the output.
 -- >                       }
 --
 -- @
