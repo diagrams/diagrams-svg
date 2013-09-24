@@ -160,16 +160,16 @@ renderSvgWithClipping svg s t =
       id_ <- gets clipPathId
       R.renderClip p id_ <$> renderClips ps
 
-renderDTree :: Transformation R2 -> DTree SVG R2 () -> Render SVG R2
+renderDTree :: Transformation R2 -> DTree SVG R2 a -> Render SVG R2
 renderDTree accTr (Node (DPrim p) _) =
   withStyle SVG mempty mempty (render SVG (transform accTr p))
 renderDTree accTr (Node (DStyle sty) ts) =
-  withStyle SVG sty mempty (foldMap (renderDTree accTr) ts)
+  withStyle SVG sty accTr (foldMap (renderDTree mempty) ts)
 renderDTree accTr (Node (DTransform (M tr)) ts) =
   withStyle SVG mempty mempty (foldMap (renderDTree (accTr <> tr)) ts)
 renderDTree accTr (Node (DTransform (tr1 :| tr2)) ts) =
   withStyle SVG mempty tr1 (foldMap (renderDTree (accTr <> tr2)) ts)
-renderDTree accTr (Node (DAnnot ()) ts) = foldMap (renderDTree accTr) ts
+renderDTree accTr (Node (DAnnot _) ts) = foldMap (renderDTree accTr) ts
 renderDTree accTr (Node  DEmpty ts) = foldMap (renderDTree accTr) ts
 
 instance Backend SVG R2 where
@@ -210,9 +210,19 @@ instance Backend SVG R2 where
                          )
     where setSvgSize sz o = o { size = sz }
 
-  -- | This implementation of renderDia is the same as the default one,
-  --   except that it only applies the non-frozen transformation to the
-  --   primitives before passing them to render.
+  --renderDia SVG opts d =
+  --  doRender SVG opts' . mconcat . map renderOne . getPrims $ d'
+  --    where (opts', d') = adjustDia SVG opts d
+  --          renderOne :: (Prim SVG R2, (Split (Transformation R2), Style R2))
+  --                    -> Render SVG R2
+  --          renderOne (p, (M t,      s))
+  --            = withStyle SVG s mempty (render SVG (transform t p))
+
+  --          renderOne (p, (t1 :| t2, s))
+  --            -- Here is the difference from the default
+  --            -- implementation: "t2" instead of "t1 <> t2".
+  --            = withStyle SVG s t1 (render SVG (transform t2 p))
+
   renderDia SVG opts d = doRender SVG opts' . renderDUAL $ d'
     where
       (opts', d') = adjustDia SVG opts d
