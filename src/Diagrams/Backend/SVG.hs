@@ -160,15 +160,16 @@ renderSvgWithClipping svg s t =
       id_ <- gets clipPathId
       R.renderClip p id_ <$> renderClips ps
 
+-- | Consider nesting this function in doRender
 renderDTree :: Transformation R2 -> DTree SVG R2 a -> Render SVG R2
 renderDTree accTr (Node (DPrim p) _) =
   withStyle SVG mempty mempty (render SVG (transform accTr p))
 renderDTree accTr (Node (DStyle sty) ts) =
-  withStyle SVG sty accTr (foldMap (renderDTree mempty) ts)
+  withStyle SVG sty mempty (foldMap (renderDTree accTr) ts)
 renderDTree accTr (Node (DTransform (M tr)) ts) =
   withStyle SVG mempty mempty (foldMap (renderDTree (accTr <> tr)) ts)
 renderDTree accTr (Node (DTransform (tr1 :| tr2)) ts) =
-  withStyle SVG mempty tr1 (foldMap (renderDTree (accTr <> tr2)) ts)
+  withStyle SVG mempty (accTr <> tr1) (foldMap (renderDTree tr2) ts)
 renderDTree accTr (Node (DAnnot _) ts) = foldMap (renderDTree accTr) ts
 renderDTree accTr (Node  DEmpty ts) = foldMap (renderDTree accTr) ts
 
