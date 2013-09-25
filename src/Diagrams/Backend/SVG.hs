@@ -160,18 +160,55 @@ renderSvgWithClipping svg s t =
       id_ <- gets clipPathId
       R.renderClip p id_ <$> renderClips ps
 
--- | Consider nesting this function in doRender
+-- | Consider nesting this function in renderDia
 renderDTree :: Transformation R2 -> DTree SVG R2 a -> Render SVG R2
-renderDTree accTr (Node (DPrim p) _) =
-  withStyle SVG mempty mempty (render SVG (transform accTr p))
-renderDTree accTr (Node (DStyle sty) ts) =
-  withStyle SVG sty mempty (foldMap (renderDTree accTr) ts)
-renderDTree accTr (Node (DTransform (M tr)) ts) =
-  withStyle SVG mempty mempty (foldMap (renderDTree (accTr <> tr)) ts)
-renderDTree accTr (Node (DTransform (tr1 :| tr2)) ts) =
-  withStyle SVG mempty (accTr <> tr1) (foldMap (renderDTree tr2) ts)
+-- Prim
+renderDTree accTr (Node (DPrim p) _)
+  = withStyle SVG mempty mempty (render SVG (transform accTr p))
+
+-- Style
+renderDTree accTr (Node (DStyle sty) ts)
+  = withStyle SVG sty mempty (foldMap (renderDTree accTr) ts)
+
+-- Unfrozen Transform
+renderDTree accTr (Node (DTransform (M tr)) ts)
+  = withStyle SVG mempty mempty (foldMap (renderDTree (accTr <> tr)) ts)
+
+-- Frozen Transform
+renderDTree accTr (Node (DTransform (tr1 :| tr2)) ts)
+  = withStyle SVG mempty (accTr <> tr1) (foldMap (renderDTree tr2) ts)
+
+-- Annotations and Empty
 renderDTree accTr (Node (DAnnot _) ts) = foldMap (renderDTree accTr) ts
 renderDTree accTr (Node  DEmpty ts) = foldMap (renderDTree accTr) ts
+
+
+-- | Convert an RTree to a renderable object. The unfrozen transforms have
+--   already been accumulated in the RTree
+renderRTree :: RTree SVG R2 a -> Render SVG R2
+
+-- Prims are at the leafs with their accumulated unfrozen transforms.
+-- We pass the transformed prim to render and withStyle simply returns
+-- the result
+renderRTree (Node (RPrim accTr p) _)
+  = withStyle SVG mempty mempty (render SVG (transform accTr p))
+
+-- Styles are passed to with style, where they are nested in an svg group
+-- element <g ... </>
+renderRTree (Node (RStyle sty) ts)
+  = withStyle SVG sty mempty (foldMap renderRTree ts)
+
+-- Unfrozen transforms are not applied until we reach the prims (leaves).
+renderRTree (Node RUnFrozenTr ts)
+  = withStyle SVG mempty mempty (foldMap renderRTree ts)
+
+-- Frozen transforms are applied immediately.
+renderRTree (Node (RFrozenTr tr) ts)
+  = withStyle SVG mempty tr (foldMap renderRTree ts)
+
+-- RAnnot and REmpty are skipped.
+renderRTree (Node _ ts)
+  = foldMap renderRTree ts
 
 instance Backend SVG R2 where
   data Render  SVG R2 = R SvgRenderM
@@ -211,24 +248,11 @@ instance Backend SVG R2 where
                          )
     where setSvgSize sz o = o { size = sz }
 
-  --renderDia SVG opts d =
-  --  doRender SVG opts' . mconcat . map renderOne . getPrims $ d'
-  --    where (opts', d') = adjustDia SVG opts d
-  --          renderOne :: (Prim SVG R2, (Split (Transformation R2), Style R2))
-  --                    -> Render SVG R2
-  --          renderOne (p, (M t,      s))
-  --            = withStyle SVG s mempty (render SVG (transform t p))
-
-  --          renderOne (p, (t1 :| t2, s))
-  --            -- Here is the difference from the default
-  --            -- implementation: "t2" instead of "t1 <> t2".
-  --            = withStyle SVG s t1 (render SVG (transform t2 p))
-
   renderDia SVG opts d = doRender SVG opts' . renderDUAL $ d'
     where
       (opts', d') = adjustDia SVG opts d
       renderDUAL dia =
-        renderDTree mempty $ fromMaybe (Node DEmpty []) (toTree dia)
+        renderRTree $ fromDTree mempty (fromMaybe (Node DEmpty []) (toTree dia))
 
 instance Show (Options SVG R2) where
   show opts = concat $
