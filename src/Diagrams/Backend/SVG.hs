@@ -160,29 +160,6 @@ renderSvgWithClipping svg s t =
       id_ <- gets clipPathId
       R.renderClip p id_ <$> renderClips ps
 
--- | Consider nesting this function in renderDia
-renderDTree :: Transformation R2 -> DTree SVG R2 a -> Render SVG R2
--- Prim
-renderDTree accTr (Node (DPrim p) _)
-  = withStyle SVG mempty mempty (render SVG (transform accTr p))
-
--- Style
-renderDTree accTr (Node (DStyle sty) ts)
-  = withStyle SVG sty mempty (foldMap (renderDTree accTr) ts)
-
--- Unfrozen Transform
-renderDTree accTr (Node (DTransform (M tr)) ts)
-  = withStyle SVG mempty mempty (foldMap (renderDTree (accTr <> tr)) ts)
-
--- Frozen Transform
-renderDTree accTr (Node (DTransform (tr1 :| tr2)) ts)
-  = withStyle SVG mempty (accTr <> tr1) (foldMap (renderDTree tr2) ts)
-
--- Annotations and Empty
-renderDTree accTr (Node (DAnnot _) ts) = foldMap (renderDTree accTr) ts
-renderDTree accTr (Node  DEmpty ts) = foldMap (renderDTree accTr) ts
-
-
 -- | Convert an RTree to a renderable object. The unfrozen transforms have
 --   already been accumulated in the RTree
 renderRTree :: RTree SVG R2 a -> Render SVG R2
