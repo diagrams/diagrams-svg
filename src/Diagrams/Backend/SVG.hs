@@ -161,7 +161,7 @@ renderSvgWithClipping svg s t =
       R.renderClip p id_ <$> renderClips ps
 
 -- | Convert an RTree to a renderable object. The unfrozen transforms have
---   already been accumulated in the RTree
+--   already been accumulated in the RTree.
 renderRTree :: RTree SVG R2 a -> Render SVG R2
 
 -- Prims are at the leafs with their accumulated unfrozen transforms.
@@ -170,14 +170,10 @@ renderRTree :: RTree SVG R2 a -> Render SVG R2
 renderRTree (Node (RPrim accTr p) _)
   = withStyle SVG mempty mempty (render SVG (transform accTr p))
 
--- Styles are passed to with style, where they are nested in an svg group
+-- Styles are passed to withStyle, where they are nested in an svg group
 -- element <g ... </>
 renderRTree (Node (RStyle sty) ts)
   = withStyle SVG sty mempty (foldMap renderRTree ts)
-
--- Unfrozen transforms are not applied until we reach the prims (leaves).
-renderRTree (Node RUnFrozenTr ts)
-  = withStyle SVG mempty mempty (foldMap renderRTree ts)
 
 -- Frozen transforms are applied immediately.
 renderRTree (Node (RFrozenTr tr) ts)
@@ -229,7 +225,7 @@ instance Backend SVG R2 where
     where
       (opts', d') = adjustDia SVG opts d
       renderDUAL dia =
-        renderRTree $ fromDTree mempty (fromMaybe (Node DEmpty []) (toTree dia))
+        renderRTree $ fromDTree (fromMaybe (Node DEmpty []) (toTree dia))
 
 instance Show (Options SVG R2) where
   show opts = concat $
