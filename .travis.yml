@@ -6,6 +6,10 @@ before_install:
   - cd diagrams
   - cabal install diagrams-core/ diagrams-lib/
   - cd ..
+
+script:
+  - cabal configure --enable-tests && cabal build --ghc-options='-Wall -Werror' && cabal test && cabal haddock
+
 notifications:
   irc:
     channels:
