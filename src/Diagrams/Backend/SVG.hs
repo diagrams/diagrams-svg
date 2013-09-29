@@ -146,10 +146,9 @@ renderStyledGroup ignFill s = S.g ! R.renderStyles ignFill s
 
 renderSvgWithClipping :: S.Svg             -- ^ Input SVG
                       -> Style v           -- ^ Styles
-                      -> Transformation R2 -- ^ Freeze transform
                       -> SvgRenderM        -- ^ Resulting svg
-renderSvgWithClipping svg s t =
-  case (transform (inv t) <$> getClip <$> getAttr s) of
+renderSvgWithClipping svg s =
+  case (getClip <$> getAttr s) of
     Nothing -> return $ svg
     Just paths -> renderClips paths
   where
@@ -197,7 +196,7 @@ instance Backend SVG R2 where
       setIgnoreFill False
       svg <- r
       ign <- gets ignoreFill
-      clippedSvg <- renderSvgWithClipping svg s t
+      clippedSvg <- renderSvgWithClipping svg s
       let styledSvg =(renderStyledGroup ign s) clippedSvg
       -- This is where the frozen transformation is applied.
       return (R.renderTransform t styledSvg)
