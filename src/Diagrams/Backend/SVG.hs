@@ -75,7 +75,6 @@ module Diagrams.Backend.SVG
   , Options(..) -- for rendering options specific to SVG
 
   , renderSVG
-  , toTree
   ) where
 
 -- for testing
@@ -159,29 +158,6 @@ renderSvgWithClipping svg s =
       id_ <- gets clipPathId
       R.renderClip p id_ <$> renderClips ps
 
--- | Convert an RTree to a renderable object. The unfrozen transforms have
---   already been accumulated in the RTree.
-renderRTree :: RTree SVG R2 a -> Render SVG R2
-
--- Prims are at the leafs with their accumulated unfrozen transforms.
--- We pass the transformed prim to render and withStyle simply returns
--- the result
-renderRTree (Node (RPrim accTr p) _)
-  = withStyle SVG mempty mempty (render SVG (transform accTr p))
-
--- Styles are passed to withStyle, where they are nested in an svg group
--- element <g ... </>
-renderRTree (Node (RStyle sty) ts)
-  = withStyle SVG sty mempty (foldMap renderRTree ts)
-
--- Frozen transforms are applied immediately.
-renderRTree (Node (RFrozenTr tr) ts)
-  = withStyle SVG mempty tr (foldMap renderRTree ts)
-
--- RAnnot and REmpty are skipped.
-renderRTree (Node _ ts)
-  = foldMap renderRTree ts
-
 instance Backend SVG R2 where
   data Render  SVG R2 = R SvgRenderM
   type Result  SVG R2 = S.Svg
@@ -191,15 +167,24 @@ instance Backend SVG R2 where
                           -- ^ Custom definitions that will be added to the @defs@
                           --   section of the output.
                         }
-  withStyle _ s t (R r) =
-    R $ do
-      setIgnoreFill False
-      svg <- r
-      ign <- gets ignoreFill
-      clippedSvg <- renderSvgWithClipping svg s
-      let styledSvg =(renderStyledGroup ign s) clippedSvg
-      -- This is where the frozen transformation is applied.
-      return (R.renderTransform t styledSvg)
+
+  -- | Convert an RTree to a renderable object. The unfrozen transforms have
+  --   been accumulated and are in the leaves of the RTree along with the Prims.
+  --   Frozen transformations have their own nodes and the styles have been
+  --   transfomed during the contruction of the RTree.
+  renderRTree (Node (RPrim accTr p) _) = (render SVG (transform accTr p))
+  renderRTree (Node (RStyle sty) ts)
+    = R $ do
+        let R r = foldMap renderRTree ts
+        svg <- r
+        clippedSvg <- renderSvgWithClipping svg sty
+        return $ (S.g ! R.renderStyles False sty) clippedSvg
+  renderRTree (Node (RFrozenTr tr) ts)
+    = R $ do
+        let R r = foldMap renderRTree ts
+        svg <- r
+        return $ R.renderTransform tr svg
+  renderRTree (Node _ ts) = foldMap renderRTree ts
 
   doRender _ opts (R r) =
     evalState svgOutput initialSvgRenderState
@@ -223,8 +208,8 @@ instance Backend SVG R2 where
   renderDia SVG opts d = doRender SVG opts' . renderDUAL $ d'
     where
       (opts', d') = adjustDia SVG opts d
-      renderDUAL dia =
-        renderRTree $ fromDTree (fromMaybe (Node DEmpty []) (toTree dia))
+      renderDUAL dia
+        = renderRTree $ fromDTree (fromMaybe (Node DEmpty []) (toTree dia))
 
 instance Show (Options SVG R2) where
   show opts = concat $
