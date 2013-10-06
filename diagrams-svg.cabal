@@ -56,6 +56,7 @@ Library
                      , cmdargs       >= 0.6   && < 0.11
                      , split         >= 0.1.2 && < 0.3
                      , time
+                     , lens >= 3.8 && < 4
   if !os(windows)
     cpp-options: -DCMDLINELOOP
     Build-depends:     unix >= 2.4 && < 2.8

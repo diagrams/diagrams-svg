@@ -87,8 +87,11 @@ import           Data.Typeable
 -- from bytestring
 import qualified Data.ByteString.Lazy         as BS
 
+-- from lens
+import           Control.Lens                 hiding ((#), transform)
+
 -- from diagrams-lib
-import           Diagrams.Prelude
+import           Diagrams.Prelude             hiding (view)
 import           Diagrams.TwoD.Adjust         (adjustDia2D)
 import           Diagrams.TwoD.Path           (getClip)
 import           Diagrams.TwoD.Text
@@ -238,7 +241,7 @@ instance Renderable (Path R2) SVG where
   render _ p = R $ do
     -- Don't fill lines.  diagrams-lib separates out lines and loops
     -- for us, so if we see one line, they are all lines.
-    when (any (isLine . unLoc) . pathTrails $ p) $ setIgnoreFill True
+    when (any (isLine . unLoc) . view pathTrails $ p) $ setIgnoreFill True
     return (R.renderPath p)
 
 instance Renderable Text SVG where
