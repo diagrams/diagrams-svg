@@ -2,6 +2,7 @@
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE TemplateHaskell       #-}
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE TypeSynonymInstances  #-}
 
@@ -113,7 +114,9 @@ import qualified Graphics.Rendering.SVG       as R
 data SVG = SVG
     deriving (Show, Typeable)
 
-data SvgRenderState = SvgRenderState { clipPathId :: Int, ignoreFill :: Bool }
+data SvgRenderState = SvgRenderState { _clipPathId :: Int, _ignoreFill :: Bool }
+
+makeLenses ''SvgRenderState
 
 initialSvgRenderState :: SvgRenderState
 initialSvgRenderState = SvgRenderState 0 False
@@ -122,12 +125,6 @@ initialSvgRenderState = SvgRenderState 0 False
 --   Currently just keeps a monotonically increasing counter
 --   for assiging a unique clip path ID.
 type SvgRenderM = State SvgRenderState S.Svg
-
-incrementClipPath :: State SvgRenderState ()
-incrementClipPath = modify (\st -> st { clipPathId = clipPathId st + 1 })
-
-setIgnoreFill :: Bool -> State SvgRenderState ()
-setIgnoreFill b = modify (\st -> st { ignoreFill = b })
 
 instance Monoid (Render SVG R2) where
   mempty  = R $ return mempty
@@ -153,8 +150,8 @@ renderSvgWithClipping svg s t =
     renderClips :: [Path R2] -> SvgRenderM
     renderClips [] = return $ svg
     renderClips (p:ps) = do
-      incrementClipPath
-      id_ <- gets clipPathId
+      clipPathId += 1
+      id_ <- gets _clipPathId
       R.renderClip p id_ <$> renderClips ps
 
 instance Backend SVG R2 where
@@ -175,9 +172,9 @@ instance Backend SVG R2 where
   --   primitives.
   withStyle _ s t (R r) =
     R $ do
-      setIgnoreFill False
+      ignoreFill .= False
       svg <- r
-      ign <- gets ignoreFill
+      ign <- gets _ignoreFill
       clippedSvg <- renderSvgWithClipping svg s t
       let styledSvg = renderStyledGroup ign s clippedSvg
       -- This is where the frozen transformation is applied.
@@ -241,7 +238,7 @@ instance Renderable (Path R2) SVG where
   render _ p = R $ do
     -- Don't fill lines.  diagrams-lib separates out lines and loops
     -- for us, so if we see one line, they are all lines.
-    when (any (isLine . unLoc) . view pathTrails $ p) $ setIgnoreFill True
+    when (any (isLine . unLoc) . view pathTrails $ p) $ (ignoreFill .= True)
     return (R.renderPath p)
 
 instance Renderable Text SVG where
