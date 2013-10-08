@@ -5,7 +5,7 @@
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE TypeSynonymInstances  #-}
 
------------------------------------------------------------------------------
+----------------------------------------------------------------------------
 -- |
 -- Module      :  Diagrams.Backend.SVG
 -- Copyright   :  (c) 2011-2012 diagrams-svg team (see LICENSE)
