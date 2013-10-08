@@ -76,7 +76,7 @@
 
 module Diagrams.Backend.SVG
   ( SVG(..) -- rendering token
-  , Options(..) -- for rendering options specific to SVG
+  , Options(..), size, svgDefinitions -- for rendering options specific to SVG
 
   , renderSVG
   ) where
@@ -151,18 +151,19 @@ renderSvgWithClipping svg s t =
     renderClips [] = return $ svg
     renderClips (p:ps) = do
       clipPathId += 1
-      id_ <- gets _clipPathId
+      id_ <- use clipPathId
       R.renderClip p id_ <$> renderClips ps
 
 instance Backend SVG R2 where
   data Render  SVG R2 = R SvgRenderM
   type Result  SVG R2 = S.Svg
   data Options SVG R2 = SVGOptions
-                        { size :: SizeSpec2D   -- ^ The requested size.
-                        , svgDefinitions :: Maybe S.Svg
+                        { _size :: SizeSpec2D   -- ^ The requested size.
+                        , _svgDefinitions :: Maybe S.Svg
                           -- ^ Custom definitions that will be added to the @defs@
                           --   section of the output.
                         }
+
 
   -- | Here the SVG backend is different from the other backends.  We
   --   give a different definition of renderDia, where only the
@@ -174,7 +175,7 @@ instance Backend SVG R2 where
     R $ do
       ignoreFill .= False
       svg <- r
-      ign <- gets _ignoreFill
+      ign <- use ignoreFill
       clippedSvg <- renderSvgWithClipping svg s t
       let styledSvg = renderStyledGroup ign s clippedSvg
       -- This is where the frozen transformation is applied.
@@ -185,19 +186,19 @@ instance Backend SVG R2 where
    where
     svgOutput = do
       svg <- r
-      let (w,h) = case size opts of
+      let (w,h) = case opts^.size of
                     Width w'   -> (w',w')
                     Height h'  -> (h',h')
                     Dims w' h' -> (w',h')
                     Absolute   -> (100,100)
-      return $ R.svgHeader w h (svgDefinitions opts) $ svg
+      return $ R.svgHeader w h (opts^.svgDefinitions) $ svg
 
-  adjustDia c opts d = adjustDia2D size setSvgSize c opts
+  adjustDia c opts d = adjustDia2D _size setSvgSize c opts
                          (d # reflectY
                             # recommendFillColor
                                 (transparent :: AlphaColour Double)
                          )
-    where setSvgSize sz o = o { size = sz }
+    where setSvgSize sz o = o { _size = sz }
 
   -- | This implementation of renderDia is the same as the default one,
   --   except that it only applies the non-frozen transformation to the
@@ -215,14 +216,32 @@ instance Backend SVG R2 where
               -- implementation: "t2" instead of "t1 <> t2".
               = withStyle SVG s t1 (render SVG (transform t2 p))
 
+getSize :: Options SVG R2 -> SizeSpec2D
+getSize (SVGOptions {_size = s}) = s
+
+setSize :: Options SVG R2 -> SizeSpec2D -> Options SVG R2
+setSize o s = o {_size = s}
+
+size :: Lens' (Options SVG R2) SizeSpec2D
+size = lens getSize setSize
+
+getSVGDefs :: Options SVG R2 -> Maybe S.Svg
+getSVGDefs (SVGOptions {_svgDefinitions = d}) = d
+
+setSVGDefs :: Options SVG R2 -> Maybe S.Svg -> Options SVG R2
+setSVGDefs o d = o {_svgDefinitions = d}
+
+svgDefinitions :: Lens' (Options SVG R2) (Maybe S.Svg)
+svgDefinitions = lens getSVGDefs setSVGDefs
+
 instance Show (Options SVG R2) where
   show opts = concat $
             [ "SVGOptions { "
             , "size = "
-            , show $ size opts
+            , show $ opts^.size
             , " , "
             , "svgDefinitions = "
-            , case svgDefinitions opts of
+            , case opts^.svgDefinitions of
                 Nothing -> "Nothing"
                 Just svg -> "Just " ++ StringSvg.renderSvg svg
             , " }"
