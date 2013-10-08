@@ -1,5 +1,4 @@
-{-# LANGUAGE DeriveDataTypeable, CPP   #-}
-{-# LANGUAGE TemplateHaskell           #-}
+{-# LANGUAGE DeriveDataTypeable, CPP #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Diagrams.Backend.SVG.CmdLine
@@ -49,7 +48,6 @@ import qualified Data.ByteString.Lazy as BS
 
 import Data.Maybe          (fromMaybe)
 import Control.Monad       (when)
-import Control.Lens        (makeLenses, (^.))
 import Data.List.Split
 
 import System.Environment  (getArgs, getProgName)
@@ -81,44 +79,42 @@ getModuleTime = getClockTime
 
 
 data DiagramOpts = DiagramOpts
-                   { _width     :: Maybe Int
-                   , _height    :: Maybe Int
-                   , _output    :: FilePath
-                   , _selection :: Maybe String
+                   { width     :: Maybe Int
+                   , height    :: Maybe Int
+                   , output    :: FilePath
+                   , selection :: Maybe String
 #ifdef CMDLINELOOP
-                   , _loop      :: Bool
-                   , _src       :: Maybe String
-                   , _interval  :: Int
+                   , loop      :: Bool
+                   , src       :: Maybe String
+                   , interval  :: Int
 #endif
                    }
   deriving (Show, Data, Typeable)
 
-makeLenses ''DiagramOpts
-
 diagramOpts :: String -> Bool -> DiagramOpts
 diagramOpts prog sel = DiagramOpts
-  { _width =  def
+  { width =  def
              &= typ "INT"
              &= help "Desired width of the output image"
 
-  , _height = def
+  , height = def
              &= typ "INT"
              &= help "Desired height of the output image"
 
-  , _output = def
+  , output = def
            &= typFile
            &= help "Output file"
 
-  , _selection = def
+  , selection = def
               &= help "Name of the diagram to render"
               &= (if sel then typ "NAME" else ignore)
 #ifdef CMDLINELOOP
-  , _loop = False
+  , loop = False
             &= help "Run in a self-recompiling loop"
-  , _src  = def
+  , src  = def
             &= typFile
             &= help "Source file to watch"
-  , _interval = 1 &= typ "SECONDS"
+  , interval = 1 &= typ "SECONDS"
                  &= help "When running in a loop, check for changes every n seconds."
 #endif
   }
@@ -145,15 +141,15 @@ defaultMain d = do
   opts <- cmdArgs (diagramOpts prog False)
   chooseRender opts d
 #ifdef CMDLINELOOP
-  when (opts^.loop) (waitForChange Nothing opts prog args)
+  when (loop opts) (waitForChange Nothing opts prog args)
 #endif
 
 chooseRender :: DiagramOpts -> Diagram SVG R2 -> IO ()
 chooseRender opts d =
-  case splitOn "." (opts^.output) of
+  case splitOn "." (output opts) of
     [""] -> putStrLn "No output file given."
     ps | last ps `elem` ["svg"] -> do
-           let sizeSpec = case (opts^.width, opts^.height) of
+           let sizeSpec = case (width opts, height opts) of
                             (Nothing, Nothing) -> Absolute
                             (Just w, Nothing)  -> Width (fromIntegral w)
                             (Nothing, Just h)  -> Height (fromIntegral h)
@@ -161,7 +157,7 @@ chooseRender opts d =
                                                        (fromIntegral h)
 
                build = renderDia SVG (SVGOptions sizeSpec Nothing) d
-           BS.writeFile (opts^.output) (renderSvg build)
+           BS.writeFile (output opts) (renderSvg build)
        | otherwise -> putStrLn $ "Unknown file type: " ++ last ps
 
 
@@ -176,7 +172,7 @@ multiMain :: [(String, Diagram SVG R2)] -> IO ()
 multiMain ds = do
   prog <- getProgName
   opts <- cmdArgs (diagramOpts prog True)
-  case opts^.selection of
+  case selection opts of
     Nothing  -> putStrLn "No diagram selected."
     Just sel -> case lookup sel ds of
       Nothing -> putStrLn $ "Unknown diagram: " ++ sel
@@ -188,9 +184,9 @@ waitForChange lastAttempt opts prog args = do
     hSetBuffering stdout NoBuffering
     go lastAttempt
   where go lastAtt = do
-          threadDelay (1000000 * (opts^.interval))
+          threadDelay (1000000 * interval opts)
           -- putStrLn $ "Checking... (last attempt = " ++ show lastAttempt ++ ")"
-          (newBin, newAttempt) <- recompile lastAtt prog (opts^.src)
+          (newBin, newAttempt) <- recompile lastAtt prog (src opts)
           if newBin
             then executeFile prog False args Nothing
             else go $ getFirst (First newAttempt <> First lastAtt)
