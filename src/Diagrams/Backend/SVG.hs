@@ -45,7 +45,7 @@
 -- > data Options SVG R2 = SVGOptions
 -- >                       { size :: SizeSpec2D   -- ^ The requested size.
 -- >                       , svgDefinitions :: Maybe S.Svg
--- >                       -- ^ Custom definitions that will be added to the @defs@ 
+-- >                       -- ^ Custom definitions that will be added to the @defs@
 -- >                       --  section of the output.
 -- >                       }
 --
@@ -146,7 +146,7 @@ renderSvgWithClipping :: S.Svg             -- ^ Input SVG
                       -> Transformation R2 -- ^ Freeze transform
                       -> SvgRenderM        -- ^ Resulting svg
 renderSvgWithClipping svg s t =
-  case (transform (inv t) <$> getClip <$> getAttr s) of
+  case (transform (inv t) <$> view getClip <$> getAttr s) of
     Nothing -> return $ svg
     Just paths -> renderClips paths
   where
@@ -163,7 +163,7 @@ instance Backend SVG R2 where
   data Options SVG R2 = SVGOptions
                         { size :: SizeSpec2D   -- ^ The requested size.
                         , svgDefinitions :: Maybe S.Svg
-                          -- ^ Custom definitions that will be added to the @defs@ 
+                          -- ^ Custom definitions that will be added to the @defs@
                           --   section of the output.
                         }
 
