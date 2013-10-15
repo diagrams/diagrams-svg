@@ -21,6 +21,7 @@ module Graphics.Rendering.SVG
     , renderPath
     , renderClip
     , renderText
+    , renderImage
     , renderStyles
     , renderTransform
     , renderMiterLimit
@@ -34,6 +35,7 @@ import           Control.Lens
 
 -- from diagrams-lib
 import           Diagrams.Prelude            hiding (Attribute, Render, e, (<>))
+import           Diagrams.TwoD.Image
 import           Diagrams.TwoD.Path          (getFillRule)
 import           Diagrams.TwoD.Text
 
@@ -42,7 +44,11 @@ import           Text.Blaze.Svg11            (cr, hr, lr, m, mkPath, vr, z, (!))
 import qualified Text.Blaze.Svg11            as S
 import qualified Text.Blaze.Svg11.Attributes as A
 
--- | @svgHeader w h defs s@: @w@ width, @h@ height, 
+import qualified Data.ByteString.Base64.Lazy as BS64
+import qualified Data.ByteString.Lazy        as BS
+import qualified Data.ByteString.Lazy.Char8  as BS8
+
+-- | @svgHeader w h defs s@: @w@ width, @h@ height,
 --   @defs@ global definitions for defs sections, @s@ actual SVG content.
 svgHeader :: Double -> Double -> Maybe S.Svg -> S.Svg -> S.Svg
 svgHeader w h_ defines s =  S.docTypeSvg
@@ -107,6 +113,21 @@ renderText (Text tr tAlign str) =
   t                   = tr `mappend` reflectionY
   (a,b,c,d,e,f)       = getMatrix t
   transformMatrix     =  S.matrix a b c d e f
+
+renderImage :: Image -> IO S.Svg
+renderImage (Image file sz tr) = do
+  img <- BS.readFile file  -- XXX need to catch exceptions
+  return $
+    S.image
+      ! A.transform transformMatrix
+--    ! A.width  -- XXX
+--    ! A.height -- XXX
+      ! A.xlinkHref (S.preEscapedToValue (mkDataURI img))
+  where
+    (a,b,c,d,e,f)       = getMatrix tr
+    transformMatrix     =  S.matrix a b c d e f
+    mkDataURI dat       = "data:image/png;base64," ++ BS8.unpack (BS64.encode dat)
+      -- XXX allow things other than png
 
 getMatrix :: Transformation R2 -> (Double, Double, Double, Double, Double, Double)
 getMatrix t = (a1,a2,b1,b2,c1,c2)

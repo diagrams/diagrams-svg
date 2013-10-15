@@ -121,12 +121,12 @@ initialSvgRenderState = SvgRenderState 0 False
 -- | Monad to keep track of state when rendering an SVG.
 --   Currently just keeps a monotonically increasing counter
 --   for assiging a unique clip path ID.
-type SvgRenderM = State SvgRenderState S.Svg
+type SvgRenderM = StateT SvgRenderState IO S.Svg
 
-incrementClipPath :: State SvgRenderState ()
+incrementClipPath :: StateT SvgRenderState IO ()
 incrementClipPath = modify (\st -> st { clipPathId = clipPathId st + 1 })
 
-setIgnoreFill :: Bool -> State SvgRenderState ()
+setIgnoreFill :: Bool -> StateT SvgRenderState IO ()
 setIgnoreFill b = modify (\st -> st { ignoreFill = b })
 
 instance Monoid (Render SVG R2) where
@@ -159,7 +159,7 @@ renderSvgWithClipping svg s t =
 
 instance Backend SVG R2 where
   data Render  SVG R2 = R SvgRenderM
-  type Result  SVG R2 = S.Svg
+  type Result  SVG R2 = IO S.Svg
   data Options SVG R2 = SVGOptions
                         { size :: SizeSpec2D   -- ^ The requested size.
                         , svgDefinitions :: Maybe S.Svg
@@ -184,7 +184,7 @@ instance Backend SVG R2 where
       return (R.renderTransform t styledSvg)
 
   doRender _ opts (R r) =
-    evalState svgOutput initialSvgRenderState
+    evalStateT svgOutput initialSvgRenderState
    where
     svgOutput = do
       svg <- r
@@ -247,13 +247,12 @@ instance Renderable (Path R2) SVG where
 instance Renderable Text SVG where
   render _ = R . return . R.renderText
 
--- TODO: instance Renderable Image SVG where
-
+instance Renderable Image SVG where
+  render _ = R . liftIO . R.renderImage
 
 -- | Render a diagram as an SVG, writing to the specified output file
 --   and using the requested size.
 renderSVG :: FilePath -> SizeSpec2D -> Diagram SVG R2 -> IO ()
-renderSVG outFile sizeSpec
-  = BS.writeFile outFile
-  . renderSvg
-  . renderDia SVG (SVGOptions sizeSpec Nothing)
+renderSVG outFile sizeSpec dia = do
+  svg <- renderDia SVG (SVGOptions sizeSpec Nothing) dia
+  BS.writeFile outFile (renderSvg svg)
