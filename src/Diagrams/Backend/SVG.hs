@@ -92,8 +92,11 @@ import           Data.Typeable
 -- from bytestring
 import qualified Data.ByteString.Lazy         as BS
 
+-- from lens
+import           Control.Lens                 hiding ((#), transform)
+
 -- from diagrams-lib
-import           Diagrams.Prelude
+import           Diagrams.Prelude             hiding (view)
 import           Diagrams.TwoD.Adjust         (adjustDia2D)
 import           Diagrams.TwoD.Path           (getClip)
 import           Diagrams.TwoD.Text
@@ -158,6 +161,25 @@ renderSvgWithClipping svg s =
       id_ <- gets clipPathId
       R.renderClip p id_ <$> renderClips ps
 
+-- | Convert an RTree to a renderable object. The unfrozen transforms have
+--   been accumulated and are in the leaves of the RTree along with the Prims.
+--   Frozen transformations have their own nodes and the styles have been
+--   transfomed during the contruction of the RTree.
+renderRTree :: RTree SVG R2 a -> Render SVG R2
+renderRTree (Node (RPrim accTr p) _) = (render SVG (transform accTr p))
+renderRTree (Node (RStyle sty) ts)
+  = R $ do
+      let R r = foldMap renderRTree ts
+      svg <- r
+      clippedSvg <- renderSvgWithClipping svg sty
+      return $ (S.g ! R.renderStyles False sty) clippedSvg
+renderRTree (Node (RFrozenTr tr) ts)
+  = R $ do
+      let R r = foldMap renderRTree ts
+      svg <- r
+      return $ R.renderTransform tr svg
+renderRTree (Node _ ts) = foldMap renderRTree ts
+
 instance Backend SVG R2 where
   data Render  SVG R2 = R SvgRenderM
   type Result  SVG R2 = S.Svg
@@ -167,24 +189,6 @@ instance Backend SVG R2 where
                           -- ^ Custom definitions that will be added to the @defs@
                           --   section of the output.
                         }
-
-  -- | Convert an RTree to a renderable object. The unfrozen transforms have
-  --   been accumulated and are in the leaves of the RTree along with the Prims.
-  --   Frozen transformations have their own nodes and the styles have been
-  --   transfomed during the contruction of the RTree.
-  renderRTree (Node (RPrim accTr p) _) = (render SVG (transform accTr p))
-  renderRTree (Node (RStyle sty) ts)
-    = R $ do
-        let R r = foldMap renderRTree ts
-        svg <- r
-        clippedSvg <- renderSvgWithClipping svg sty
-        return $ (S.g ! R.renderStyles False sty) clippedSvg
-  renderRTree (Node (RFrozenTr tr) ts)
-    = R $ do
-        let R r = foldMap renderRTree ts
-        svg <- r
-        return $ R.renderTransform tr svg
-  renderRTree (Node _ ts) = foldMap renderRTree ts
 
   doRender _ opts (R r) =
     evalState svgOutput initialSvgRenderState
@@ -199,17 +203,12 @@ instance Backend SVG R2 where
       return $ R.svgHeader w h (svgDefinitions opts) $ svg
 
   adjustDia c opts d = adjustDia2D size setSvgSize c opts
-                         (d # reflectY
+                    ( d # reflectY
                             # recommendFillColor
-                                (transparent :: AlphaColour Double)
-                         )
+                                (transparent :: AlphaColour Double) )
     where setSvgSize sz o = o { size = sz }
 
-  renderDia SVG opts d = doRender SVG opts' . renderDUAL $ d'
-    where
-      (opts', d') = adjustDia SVG opts d
-      renderDUAL dia
-        = renderRTree $ fromDTree (fromMaybe (Node DEmpty []) (toTree dia))
+  renderData _ d = renderRTree $ fromDTree (fromMaybe (Node DEmpty []) (toTree d))
 
 instance Show (Options SVG R2) where
   show opts = concat $
@@ -234,7 +233,7 @@ instance Renderable (Path R2) SVG where
   render _ p = R $ do
     -- Don't fill lines.  diagrams-lib separates out lines and loops
     -- for us, so if we see one line, they are all lines.
-    when (any (isLine . unLoc) . pathTrails $ p) $ setIgnoreFill True
+    when (any (isLine . unLoc) . view pathTrails $ p) $ setIgnoreFill True
     return (R.renderPath p)
 
 instance Renderable Text SVG where
