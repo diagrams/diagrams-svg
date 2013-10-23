@@ -94,7 +94,7 @@ import           Control.Lens                 hiding ((#), transform)
 -- from diagrams-lib
 import           Diagrams.Prelude             hiding (view)
 import           Diagrams.TwoD.Adjust         (adjustDia2D)
-import           Diagrams.TwoD.Path           (getClip)
+import           Diagrams.TwoD.Path           (Clip(Clip))
 import           Diagrams.TwoD.Text
 
 -- from monoid-extras
@@ -143,7 +143,7 @@ renderSvgWithClipping :: S.Svg             -- ^ Input SVG
                       -> Transformation R2 -- ^ Freeze transform
                       -> SvgRenderM        -- ^ Resulting svg
 renderSvgWithClipping svg s t =
-  case (transform (inv t) <$> view getClip <$> getAttr s) of
+  case (transform (inv t) <$> op Clip <$> getAttr s) of
     Nothing -> return $ svg
     Just paths -> renderClips paths
   where
@@ -257,7 +257,7 @@ instance Renderable (Path R2) SVG where
   render _ p = R $ do
     -- Don't fill lines.  diagrams-lib separates out lines and loops
     -- for us, so if we see one line, they are all lines.
-    when (any (isLine . unLoc) . view pathTrails $ p) $ (ignoreFill .= True)
+    when (any (isLine . unLoc) . op Path $ p) $ (ignoreFill .= True)
     return (R.renderPath p)
 
 instance Renderable Text SVG where

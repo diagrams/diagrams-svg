@@ -42,7 +42,7 @@ import           Text.Blaze.Svg11            (cr, hr, lr, m, mkPath, vr, z, (!))
 import qualified Text.Blaze.Svg11            as S
 import qualified Text.Blaze.Svg11.Attributes as A
 
--- | @svgHeader w h defs s@: @w@ width, @h@ height, 
+-- | @svgHeader w h defs s@: @w@ width, @h@ height,
 --   @defs@ global definitions for defs sections, @s@ actual SVG content.
 svgHeader :: Double -> Double -> Maybe S.Svg -> S.Svg -> S.Svg
 svgHeader w h_ defines s =  S.docTypeSvg
@@ -50,8 +50,8 @@ svgHeader w h_ defines s =  S.docTypeSvg
   ! A.width    (S.toValue w)
   ! A.height   (S.toValue h_)
   ! A.fontSize "1"
-  ! A.viewbox (S.toValue $ concat . intersperse " " $ map show ([0, 0, round w, round h_] :: [Int])) 
-  $ do case defines of 
+  ! A.viewbox (S.toValue $ concat . intersperse " " $ map show ([0, 0, round w, round h_] :: [Int]))
+  $ do case defines of
          Nothing -> return ()
          Just defs -> S.defs $ defs
        S.g $ s
@@ -59,7 +59,7 @@ svgHeader w h_ defines s =  S.docTypeSvg
 renderPath :: Path R2 -> S.Svg
 renderPath trs  = S.path ! A.d makePath
  where
-  makePath = mkPath $ mapM_ renderTrail (trs^.pathTrails)
+  makePath = mkPath $ mapM_ renderTrail (op Path trs)
 
 renderTrail :: Located (Trail R2) -> S.Path
 renderTrail (viewLoc -> (unp2 -> (x,y), t)) = flip withLine t $ \l -> do
@@ -77,8 +77,8 @@ renderSeg (Cubic  (unr2 -> (x0,y0))
   = cr x0 y0 x1 y1 x2 y2
 
 renderClip :: Path R2 -> Int -> S.Svg -> S.Svg
-renderClip p id_ svg = do 
-  S.g ! A.clipPath (S.toValue $ "url(#" ++ clipPathId id_ ++ ")") $ do 
+renderClip p id_ svg = do
+  S.g ! A.clipPath (S.toValue $ "url(#" ++ clipPathId id_ ++ ")") $ do
     S.clippath ! A.id_ (S.toValue $ clipPathId id_) $ renderPath p
     svg
   where clipPathId i = "myClip" ++ show i
@@ -95,7 +95,7 @@ renderText (Text tr tAlign str) =
   vAlign = case tAlign of
              BaselineText -> "alphabetic"
              BoxAlignedText _ h -> case h of -- A mere approximation
-               h' | h' <= 0.25 -> "text-after-edge" 
+               h' | h' <= 0.25 -> "text-after-edge"
                h' | h' >= 0.75 -> "text-before-edge"
                _ -> "middle"
   hAlign = case tAlign of
@@ -138,7 +138,7 @@ renderStyles ignoreFill s = mconcat . map ($ s) $
   , renderFontFamily
   , renderMiterLimit
   ]
-  
+
 renderMiterLimit :: Style v -> S.Attribute
 renderMiterLimit s = renderAttr A.strokeMiterlimit miterLimit
  where miterLimit = getLineMiterLimit <$> getAttr s
