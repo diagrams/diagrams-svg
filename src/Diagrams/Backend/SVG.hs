@@ -2,10 +2,11 @@
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE TemplateHaskell       #-}
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE TypeSynonymInstances  #-}
 
------------------------------------------------------------------------------
+----------------------------------------------------------------------------
 -- |
 -- Module      :  Diagrams.Backend.SVG
 -- Copyright   :  (c) 2011-2012 diagrams-svg team (see LICENSE)
@@ -45,7 +46,7 @@
 -- > data Options SVG R2 = SVGOptions
 -- >                       { size :: SizeSpec2D   -- ^ The requested size.
 -- >                       , svgDefinitions :: Maybe S.Svg
--- >                       -- ^ Custom definitions that will be added to the @defs@ 
+-- >                       -- ^ Custom definitions that will be added to the @defs@
 -- >                       --  section of the output.
 -- >                       }
 --
@@ -75,7 +76,7 @@
 
 module Diagrams.Backend.SVG
   ( SVG(..) -- rendering token
-  , Options(..) -- for rendering options specific to SVG
+  , Options(..), size, svgDefinitions -- for rendering options specific to SVG
 
   , renderSVG
   ) where
@@ -93,7 +94,7 @@ import           Control.Lens                 hiding ((#), transform)
 -- from diagrams-lib
 import           Diagrams.Prelude             hiding (view)
 import           Diagrams.TwoD.Adjust         (adjustDia2D)
-import           Diagrams.TwoD.Path           (getClip)
+import           Diagrams.TwoD.Path           (Clip(Clip))
 import           Diagrams.TwoD.Text
 
 -- from monoid-extras
@@ -113,7 +114,9 @@ import qualified Graphics.Rendering.SVG       as R
 data SVG = SVG
     deriving (Show, Typeable)
 
-data SvgRenderState = SvgRenderState { clipPathId :: Int, ignoreFill :: Bool }
+data SvgRenderState = SvgRenderState { _clipPathId :: Int, _ignoreFill :: Bool }
+
+makeLenses ''SvgRenderState
 
 initialSvgRenderState :: SvgRenderState
 initialSvgRenderState = SvgRenderState 0 False
@@ -122,12 +125,6 @@ initialSvgRenderState = SvgRenderState 0 False
 --   Currently just keeps a monotonically increasing counter
 --   for assiging a unique clip path ID.
 type SvgRenderM = State SvgRenderState S.Svg
-
-incrementClipPath :: State SvgRenderState ()
-incrementClipPath = modify (\st -> st { clipPathId = clipPathId st + 1 })
-
-setIgnoreFill :: Bool -> State SvgRenderState ()
-setIgnoreFill b = modify (\st -> st { ignoreFill = b })
 
 instance Monoid (Render SVG R2) where
   mempty  = R $ return mempty
@@ -146,26 +143,27 @@ renderSvgWithClipping :: S.Svg             -- ^ Input SVG
                       -> Transformation R2 -- ^ Freeze transform
                       -> SvgRenderM        -- ^ Resulting svg
 renderSvgWithClipping svg s t =
-  case (transform (inv t) <$> getClip <$> getAttr s) of
+  case (transform (inv t) <$> op Clip <$> getAttr s) of
     Nothing -> return $ svg
     Just paths -> renderClips paths
   where
     renderClips :: [Path R2] -> SvgRenderM
     renderClips [] = return $ svg
     renderClips (p:ps) = do
-      incrementClipPath
-      id_ <- gets clipPathId
+      clipPathId += 1
+      id_ <- use clipPathId
       R.renderClip p id_ <$> renderClips ps
 
 instance Backend SVG R2 where
   data Render  SVG R2 = R SvgRenderM
   type Result  SVG R2 = S.Svg
   data Options SVG R2 = SVGOptions
-                        { size :: SizeSpec2D   -- ^ The requested size.
-                        , svgDefinitions :: Maybe S.Svg
-                          -- ^ Custom definitions that will be added to the @defs@ 
+                        { _size :: SizeSpec2D   -- ^ The requested size.
+                        , _svgDefinitions :: Maybe S.Svg
+                          -- ^ Custom definitions that will be added to the @defs@
                           --   section of the output.
                         }
+
 
   -- | Here the SVG backend is different from the other backends.  We
   --   give a different definition of renderDia, where only the
@@ -175,9 +173,9 @@ instance Backend SVG R2 where
   --   primitives.
   withStyle _ s t (R r) =
     R $ do
-      setIgnoreFill False
+      ignoreFill .= False
       svg <- r
-      ign <- gets ignoreFill
+      ign <- use ignoreFill
       clippedSvg <- renderSvgWithClipping svg s t
       let styledSvg = renderStyledGroup ign s clippedSvg
       -- This is where the frozen transformation is applied.
@@ -188,19 +186,19 @@ instance Backend SVG R2 where
    where
     svgOutput = do
       svg <- r
-      let (w,h) = case size opts of
+      let (w,h) = case opts^.size of
                     Width w'   -> (w',w')
                     Height h'  -> (h',h')
                     Dims w' h' -> (w',h')
                     Absolute   -> (100,100)
-      return $ R.svgHeader w h (svgDefinitions opts) $ svg
+      return $ R.svgHeader w h (opts^.svgDefinitions) $ svg
 
-  adjustDia c opts d = adjustDia2D size setSvgSize c opts
+  adjustDia c opts d = adjustDia2D _size setSvgSize c opts
                          (d # reflectY
                             # recommendFillColor
                                 (transparent :: AlphaColour Double)
                          )
-    where setSvgSize sz o = o { size = sz }
+    where setSvgSize sz o = o { _size = sz }
 
   -- | This implementation of renderDia is the same as the default one,
   --   except that it only applies the non-frozen transformation to the
@@ -218,14 +216,32 @@ instance Backend SVG R2 where
               -- implementation: "t2" instead of "t1 <> t2".
               = withStyle SVG s t1 (render SVG (transform t2 p))
 
+getSize :: Options SVG R2 -> SizeSpec2D
+getSize (SVGOptions {_size = s}) = s
+
+setSize :: Options SVG R2 -> SizeSpec2D -> Options SVG R2
+setSize o s = o {_size = s}
+
+size :: Lens' (Options SVG R2) SizeSpec2D
+size = lens getSize setSize
+
+getSVGDefs :: Options SVG R2 -> Maybe S.Svg
+getSVGDefs (SVGOptions {_svgDefinitions = d}) = d
+
+setSVGDefs :: Options SVG R2 -> Maybe S.Svg -> Options SVG R2
+setSVGDefs o d = o {_svgDefinitions = d}
+
+svgDefinitions :: Lens' (Options SVG R2) (Maybe S.Svg)
+svgDefinitions = lens getSVGDefs setSVGDefs
+
 instance Show (Options SVG R2) where
   show opts = concat $
             [ "SVGOptions { "
             , "size = "
-            , show $ size opts
+            , show $ opts^.size
             , " , "
             , "svgDefinitions = "
-            , case svgDefinitions opts of
+            , case opts^.svgDefinitions of
                 Nothing -> "Nothing"
                 Just svg -> "Just " ++ StringSvg.renderSvg svg
             , " }"
@@ -241,7 +257,7 @@ instance Renderable (Path R2) SVG where
   render _ p = R $ do
     -- Don't fill lines.  diagrams-lib separates out lines and loops
     -- for us, so if we see one line, they are all lines.
-    when (any (isLine . unLoc) . view pathTrails $ p) $ setIgnoreFill True
+    when (any (isLine . unLoc) . op Path $ p) $ (ignoreFill .= True)
     return (R.renderPath p)
 
 instance Renderable Text SVG where
