@@ -76,6 +76,7 @@
 
 module Diagrams.Backend.SVG
   ( SVG(..) -- rendering token
+  , B
   , Options(..), size, svgDefinitions -- for rendering options specific to SVG
 
   , renderSVG
@@ -113,6 +114,8 @@ import qualified Graphics.Rendering.SVG       as R
 --   (to aid type inference).
 data SVG = SVG
     deriving (Show, Typeable)
+
+type B = SVG
 
 data SvgRenderState = SvgRenderState { _clipPathId :: Int, _ignoreFill :: Bool }
 
