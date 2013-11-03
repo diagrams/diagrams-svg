@@ -30,6 +30,9 @@ module Graphics.Rendering.SVG
 -- from base
 import           Data.List                   (intercalate, intersperse)
 
+-- from lens
+import           Control.Lens
+
 -- from diagrams-lib
 import           Diagrams.Prelude            hiding (Attribute, Render, e, (<>))
 import           Diagrams.TwoD.Path          (getFillRule)
@@ -55,9 +58,9 @@ svgHeader w h_ defines s =  S.docTypeSvg
        S.g $ s
 
 renderPath :: Path R2 -> S.Svg
-renderPath (Path trs)  = S.path ! A.d makePath
+renderPath trs  = S.path ! A.d makePath
  where
-  makePath = mkPath $ mapM_ renderTrail trs
+  makePath = mkPath $ mapM_ renderTrail (op Path trs)
 
 renderTrail :: Located (Trail R2) -> S.Path
 renderTrail (viewLoc -> (unp2 -> (x,y), t)) = flip withLine t $ \l -> do

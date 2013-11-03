@@ -7,12 +7,10 @@ using the [Haskell programming language][haskell].
 [diagrams]: http://projects.haskell.org/diagrams/
 [haskell]: http://www.haskell.org/haskellwiki/Haskell
 
-_diagrams-svg_ is a work in progress, and some features are not implemented
-yet. However, it is functional enough that [hs-logo] uses it. Check out the 
-[issues page][issues] to get an idea of the features that are missing.
+_diagrams-svg_ is the default out-of-the box backend that comes with
+the diagrams framework, and supports most features defined in [diagrams-lib].
 
-[issues]: https://github.com/diagrams/diagrams-svg/issues
-[hs-logo]: http://github.com/deepakjois/hs-logo
+[diagrams-lib]: http://hackage.haskell.org/package/diagrams%2Dlib
 
 # Installation
 
@@ -77,10 +75,3 @@ The command above generates the SVG file:
   </g>
 </svg>
 ```
-
-## Other Backends for Diagrams
-
-* [diagrams-cairo](http://github.com/diagrams/diagrams-cairo)
-* [diagrams-postscript](https://github.com/fryguybob/diagrams-postscript)
-* [diagrams-canvas](https://github.com/byorgey/diagrams-canvas/)
-
