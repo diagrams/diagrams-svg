@@ -208,7 +208,7 @@ instance Backend SVG R2 where
                                 (transparent :: AlphaColour Double) )
     where setSvgSize sz o = o { size = sz }
 
-  renderData _ d = renderRTree $ fromDTree (fromMaybe (Node DEmpty []) (toTree d))
+  renderData _ = renderRTree . toRTree
 
 instance Show (Options SVG R2) where
   show opts = concat $
