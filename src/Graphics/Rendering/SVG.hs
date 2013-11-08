@@ -27,7 +27,6 @@ module Graphics.Rendering.SVG
     , getMatrix
     , renderFillTextureDefs
     , renderFillTexture
-    , getFillTextureTrans
     ) where
 
 -- from base
@@ -87,11 +86,46 @@ renderClip p id_ svg = do
     svg
   where clipPathId i = "myClip" ++ show i
 
-getFillTextureTrans :: Style v -> T2
-getFillTextureTrans s =
-  case (getFillTexture <$> getAttr s) of
-    Just (LG g) -> g^.lGradTrans
-    _           -> mempty
+renderStop :: GradientStop -> S.Svg
+renderStop (c, v, o)
+  = S.stop ! A.stopColor (S.toValue (colorToRgbString c))
+           ! A.offset (S.toValue (show v))
+           ! A.stopOpacity (S.toValue (show o))
+
+spreadMethodStr :: SpreadMethod -> String
+spreadMethodStr GradPad      = "pad"
+spreadMethodStr GradReflect  = "reflect"
+spreadMethodStr GradRepeat   = "repeat"
+
+renderLinearGradient :: LGradient -> Int -> S.Svg
+renderLinearGradient g i = S.lineargradient
+    ! A.id_ (S.toValue ("gradient" ++ (show i)))
+    ! A.x1  (S.toValue (x1' - 0.5))
+    ! A.y1  (S.toValue (y1' - 0.5))
+    ! A.x2  (S.toValue (x1' - 0.5 + dx))
+    ! A.y2  (S.toValue (y1' - 0.5 + dy))
+    ! A.gradienttransform (S.toValue matrix)
+    ! A.gradientunits "userSpaceOnUse"
+    ! A.spreadmethod (S.toValue (spreadMethodStr (g^.lGradSpreadMethod)))
+    $ do mconcat $ (map renderStop) (g^.lGradStops)
+  where
+    matrix = S.matrix a1 a2 b1 b2 c1 c2
+    (a1, a2, b1, b2, c1, c2) = getMatrix (g^.lGradTrans)
+    (x1', y1') = unp2 (g^.lGradStart)
+    (x2', y2') = unp2 (g^.lGradEnd)
+    dx = (x2' - x1')
+    dy = (y2' - y1')
+
+renderRadialGradient :: RGradient -> Int -> S.Svg
+renderRadialGradient g i = S.radialgradient
+    ! A.id_ (S.toValue ("gradient" ++ (show i)))
+    ! A.gradienttransform (S.toValue matrix)
+    ! A.gradientunits "userSpaceOnUse"
+    $ do mconcat $ (map renderStop) (g^.rGradStops)
+  where
+    matrix = S.matrix a1 a2 b1 b2 c1 c2
+    (a1, a2, b1, b2, c1, c2) = getMatrix (g^.rGradTrans)
+
 
 -- Create a defs element to contain the gradient so that it can be used as
 -- an attribute vale for fill.
@@ -99,35 +133,9 @@ getFillTextureTrans s =
 renderFillTextureDefs :: Int -> Style v -> S.Svg
 renderFillTextureDefs i s =
   case (getFillTexture <$> getAttr s) of
-    Just (LG g) -> lg g
-    Just (RG g) -> rg g
+    Just (LG g) -> renderLinearGradient g i
+    Just (RG g) -> renderRadialGradient g i
     _           -> mempty
-    where
-      lg g =
-        -- S.defs $ do (Is there a benefit to wrapping in defs?)
-        S.lineargradient
-          ! A.id_ (S.toValue ("gradient" ++ (show i)))
-          ! A.x1 (S.toValue (x1' - 0.5)) --((unp2 (g^.lGradStart))^._1))
-          ! A.y1 (S.toValue (y1' - 0.5)) --((unp2 (g^.lGradStart))^._2))
-          ! A.x2 (S.toValue (x1' - 0.5 + dx)) --((unp2 (g^.lGradEnd))^._1))
-          ! A.y2 (S.toValue (y1' - 0.5 + dy)) --((unp2 (g^.lGradEnd))^._2))
-          ! A.gradienttransform (S.toValue m)
-          ! A.gradientunits "userSpaceOnUse"
-          $ do mconcat $ (map toStop) (g^.lGradStops)
-        where
-          m = S.matrix a1 a2 b1 b2 c1 c2
-          (a1, a2, b1, b2, c1, c2) = getMatrix (g^.lGradTrans)
-          (x1', y1') = unp2 (g^.lGradStart)
-          (x2', y2') = unp2 (g^.lGradEnd)
-          dx = (x2' - x1')
-          dy = (y2' - y1')
-      rg g =
-        S.defs $ do
-          S.radialgradient
-            ! A.id_ (S.toValue ("gradient" ++ (show i)))
-            $ do mconcat $ (map toStop) (g^.rGradStops)
-      toStop (c, o) = S.stop ! A.stopColor (S.toValue (colorToRgbString c))
-                             ! A.offset (S.toValue (show o))
 
 -- Render the gradient using the id set up in renderFillTextureDefs.
 renderFillTexture :: Int -> Style v -> S.Attribute
@@ -138,6 +146,7 @@ renderFillTexture id_ s = case (getFillTexture <$> getAttr s) of
       fillColorRgb     = Just $ colorToRgbString c
       fillColorOpacity = Just $ colorToOpacity c
   Just (LG _) -> A.fill (S.toValue ("url(#gradient" ++ show id_ ++ ")"))
+                `mappend` A.fillOpacity "1"
   Just (RG _) -> mempty
   Nothing     -> renderFillColor s -- check for old style fillColor attribute.
 
