@@ -25,13 +25,16 @@ module Graphics.Rendering.SVG
     , renderTransform
     , renderMiterLimit
     , getMatrix
+    , renderFillTextureDefs
+    , renderFillTexture
+    , getFillTextureTrans
     ) where
 
 -- from base
 import           Data.List                   (intercalate, intersperse)
 
 -- from lens
-import           Control.Lens
+import           Control.Lens                hiding (transform)
 
 -- from diagrams-lib
 import           Diagrams.Prelude            hiding (Attribute, Render, e, (<>))
@@ -84,6 +87,60 @@ renderClip p id_ svg = do
     svg
   where clipPathId i = "myClip" ++ show i
 
+getFillTextureTrans :: Style v -> T2
+getFillTextureTrans s =
+  case (getFillTexture <$> getAttr s) of
+    Just (LG g) -> g^.lGradTrans
+    _           -> mempty
+
+-- Create a defs element to contain the gradient so that it can be used as
+-- an attribute vale for fill.
+-- XXX rg implementation is not finished
+renderFillTextureDefs :: Int -> Style v -> S.Svg
+renderFillTextureDefs i s =
+  case (getFillTexture <$> getAttr s) of
+    Just (LG g) -> lg g
+    Just (RG g) -> rg g
+    _           -> mempty
+    where
+      lg g =
+        -- S.defs $ do (Is there a benefit to wrapping in defs?)
+        S.lineargradient
+          ! A.id_ (S.toValue ("gradient" ++ (show i)))
+          ! A.x1 (S.toValue (x1' - 0.5)) --((unp2 (g^.lGradStart))^._1))
+          ! A.y1 (S.toValue (y1' - 0.5)) --((unp2 (g^.lGradStart))^._2))
+          ! A.x2 (S.toValue (x1' - 0.5 + dx)) --((unp2 (g^.lGradEnd))^._1))
+          ! A.y2 (S.toValue (y1' - 0.5 + dy)) --((unp2 (g^.lGradEnd))^._2))
+          ! A.gradienttransform (S.toValue m)
+          ! A.gradientunits "userSpaceOnUse"
+          $ do mconcat $ (map toStop) (g^.lGradStops)
+        where
+          m = S.matrix a1 a2 b1 b2 c1 c2
+          (a1, a2, b1, b2, c1, c2) = getMatrix (g^.lGradTrans)
+          (x1', y1') = unp2 (g^.lGradStart)
+          (x2', y2') = unp2 (g^.lGradEnd)
+          dx = (x2' - x1')
+          dy = (y2' - y1')
+      rg g =
+        S.defs $ do
+          S.radialgradient
+            ! A.id_ (S.toValue ("gradient" ++ (show i)))
+            $ do mconcat $ (map toStop) (g^.rGradStops)
+      toStop (c, o) = S.stop ! A.stopColor (S.toValue (colorToRgbString c))
+                             ! A.offset (S.toValue (show o))
+
+-- Render the gradient using the id set up in renderFillTextureDefs.
+renderFillTexture :: Int -> Style v -> S.Attribute
+renderFillTexture id_ s = case (getFillTexture <$> getAttr s) of
+  Just (SC (SomeColor c)) -> (renderAttr A.fill fillColorRgb) `mappend`
+                             (renderAttr A.fillOpacity fillColorOpacity)
+    where
+      fillColorRgb     = Just $ colorToRgbString c
+      fillColorOpacity = Just $ colorToOpacity c
+  Just (LG _) -> A.fill (S.toValue ("url(#gradient" ++ show id_ ++ ")"))
+  Just (RG _) -> mempty
+  Nothing     -> renderFillColor s -- check for old style fillColor attribute.
+
 renderText :: Text -> S.Svg
 renderText (Text tr tAlign str) =
   S.text_
@@ -124,12 +181,12 @@ renderTransform t svg =
     where (a1,a2,b1,b2,c1,c2) = getMatrix t
           i = (a1,a2,b1,b2,c1,c2) == (1,0,0,1,0,0)
 
-renderStyles :: Bool -> Style v -> S.Attribute
-renderStyles ignoreFill s = mconcat . map ($ s) $
+renderStyles :: Bool -> Int -> Style v -> S.Attribute
+renderStyles ignoreFill id' s = mconcat . map ($ s) $
   [ renderLineColor
   , if ignoreFill
       then const (renderAttr A.fillOpacity (Just (0 :: Double)))
-      else renderFillColor
+      else renderFillTexture id'
   , renderLineWidth
   , renderLineCap
   , renderLineJoin

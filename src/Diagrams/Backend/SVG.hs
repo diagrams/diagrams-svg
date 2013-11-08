@@ -119,12 +119,14 @@ data SVG = SVG
 
 type B = SVG
 
-data SvgRenderState = SvgRenderState { _clipPathId :: Int, _ignoreFill :: Bool }
+data SvgRenderState = SvgRenderState { _clipPathId :: Int
+                                     , _ignoreFill :: Bool
+                                     , _textureId  :: Int }
 
 makeLenses ''SvgRenderState
 
 initialSvgRenderState :: SvgRenderState
-initialSvgRenderState = SvgRenderState 0 False
+initialSvgRenderState = SvgRenderState 0 False 0
 
 -- | Monad to keep track of state when rendering an SVG.
 --   Currently just keeps a monotonically increasing counter
@@ -155,6 +157,14 @@ renderSvgWithClipping svg s =
       id_ <- use clipPathId
       R.renderClip p id_ <$> renderClips ps
 
+-- | Create a new texture defs svg element using the style and the current
+--   id number, then increment the gradient id number.
+fillTextureDefs :: Style v -> SvgRenderM
+fillTextureDefs s = do
+  id_ <- use textureId
+  textureId += 1
+  return $ R.renderFillTextureDefs id_ s
+
 -- | Convert an RTree to a renderable object. The unfrozen transforms have
 --   been accumulated and are in the leaves of the RTree along with the Prims.
 --   Frozen transformations have their own nodes and the styles have been
@@ -165,8 +175,10 @@ renderRTree (Node (RStyle sty) ts)
   = R $ do
       let R r = foldMap renderRTree ts
       svg <- r
+      id' <- use textureId
       clippedSvg <- renderSvgWithClipping svg sty
-      return $ (S.g ! R.renderStyles False sty) clippedSvg
+      textureDefs <- fillTextureDefs sty
+      return $ (S.g ! R.renderStyles False id' sty) (textureDefs `mappend` clippedSvg)
 renderRTree (Node (RFrozenTr tr) ts)
   = R $ do
       let R r = foldMap renderRTree ts
@@ -197,7 +209,7 @@ instance Backend SVG R2 where
       return $ R.svgHeader w h (opts^.svgDefinitions) $ svg
 
   adjustDia c opts d = adjustDia2D _size setSvgSize c opts
-                         (d # reflectY
+                         (d  # reflectY
                             # recommendFillColor
                                 (transparent :: AlphaColour Double)
                          )
