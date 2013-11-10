@@ -119,13 +119,19 @@ renderLinearGradient g i = S.lineargradient
 renderRadialGradient :: RGradient -> Int -> S.Svg
 renderRadialGradient g i = S.radialgradient
     ! A.id_ (S.toValue ("gradient" ++ (show i)))
+    ! A.radius (S.toValue (g^.rGradRadius))
+    ! A.cx (S.toValue (cx' - 0.5))
+    ! A.cy (S.toValue (cy' - 0.5))
+    ! A.fx (S.toValue (fx' - 0.5))
+    ! A.fy (S.toValue (fy' - 0.5))
     ! A.gradienttransform (S.toValue matrix)
     ! A.gradientunits "userSpaceOnUse"
     $ do mconcat $ (map renderStop) (g^.rGradStops)
   where
     matrix = S.matrix a1 a2 b1 b2 c1 c2
     (a1, a2, b1, b2, c1, c2) = getMatrix (g^.rGradTrans)
-
+    (cx', cy') = unp2 (g^.rGradCenter)
+    (fx', fy') = unp2 (g^.rGradFocus)
 
 -- Create a defs element to contain the gradient so that it can be used as
 -- an attribute vale for fill.
@@ -147,7 +153,8 @@ renderFillTexture id_ s = case (getFillTexture <$> getAttr s) of
       fillColorOpacity = Just $ colorToOpacity c
   Just (LG _) -> A.fill (S.toValue ("url(#gradient" ++ show id_ ++ ")"))
                 `mappend` A.fillOpacity "1"
-  Just (RG _) -> mempty
+  Just (RG _) -> A.fill (S.toValue ("url(#gradient" ++ show id_ ++ ")"))
+                `mappend` A.fillOpacity "1"
   Nothing     -> renderFillColor s -- check for old style fillColor attribute.
 
 renderText :: Text -> S.Svg
