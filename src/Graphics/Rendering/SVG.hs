@@ -219,12 +219,12 @@ renderTransform t svg =
     where (a1,a2,b1,b2,c1,c2) = getMatrix t
           i = (a1,a2,b1,b2,c1,c2) == (1,0,0,1,0,0)
 
-renderStyles :: Bool -> Int -> Style v -> S.Attribute
-renderStyles ignoreFill id' s = mconcat . map ($ s) $
-  [ renderLineTexture id'
+renderStyles :: Bool -> Int -> Int -> Style v -> S.Attribute
+renderStyles ignoreFill fillId lineId s = mconcat . map ($ s) $
+  [ renderLineTexture lineId
   , if ignoreFill
       then const (renderAttr A.fillOpacity (Just (0 :: Double)))
-      else renderFillTexture id'
+      else renderFillTexture fillId
   , renderLineWidth
   , renderLineCap
   , renderLineJoin

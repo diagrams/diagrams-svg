@@ -121,12 +121,14 @@ type B = SVG
 
 data SvgRenderState = SvgRenderState { _clipPathId :: Int
                                      , _ignoreFill :: Bool
-                                     , _textureId  :: Int }
+                                     , _fillGradId :: Int
+                                     , _lineGradId :: Int }
 
 makeLenses ''SvgRenderState
 
+-- Fill gradients ids are even, line gradient ids are odd.
 initialSvgRenderState :: SvgRenderState
-initialSvgRenderState = SvgRenderState 0 False 0
+initialSvgRenderState = SvgRenderState 0 False 0 1
 
 -- | Monad to keep track of state when rendering an SVG.
 --   Currently just keeps a monotonically increasing counter
@@ -161,14 +163,14 @@ renderSvgWithClipping svg s =
 --   id number, then increment the gradient id number.
 fillTextureDefs :: Style v -> SvgRenderM
 fillTextureDefs s = do
-  id_ <- use textureId
-  textureId += 1
+  id_ <- use fillGradId
+  fillGradId += 2 -- always even
   return $ R.renderFillTextureDefs id_ s
 
 lineTextureDefs :: Style v -> SvgRenderM
 lineTextureDefs s = do
-  id_ <- use textureId
-  textureId += 1
+  id_ <- use lineGradId
+  lineGradId += 2 -- always odd
   return $ R.renderLineTextureDefs id_ s
 
 -- | Convert an RTree to a renderable object. The unfrozen transforms have
@@ -181,12 +183,14 @@ renderRTree (Node (RStyle sty) ts)
   = R $ do
       let R r = foldMap renderRTree ts
       svg <- r
-      id' <- use textureId
+      idFill <- use fillGradId
+      idLine <- use lineGradId
       clippedSvg <- renderSvgWithClipping svg sty
-      lineTextureDefs <- lineTextureDefs sty
-      fillTextureDefs <- fillTextureDefs sty
-      let textureDefs = fillTextureDefs `mappend` lineTextureDefs
-      return $ (S.g ! R.renderStyles False id' sty) (textureDefs `mappend` clippedSvg)
+      lineGradDefs <- lineTextureDefs sty
+      fillGradDefs <- fillTextureDefs sty
+      let textureDefs = fillGradDefs `mappend` lineGradDefs
+      return $ (S.g ! R.renderStyles False idFill idLine sty)
+               (textureDefs `mappend` clippedSvg)
 renderRTree (Node (RFrozenTr tr) ts)
   = R $ do
       let R r = foldMap renderRTree ts
