@@ -119,13 +119,14 @@ renderLinearGradient g i = S.lineargradient
 renderRadialGradient :: RGradient -> Int -> S.Svg
 renderRadialGradient g i = S.radialgradient
     ! A.id_ (S.toValue ("gradient" ++ (show i)))
-    ! A.radius (S.toValue (g^.rGradRadius))
-    ! A.cx (S.toValue (cx' - 0.5))
-    ! A.cy (S.toValue (cy' - 0.5))
-    ! A.fx (S.toValue (fx' - 0.5))
-    ! A.fy (S.toValue (fy' - 0.5))
+    ! A.r (S.toValue (g^.rGradRadius))
+    ! A.cx (S.toValue cx')
+    ! A.cy (S.toValue cy')
+    ! A.fx (S.toValue fx')
+    ! A.fy (S.toValue fy')
     ! A.gradienttransform (S.toValue matrix)
     ! A.gradientunits "userSpaceOnUse"
+    ! A.spreadmethod (S.toValue (spreadMethodStr (g^.rGradSpreadMethod)))
     $ do mconcat $ (map renderStop) (g^.rGradStops)
   where
     matrix = S.matrix a1 a2 b1 b2 c1 c2
@@ -134,8 +135,7 @@ renderRadialGradient g i = S.radialgradient
     (fx', fy') = unp2 (g^.rGradFocus)
 
 -- Create a defs element to contain the gradient so that it can be used as
--- an attribute vale for fill.
--- XXX rg implementation is not finished
+-- an attribute value for fill.
 renderFillTextureDefs :: Int -> Style v -> S.Svg
 renderFillTextureDefs i s =
   case (getFillTexture <$> getAttr s) of

@@ -209,7 +209,7 @@ instance Backend SVG R2 where
       return $ R.svgHeader w h (opts^.svgDefinitions) $ svg
 
   adjustDia c opts d = adjustDia2D _size setSvgSize c opts
-                         (d  # reflectY
+                         (d  # pad 1 # reflectY -- XXX pad is for Gradients?
                             # recommendFillColor
                                 (transparent :: AlphaColour Double)
                          )
