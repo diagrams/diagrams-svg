@@ -165,6 +165,12 @@ fillTextureDefs s = do
   textureId += 1
   return $ R.renderFillTextureDefs id_ s
 
+lineTextureDefs :: Style v -> SvgRenderM
+lineTextureDefs s = do
+  id_ <- use textureId
+  textureId += 1
+  return $ R.renderLineTextureDefs id_ s
+
 -- | Convert an RTree to a renderable object. The unfrozen transforms have
 --   been accumulated and are in the leaves of the RTree along with the Prims.
 --   Frozen transformations have their own nodes and the styles have been
@@ -177,7 +183,9 @@ renderRTree (Node (RStyle sty) ts)
       svg <- r
       id' <- use textureId
       clippedSvg <- renderSvgWithClipping svg sty
-      textureDefs <- fillTextureDefs sty
+      lineTextureDefs <- lineTextureDefs sty
+      fillTextureDefs <- fillTextureDefs sty
+      let textureDefs = fillTextureDefs `mappend` lineTextureDefs
       return $ (S.g ! R.renderStyles False id' sty) (textureDefs `mappend` clippedSvg)
 renderRTree (Node (RFrozenTr tr) ts)
   = R $ do

@@ -27,6 +27,8 @@ module Graphics.Rendering.SVG
     , getMatrix
     , renderFillTextureDefs
     , renderFillTexture
+    , renderLineTextureDefs
+    , renderLineTexture
     ) where
 
 -- from base
@@ -155,7 +157,27 @@ renderFillTexture id_ s = case (getFillTexture <$> getAttr s) of
                 `mappend` A.fillOpacity "1"
   Just (RG _) -> A.fill (S.toValue ("url(#gradient" ++ show id_ ++ ")"))
                 `mappend` A.fillOpacity "1"
-  Nothing     -> renderFillColor s -- check for old style fillColor attribute.
+  Nothing     -> renderFillColor s
+
+renderLineTextureDefs :: Int -> Style v -> S.Svg
+renderLineTextureDefs i s =
+  case (getLineTexture <$> getAttr s) of
+    Just (LG g) -> renderLinearGradient g i
+    Just (RG g) -> renderRadialGradient g i
+    _           -> mempty
+
+renderLineTexture :: Int -> Style v -> S.Attribute
+renderLineTexture id_ s = case (getLineTexture <$> getAttr s) of
+  Just (SC (SomeColor c)) -> (renderAttr A.stroke lineColorRgb) `mappend`
+                             (renderAttr A.strokeOpacity lineColorOpacity)
+    where
+      lineColorRgb     = Just $ colorToRgbString c
+      lineColorOpacity = Just $ colorToOpacity c
+  Just (LG _) -> A.stroke (S.toValue ("url(#gradient" ++ show id_ ++ ")"))
+                `mappend` A.strokeOpacity "1"
+  Just (RG _) -> A.stroke (S.toValue ("url(#gradient" ++ show id_ ++ ")"))
+                `mappend` A.strokeOpacity "1"
+  Nothing     -> renderLineColor s
 
 renderText :: Text -> S.Svg
 renderText (Text tr tAlign str) =
@@ -199,7 +221,7 @@ renderTransform t svg =
 
 renderStyles :: Bool -> Int -> Style v -> S.Attribute
 renderStyles ignoreFill id' s = mconcat . map ($ s) $
-  [ renderLineColor
+  [ renderLineTexture id'
   , if ignoreFill
       then const (renderAttr A.fillOpacity (Just (0 :: Double)))
       else renderFillTexture id'
