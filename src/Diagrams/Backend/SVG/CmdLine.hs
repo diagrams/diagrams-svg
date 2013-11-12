@@ -1,4 +1,8 @@
-{-# LANGUAGE DeriveDataTypeable, CPP #-}
+{-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
+{-# LANGUAGE CPP #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Diagrams.Backend.SVG.CmdLine
@@ -40,17 +44,18 @@ module Diagrams.Backend.SVG.CmdLine
 
 import Diagrams.Prelude hiding (width, height, interval)
 import Diagrams.Backend.SVG
+import Diagrams.Backend.CmdLine
 
-import System.Console.CmdArgs.Implicit hiding (args)
+import Control.Lens
 
 import Text.Blaze.Svg.Renderer.Utf8 (renderSvg)
 import qualified Data.ByteString.Lazy as BS
 
-import Data.Maybe          (fromMaybe)
-import Control.Monad       (when)
 import Data.List.Split
 
-import System.Environment  (getArgs, getProgName)
+#ifdef CMDLINELOOP
+import Data.Maybe          (fromMaybe)
+import Control.Monad       (when)
 import System.Directory    (getModificationTime)
 import System.Process      (runProcess, waitForProcess)
 import System.IO           (openFile, hClose, IOMode(..),
@@ -60,9 +65,8 @@ import Control.Concurrent  (threadDelay)
 import qualified Control.Exception as Exc  (catch,  bracket)
 import Control.Exception (SomeException(..))
 
-#ifdef CMDLINELOOP
+import System.Environment  (getProgName,getArgs)
 import System.Posix.Process (executeFile)
-#endif
 
 
 # if MIN_VERSION_directory(1,2,0)
@@ -76,50 +80,7 @@ type ModuleTime = ClockTime
 getModuleTime :: IO  ModuleTime
 getModuleTime = getClockTime
 #endif
-
-
-data DiagramOpts = DiagramOpts
-                   { width     :: Maybe Int
-                   , height    :: Maybe Int
-                   , output    :: FilePath
-                   , selection :: Maybe String
-#ifdef CMDLINELOOP
-                   , loop      :: Bool
-                   , src       :: Maybe String
-                   , interval  :: Int
 #endif
-                   }
-  deriving (Show, Data, Typeable)
-
-diagramOpts :: String -> Bool -> DiagramOpts
-diagramOpts prog sel = DiagramOpts
-  { width =  def
-             &= typ "INT"
-             &= help "Desired width of the output image"
-
-  , height = def
-             &= typ "INT"
-             &= help "Desired height of the output image"
-
-  , output = def
-           &= typFile
-           &= help "Output file"
-
-  , selection = def
-              &= help "Name of the diagram to render"
-              &= (if sel then typ "NAME" else ignore)
-#ifdef CMDLINELOOP
-  , loop = False
-            &= help "Run in a self-recompiling loop"
-  , src  = def
-            &= typFile
-            &= help "Source file to watch"
-  , interval = 1 &= typ "SECONDS"
-                 &= help "When running in a loop, check for changes every n seconds."
-#endif
-  }
-  &= summary "Command-line diagram generation."
-  &= program prog
 
 -- | This is the simplest way to render diagrams, and is intended to
 --   be used like so:
@@ -135,21 +96,27 @@ diagramOpts prog sel = DiagramOpts
 --   Pass @--help@ to the generated executable to see all available
 --   options.
 defaultMain :: Diagram SVG R2 -> IO ()
-defaultMain d = do
-  prog <- getProgName
-  args <- getArgs
-  opts <- cmdArgs (diagramOpts prog False)
-  chooseRender opts d
+defaultMain = mainWith
+
+instance Mainable (Diagram SVG R2) where
 #ifdef CMDLINELOOP
-  when (loop opts) (waitForChange Nothing opts prog args)
+    type MainOpts (Diagram SVG R2) = (DiagramOpts, DiagramLoopOpts)
+
+    mainRender (opts,loopOpts) d = do
+        chooseRender opts d
+        when (loopOpts^.loop) (waitForChange Nothing loopOpts)
+#else
+    type MainOpts (Diagram SVG R2) = DiagramOpts
+
+    mainRender opts d = chooseRender opts d
 #endif
 
 chooseRender :: DiagramOpts -> Diagram SVG R2 -> IO ()
 chooseRender opts d =
-  case splitOn "." (output opts) of
+  case splitOn "." (opts^.output) of
     [""] -> putStrLn "No output file given."
     ps | last ps `elem` ["svg"] -> do
-           let sizeSpec = case (width opts, height opts) of
+           let sizeSpec = case (opts^.width, opts^.height) of
                             (Nothing, Nothing) -> Absolute
                             (Just w, Nothing)  -> Width (fromIntegral w)
                             (Nothing, Just h)  -> Height (fromIntegral h)
@@ -157,7 +124,7 @@ chooseRender opts d =
                                                        (fromIntegral h)
 
                build = renderDia SVG (SVGOptions sizeSpec Nothing) d
-           BS.writeFile (output opts) (renderSvg build)
+           BS.writeFile (opts^.output) (renderSvg build)
        | otherwise -> putStrLn $ "Unknown file type: " ++ last ps
 
 
@@ -169,27 +136,29 @@ chooseRender opts d =
 --   different diagrams without modifying the source code in between
 --   each one.
 multiMain :: [(String, Diagram SVG R2)] -> IO ()
-multiMain ds = do
-  prog <- getProgName
-  opts <- cmdArgs (diagramOpts prog True)
-  case selection opts of
-    Nothing  -> putStrLn "No diagram selected."
-    Just sel -> case lookup sel ds of
-      Nothing -> putStrLn $ "Unknown diagram: " ++ sel
-      Just d  -> chooseRender opts d
+multiMain = mainWith
+
+instance Mainable [(String,Diagram SVG R2)] where
+    type MainOpts [(String,Diagram SVG R2)] 
+        = (MainOpts (Diagram SVG R2), DiagramMultiOpts)
+
+    mainRender = defaultMultiMainRender
+
 
 #ifdef CMDLINELOOP
-waitForChange :: Maybe ModuleTime -> DiagramOpts -> String -> [String] -> IO ()
-waitForChange lastAttempt opts prog args = do
+waitForChange :: Maybe ModuleTime -> DiagramLoopOpts -> IO ()
+waitForChange lastAttempt opts = do
+    prog <- getProgName
+    args <- getArgs
     hSetBuffering stdout NoBuffering
-    go lastAttempt
-  where go lastAtt = do
-          threadDelay (1000000 * interval opts)
+    go prog args lastAttempt
+  where go prog args lastAtt = do
+          threadDelay (1000000 * opts^.interval)
           -- putStrLn $ "Checking... (last attempt = " ++ show lastAttempt ++ ")"
-          (newBin, newAttempt) <- recompile lastAtt prog (src opts)
+          (newBin, newAttempt) <- recompile lastAtt prog (opts^.src)
           if newBin
             then executeFile prog False args Nothing
-            else go $ getFirst (First newAttempt <> First lastAtt)
+            else go prog args $ getFirst (First newAttempt <> First lastAtt)
 
 -- | @recompile t prog@ attempts to recompile @prog@, assuming the
 --   last attempt was made at time @t@.  If @t@ is @Nothing@ assume
