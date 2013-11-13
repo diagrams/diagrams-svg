@@ -56,6 +56,8 @@ svgHeader w h_ defines s =  S.docTypeSvg
   ! A.height   (S.toValue h_)
   ! A.fontSize "1"
   ! A.viewbox (S.toValue $ concat . intersperse " " $ map show ([0, 0, round w, round h_] :: [Int]))
+  ! A.stroke "rgb(0,0,0)"
+  ! A.strokeOpacity "1"
   $ do case defines of
          Nothing -> return ()
          Just defs -> S.defs $ defs
@@ -63,8 +65,8 @@ svgHeader w h_ defines s =  S.docTypeSvg
 
 renderPath :: Path R2 -> S.Svg
 renderPath trs  = S.path ! A.d makePath
- where
-  makePath = mkPath $ mapM_ renderTrail (op Path trs)
+  where
+    makePath = mkPath $ mapM_ renderTrail (op Path trs)
 
 renderTrail :: Located (Trail R2) -> S.Path
 renderTrail (viewLoc -> (unp2 -> (x,y), t)) = flip withLine t $ \l -> do
@@ -89,10 +91,10 @@ renderClip p id_ svg = do
   where clipPathId i = "myClip" ++ show i
 
 renderStop :: GradientStop -> S.Svg
-renderStop (c, v, o)
+renderStop (GradientStop c v)
   = S.stop ! A.stopColor (S.toValue (colorToRgbString c))
            ! A.offset (S.toValue (show v))
-           ! A.stopOpacity (S.toValue (show o))
+           ! A.stopOpacity (S.toValue (colorToOpacity c))
 
 spreadMethodStr :: SpreadMethod -> String
 spreadMethodStr GradPad      = "pad"
@@ -157,7 +159,7 @@ renderFillTexture id_ s = case (getFillTexture <$> getAttr s) of
                 `mappend` A.fillOpacity "1"
   Just (RG _) -> A.fill (S.toValue ("url(#gradient" ++ show id_ ++ ")"))
                 `mappend` A.fillOpacity "1"
-  Nothing     -> renderFillColor s
+  Nothing     -> mempty
 
 renderLineTextureDefs :: Int -> Style v -> S.Svg
 renderLineTextureDefs i s =
@@ -177,7 +179,7 @@ renderLineTexture id_ s = case (getLineTexture <$> getAttr s) of
                 `mappend` A.strokeOpacity "1"
   Just (RG _) -> A.stroke (S.toValue ("url(#gradient" ++ show id_ ++ ")"))
                 `mappend` A.strokeOpacity "1"
-  Nothing     -> renderLineColor s
+  Nothing     -> mempty
 
 renderText :: Text -> S.Svg
 renderText (Text tr tAlign str) =
@@ -241,23 +243,6 @@ renderStyles ignoreFill fillId lineId s = mconcat . map ($ s) $
 renderMiterLimit :: Style v -> S.Attribute
 renderMiterLimit s = renderAttr A.strokeMiterlimit miterLimit
  where miterLimit = getLineMiterLimit <$> getAttr s
-
-renderLineColor :: Style v -> S.Attribute
-renderLineColor s =
-  (renderAttr A.stroke lineColorRgb) `mappend`
-  (renderAttr A.strokeOpacity lineColorOpacity)
- where lineColor_       = getLineColor <$> getAttr s
-       lineColorRgb     = colorToRgbString <$> lineColor_
-       lineColorOpacity = colorToOpacity <$> lineColor_
-
-renderFillColor :: Style v -> S.Attribute
-renderFillColor s =
-  (renderAttr A.fill fillColorRgb) `mappend`
-  (renderAttr A.fillOpacity fillColorOpacity)
- where fillColor_       = getFillColor <$> getAttr s
-       fillColorRgb     = colorToRgbString <$> fillColor_
-       fillColorOpacity = colorToOpacity <$> fillColor_
-
 
 renderOpacity :: Style v -> S.Attribute
 renderOpacity s = renderAttr A.opacity opacity_
