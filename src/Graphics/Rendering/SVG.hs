@@ -34,7 +34,7 @@ import           Data.List                   (intercalate, intersperse)
 import           Control.Lens
 
 -- from diagrams-lib
-import           Diagrams.Prelude            hiding (Attribute, Render, e, (<>))
+import           Diagrams.Prelude            hiding (Attribute, Render, (<>))
 import           Diagrams.TwoD.Path          (getFillRule)
 import           Diagrams.TwoD.Text
 
