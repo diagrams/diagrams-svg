@@ -129,25 +129,25 @@ renderRadialGradient g i = S.radialgradient
     ! A.gradienttransform (S.toValue matrix)
     ! A.gradientunits "userSpaceOnUse"
     ! A.spreadmethod (S.toValue (spreadMethodStr (g^.rGradSpreadMethod)))
-    $ do mconcat $ map renderStop ss--(g^.rGradStops)
+    $ do mconcat $ map renderStop ss
   where
     matrix = S.matrix a1 a2 b1 b2 c1 c2
     (a1, a2, b1, b2, c1, c2) = getMatrix (g^.rGradTrans)
     (cx', cy') = unp2 (g^.rGradCenter1)
-    (fx', fy') = unp2 (g^.rGradCenter0)
+    (fx', fy') = unp2 (g^.rGradCenter0) -- SVG's focal point is our inner center.
 
-    -- Adjust the stops so that the gradient begings at the perimeter of
-    -- the inner circle (center0, radius0).
+    -- Adjust the stops so that the gradient begins at the perimeter of
+    -- the inner circle (center0, radius0) and ends at the outer circle.
     r0 = g^.rGradRadius0
     r1 = g^.rGradRadius1
-    stopFracs = r0 / r1 : map (\s -> (r0 + (s^.stopFraction) * (r1-r0)) / r1) (g^.rGradStops)
+    stopFracs = r0 / r1 : map (\s -> (r0 + (s^.stopFraction) * (r1-r0)) / r1)
+                (g^.rGradStops)
     gradStops = case g^.rGradStops of
       []       -> []
       xs@(x:_) -> x : xs
     ss = zipWith (\gs sf -> gs & stopFraction .~ sf ) gradStops stopFracs
 
--- Create a defs element to contain the gradient so that it can be used as
--- an attribute value for fill.
+-- Create a gradient element so that it can be used as an attribute value for fill.
 renderFillTextureDefs :: Int -> Style v -> S.Svg
 renderFillTextureDefs i s =
   case (getFillTexture <$> getAttr s) of
