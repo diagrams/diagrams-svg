@@ -106,8 +106,8 @@ renderLinearGradient g i = S.lineargradient
     ! A.id_ (S.toValue ("gradient" ++ (show i)))
     ! A.x1  (S.toValue (x1' - 0.5))
     ! A.y1  (S.toValue (y1' - 0.5))
-    ! A.x2  (S.toValue (x1' - 0.5 + dx))
-    ! A.y2  (S.toValue (y1' - 0.5 + dy))
+    ! A.x2  (S.toValue (x2' - 0.5))
+    ! A.y2  (S.toValue (y2' - 0.5))
     ! A.gradienttransform (S.toValue matrix)
     ! A.gradientunits "userSpaceOnUse"
     ! A.spreadmethod (S.toValue (spreadMethodStr (g^.lGradSpreadMethod)))
@@ -117,8 +117,6 @@ renderLinearGradient g i = S.lineargradient
     (a1, a2, b1, b2, c1, c2) = getMatrix (g^.lGradTrans)
     (x1', y1') = unp2 (g^.lGradStart)
     (x2', y2') = unp2 (g^.lGradEnd)
-    dx = (x2' - x1')
-    dy = (y2' - y1')
 
 renderRadialGradient :: RGradient -> Int -> S.Svg
 renderRadialGradient g i = S.radialgradient
