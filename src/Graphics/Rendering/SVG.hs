@@ -121,7 +121,7 @@ renderLinearGradient g i = S.lineargradient
 renderRadialGradient :: RGradient -> Int -> S.Svg
 renderRadialGradient g i = S.radialgradient
     ! A.id_ (S.toValue ("gradient" ++ (show i)))
-    ! A.r (S.toValue (g^.rGradRadius))
+    ! A.r (S.toValue (g^.rGradRadius1))
     ! A.cx (S.toValue cx')
     ! A.cy (S.toValue cy')
     ! A.fx (S.toValue fx')
@@ -129,12 +129,22 @@ renderRadialGradient g i = S.radialgradient
     ! A.gradienttransform (S.toValue matrix)
     ! A.gradientunits "userSpaceOnUse"
     ! A.spreadmethod (S.toValue (spreadMethodStr (g^.rGradSpreadMethod)))
-    $ do mconcat $ (map renderStop) (g^.rGradStops)
+    $ do mconcat $ map renderStop ss--(g^.rGradStops)
   where
     matrix = S.matrix a1 a2 b1 b2 c1 c2
     (a1, a2, b1, b2, c1, c2) = getMatrix (g^.rGradTrans)
-    (cx', cy') = unp2 (g^.rGradCenter)
-    (fx', fy') = unp2 (g^.rGradFocus)
+    (cx', cy') = unp2 (g^.rGradCenter1)
+    (fx', fy') = unp2 (g^.rGradCenter0)
+
+    -- Adjust the stops so that the gradient begings at the perimeter of
+    -- the inner circle (center0, radius0).
+    r0 = g^.rGradRadius0
+    r1 = g^.rGradRadius1
+    stopFracs = r0 / r1 : map (\s -> (r0 + (s^.stopFraction) * (r1-r0)) / r1) (g^.rGradStops)
+    gradStops = case g^.rGradStops of
+      []       -> []
+      xs@(x:_) -> x : xs
+    ss = zipWith (\gs sf -> gs & stopFraction .~ sf ) gradStops stopFracs
 
 -- Create a defs element to contain the gradient so that it can be used as
 -- an attribute value for fill.
