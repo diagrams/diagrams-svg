@@ -6,7 +6,7 @@
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Diagrams.Backend.SVG.CmdLine
--- Copyright   :  (c) 2011 Diagrams team (see LICENSE)
+-- Copyright   :  (c) 2013 Diagrams team (see LICENSE)
 -- License     :  BSD-style (see LICENSE)
 -- Maintainer  :  diagrams-discuss@googlegroups.com
 --
@@ -19,13 +19,25 @@
 -- * 'multiMain' is like 'defaultMain' but allows for a list of
 --   diagrams from which the user can choose one to render.
 --
+-- * 'mainWith' is a generic form that does all of the above but with
+--   a slightly scarier type.  See "Diagrams.Backend.CmdLine".  This
+--   form can also take a function type that has a subtable final result
+--   (any of arguments to the above types) and 'Parseable' arguments.
+--
 -- If you want to generate diagrams programmatically---/i.e./ if you
 -- want to do anything more complex than what the below functions
 -- provide---you have several options.
 --
--- * A simple but somewhat inflexible approach is to wrap up
---   'defaultMain' (or 'multiMain') in a call to
---   'System.Environment.withArgs'.
+-- * Use a function with 'mainWith'.  This may require making
+--   'Parseable' instances for custom argument types.
+--
+-- * Make a new 'Mainable' instance.  This may require a newtype
+--   wrapper on your diagram type to avoid the existing instances.
+--   This gives you more control over argument parsing, intervening
+--   steps, and diagram creation.
+--
+-- * Build option records and pass them along with a diagram to 'mainRender'
+--   from "Diagrams.Backend.CmdLine".
 --
 -- * You can use 'Diagrams.Backend.SVG.renderSVG' to render a diagram
 --   to a file directly; see "Diagrams.Backend.SVG".
@@ -36,10 +48,20 @@
 -----------------------------------------------------------------------------
 
 module Diagrams.Backend.SVG.CmdLine
-       ( defaultMain
+       ( 
+         -- * General form of @main@
+
+         mainWith
+
+         -- * Supported forms of @main@
+
+       , defaultMain
        , multiMain
 
+         -- * Backend tokens
+
        , SVG
+       , B
        ) where
 
 import Diagrams.Prelude hiding (width, height, interval)
@@ -94,7 +116,33 @@ getModuleTime = getClockTime
 --   and so on, and renders @myDiagram@ with the specified options.
 --
 --   Pass @--help@ to the generated executable to see all available
---   options.
+--   options.  Currently it looks something like
+--
+-- @
+-- ./Program
+--
+-- Usage: ./Program [-w|--width WIDTH] [-h|--height HEIGHT] [-o|--output OUTPUT] [--loop] [-s|--src ARG] [-i|--interval INTERVAL]
+--   Command-line diagram generation.
+--
+-- Available options:
+--   -?,--help                Show this help text
+--   -w,--width WIDTH         Desired WIDTH of the output image (default 400)
+--   -h,--height HEIGHT       Desired HEIGHT of the output image (default 400)
+--   -o,--output OUTPUT       OUTPUT file
+--   -l,--loop                Run in a self-recompiling loop
+--   -s,--src ARG             Source file to watch
+--   -i,--interval INTERVAL   When running in a loop, check for changes every INTERVAL seconds.
+-- @
+--
+--   For example, a common scenario is
+--
+-- @
+-- $ ghc --make MyDiagram
+--
+--   # output image.svg with a width of 400pt (and auto-determined height)
+-- $ ./MyDiagram -o image.svg -w 400
+-- @
+
 defaultMain :: Diagram SVG R2 -> IO ()
 defaultMain = mainWith
 
@@ -127,14 +175,25 @@ chooseRender opts d =
            BS.writeFile (opts^.output) (renderSvg build)
        | otherwise -> putStrLn $ "Unknown file type: " ++ last ps
 
-
 -- | @multiMain@ is like 'defaultMain', except instead of a single
 --   diagram it takes a list of diagrams paired with names as input.
---   The generated executable then takes an argument specifying the
---   name of the diagram that should be rendered.  This is a
---   convenient way to create an executable that can render many
---   different diagrams without modifying the source code in between
---   each one.
+--   The generated executable then takes a @--selection@ option
+--   specifying the name of the diagram that should be rendered.  The
+--   list of available diagrams may also be printed by passing the
+--   option @--list@.
+--
+--   Example usage:
+--
+-- @
+-- $ ghc --make MultiTest
+-- [1 of 1] Compiling Main             ( MultiTest.hs, MultiTest.o )
+-- Linking MultiTest ...
+-- $ ./MultiTest --list
+-- Available diagrams:
+--   foo bar
+-- $ ./MultiTest --selection bar -o Bar.eps -w 200
+-- @
+
 multiMain :: [(String, Diagram SVG R2)] -> IO ()
 multiMain = mainWith
 
