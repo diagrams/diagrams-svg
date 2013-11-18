@@ -164,9 +164,11 @@ renderRTree (Node (RPrim accTr p) _) = (render SVG (transform accTr p))
 renderRTree (Node (RStyle sty) ts)
   = R $ do
       let R r = foldMap renderRTree ts
+      ignoreFill .= False
       svg <- r
+      ign <- use ignoreFill
       clippedSvg <- renderSvgWithClipping svg sty
-      return $ (S.g ! R.renderStyles False sty) clippedSvg
+      return $ (S.g ! R.renderStyles ign sty) clippedSvg
 renderRTree (Node (RFrozenTr tr) ts)
   = R $ do
       let R r = foldMap renderRTree ts
