@@ -44,12 +44,16 @@
 --
 -- * A more flexible approach is to directly call 'renderDia'; see
 --   "Diagrams.Backend.SVG" for more information.
-
+--
+-- For a tutorial on command-line diagram creation see
+-- <http://projects.haskell.org/diagrams/doc/cmdline.html>.
+-- 
 -----------------------------------------------------------------------------
 
 module Diagrams.Backend.SVG.CmdLine
        ( 
          -- * General form of @main@
+         -- $mainwith
 
          mainWith
 
@@ -103,6 +107,28 @@ getModuleTime :: IO  ModuleTime
 getModuleTime = getClockTime
 #endif
 #endif
+
+-- $mainwith
+-- The 'mainWith' method unifies all of the other forms of @main@ and is
+-- now the recommended way to build a command-line diagrams program.  It
+-- works as a direct replacement for 'defaultMain' or 'multiMain' as well
+-- as allowing more general arguments.  For example, given a function that
+-- produces a diagram when given an @Int@ and a @'Colour' Double@, 'mainWith'
+-- will produce a program that looks for additional number and color arguments.
+--
+-- > ... definitions ...
+-- > f :: Int -> Colour Double -> Diagram SVG R2
+-- > f i c = ...
+-- >
+-- > main = mainWith f
+--
+-- We can run this program as follows:
+--
+-- > $ ghc --make MyDiagram
+-- > 
+-- > # output image.svg built by `f 20 red`
+-- > $ ./MyDiagram -o image.svg -w 200 20 red
+
 
 -- | This is the simplest way to render diagrams, and is intended to
 --   be used like so:
