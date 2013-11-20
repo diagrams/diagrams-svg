@@ -28,7 +28,7 @@ import Diagrams.Backend.SVG.CmdLine
 
 b1 = square 20 # lw 0.002
 
-main = defaultMain (pad 1.1 b1)
+main = mainWith (pad 1.1 b1)
 ```
 
 Save this to file named `Square.hs` and compile this program:
@@ -42,16 +42,19 @@ executable with the `--help` option to find out more about how to call it.
 
 ```
 $ ./Square --help
-Command-line diagram generation.
+./Square
 
-Square [OPTIONS]
+Usage: ./Square [-w|--width WIDTH] [-h|--height HEIGHT] [-o|--output OUTPUT] [--loop] [-s|--src ARG] [-i|--interval INTERVAL]
+  Command-line diagram generation.
 
-Common flags:
-  -w --width=INT    Desired width of the output image
-  -h --height=INT   Desired height of the output image
-  -o --output=FILE  Output file
-  -? --help         Display help message
-  -V --version      Print version information
+Available options:
+  -?,--help                Show this help text
+  -w,--width WIDTH         Desired WIDTH of the output image
+  -h,--height HEIGHT       Desired HEIGHT of the output image
+  -o,--output OUTPUT       OUTPUT file
+  -l,--loop                Run in a self-recompiling loop
+  -s,--src ARG             Source file to watch
+  -i,--interval INTERVAL   When running in a loop, check for changes every INTERVAL seconds.
 ```
 
 You _must_ pass an output file name with a `.svg` extension to generate the SVG
