@@ -1,3 +1,11 @@
+1.0 (24 November 2013)
+----------------------
+
+    - Re-implement via new backend `RTree` interface, leading to
+      smaller output files.
+    - Use new command-line interface from `diagrams-lib`.
+    - Export `B` as an alias for `SVG` token
+
 0.8.0.2 (26 October 2013)
 -------------------------
 
