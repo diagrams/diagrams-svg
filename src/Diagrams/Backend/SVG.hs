@@ -119,12 +119,12 @@ data SVG = SVG
 
 type B = SVG
 
-data SvgRenderState = SvgRenderState { _clipPathId :: Int, _ignoreFill :: Bool }
+data SvgRenderState = SvgRenderState { _clipPathId :: Int }
 
 makeLenses ''SvgRenderState
 
 initialSvgRenderState :: SvgRenderState
-initialSvgRenderState = SvgRenderState 0 False
+initialSvgRenderState = SvgRenderState 0
 
 -- | Monad to keep track of state when rendering an SVG.
 --   Currently just keeps a monotonically increasing counter
@@ -164,11 +164,9 @@ renderRTree (Node (RPrim accTr p) _) = (render SVG (transform accTr p))
 renderRTree (Node (RStyle sty) ts)
   = R $ do
       let R r = foldMap renderRTree ts
-      ignoreFill .= False
       svg <- r
-      ign <- use ignoreFill
       clippedSvg <- renderSvgWithClipping svg sty
-      return $ (S.g ! R.renderStyles ign sty) clippedSvg
+      return $ (S.g ! R.renderStyles sty) clippedSvg
 renderRTree (Node (RFrozenTr tr) ts)
   = R $ do
       let R r = foldMap renderRTree ts
@@ -246,9 +244,6 @@ instance Renderable (Trail R2) SVG where
 
 instance Renderable (Path R2) SVG where
   render _ p = R $ do
-    -- Don't fill lines.  diagrams-lib separates out lines and loops
-    -- for us, so if we see one line, they are all lines.
-    when (any (isLine . unLoc) . op Path $ p) $ (ignoreFill .= True)
     return (R.renderPath p)
 
 instance Renderable Text SVG where
