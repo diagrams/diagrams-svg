@@ -292,19 +292,6 @@ instance Hashable (MarkupM a) where
     m
   hashWithSalt s Empty = s `hashWithSalt` (8 :: Int)
 
-instance Show (Options SVG R2) where
-  show opts = concat $
-            [ "SVGOptions { "
-            , "size = "
-            , show $ opts^.size
-            , " , "
-            , "svgDefinitions = "
-            , case opts^.svgDefinitions of
-                Nothing -> "Nothing"
-                Just svg -> "Just " ++ StringSvg.renderSvg svg
-            , " }"
-            ]
-
 instance Renderable (Segment Closed R2) SVG where
   render c = render c . (fromSegments :: [Segment Closed R2] -> Path R2) . (:[])
 
