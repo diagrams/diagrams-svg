@@ -8,6 +8,8 @@
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE TypeSynonymInstances  #-}
 
+{-# OPTIONS_GHC -fno-warn-orphans  #-}
+
 ----------------------------------------------------------------------------
 -- |
 -- Module      :  Diagrams.Backend.SVG
@@ -85,41 +87,39 @@ module Diagrams.Backend.SVG
   ) where
 
 -- for testing
-import           Data.Foldable                  (foldMap)
+import           Data.Foldable                (foldMap)
 import           Data.Tree
 import           Diagrams.Core.Compile
 
 -- from base
 import           Control.Monad.State
 import           Data.Typeable
-import           GHC.Generics                   (Generic)
+import           GHC.Generics                 (Generic)
 
 -- from hashable
-import           Data.Hashable                  (Hashable (..))
+import           Data.Hashable                (Hashable (..))
 
 -- from bytestring
-import qualified Data.ByteString.Lazy           as BS
+import qualified Data.ByteString.Lazy         as BS
 
 -- from lens
-import           Control.Lens                   hiding (transform, ( # ))
+import           Control.Lens                 hiding (transform, ( # ))
 
 -- from diagrams-lib
-import           Diagrams.Prelude               hiding (view)
-import           Diagrams.TwoD.Adjust           (adjustDia2D)
-import           Diagrams.TwoD.Path             (Clip (Clip))
+import           Diagrams.Prelude             hiding (view)
+import           Diagrams.TwoD.Adjust         (adjustDia2D)
+import           Diagrams.TwoD.Path           (Clip (Clip))
 import           Diagrams.TwoD.Text
 
 -- from blaze-svg
-import           Text.Blaze.Internal            (ChoiceString (..),
-                                                 MarkupM (..),
-                                                 StaticString (..))
-import qualified Text.Blaze.Svg.Renderer.String as StringSvg
-import           Text.Blaze.Svg.Renderer.Utf8   (renderSvg)
-import           Text.Blaze.Svg11               ((!))
-import qualified Text.Blaze.Svg11               as S
+import           Text.Blaze.Internal          (ChoiceString (..), MarkupM (..),
+                                               StaticString (..))
+import           Text.Blaze.Svg.Renderer.Utf8 (renderSvg)
+import           Text.Blaze.Svg11             ((!))
+import qualified Text.Blaze.Svg11             as S
 
 -- from this package
-import qualified Graphics.Rendering.SVG         as R
+import qualified Graphics.Rendering.SVG       as R
 
 -- | @SVG@ is simply a token used to identify this rendering backend
 --   (to aid type inference).
@@ -238,8 +238,8 @@ svgDefinitions = lens getSVGDefs setSVGDefs
 instance Hashable (Options SVG R2)
 
 instance Hashable StaticString where
-  hashWithSalt s (StaticString diff bs txt)
-    = s `hashWithSalt` diff [] `hashWithSalt` bs `hashWithSalt` txt
+  hashWithSalt s (StaticString dl bs txt)
+    = s `hashWithSalt` dl [] `hashWithSalt` bs `hashWithSalt` txt
 
 deriving instance Generic ChoiceString
 
@@ -250,6 +250,7 @@ instance Hashable (MarkupM a) where
     s          `hashWithSalt`
     (0 :: Int) `hashWithSalt`
     w          `hashWithSalt`
+    x          `hashWithSalt`
     y          `hashWithSalt`
     z
   hashWithSalt s (CustomParent cs m) =
