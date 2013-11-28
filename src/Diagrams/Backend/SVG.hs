@@ -1,7 +1,9 @@
 {-# LANGUAGE DeriveDataTypeable    #-}
+{-# LANGUAGE DeriveGeneric         #-}
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE StandaloneDeriving    #-}
 {-# LANGUAGE TemplateHaskell       #-}
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE TypeSynonymInstances  #-}
@@ -83,34 +85,41 @@ module Diagrams.Backend.SVG
   ) where
 
 -- for testing
-import           Diagrams.Core.Compile
+import           Data.Foldable                  (foldMap)
 import           Data.Tree
-import           Data.Foldable (foldMap)
+import           Diagrams.Core.Compile
 
 -- from base
 import           Control.Monad.State
 import           Data.Typeable
+import           GHC.Generics                   (Generic)
+
+-- from hashable
+import           Data.Hashable                  (Hashable (..))
 
 -- from bytestring
-import qualified Data.ByteString.Lazy         as BS
+import qualified Data.ByteString.Lazy           as BS
 
 -- from lens
-import           Control.Lens                 hiding ((#), transform)
+import           Control.Lens                   hiding (transform, ( # ))
 
 -- from diagrams-lib
-import           Diagrams.Prelude             hiding (view)
-import           Diagrams.TwoD.Adjust         (adjustDia2D)
-import           Diagrams.TwoD.Path           (Clip(Clip))
+import           Diagrams.Prelude               hiding (view)
+import           Diagrams.TwoD.Adjust           (adjustDia2D)
+import           Diagrams.TwoD.Path             (Clip (Clip))
 import           Diagrams.TwoD.Text
 
 -- from blaze-svg
-import           Text.Blaze.Svg.Renderer.Utf8 (renderSvg)
-import           Text.Blaze.Svg11             ((!))
-import qualified Text.Blaze.Svg11             as S
+import           Text.Blaze.Internal            (ChoiceString (..),
+                                                 MarkupM (..),
+                                                 StaticString (..))
 import qualified Text.Blaze.Svg.Renderer.String as StringSvg
+import           Text.Blaze.Svg.Renderer.Utf8   (renderSvg)
+import           Text.Blaze.Svg11               ((!))
+import qualified Text.Blaze.Svg11               as S
 
 -- from this package
-import qualified Graphics.Rendering.SVG       as R
+import qualified Graphics.Rendering.SVG         as R
 
 -- | @SVG@ is simply a token used to identify this rendering backend
 --   (to aid type inference).
@@ -185,6 +194,7 @@ instance Backend SVG R2 where
                           -- ^ Custom definitions that will be added to the @defs@
                           --   section of the output.
                         }
+    deriving (Generic)
 
   doRender _ opts (R r) =
     evalState svgOutput initialSvgRenderState
@@ -224,6 +234,63 @@ setSVGDefs o d = o {_svgDefinitions = d}
 
 svgDefinitions :: Lens' (Options SVG R2) (Maybe S.Svg)
 svgDefinitions = lens getSVGDefs setSVGDefs
+
+instance Hashable (Options SVG R2)
+
+instance Hashable StaticString where
+  hashWithSalt s (StaticString diff bs txt)
+    = s `hashWithSalt` diff [] `hashWithSalt` bs `hashWithSalt` txt
+
+deriving instance Generic ChoiceString
+
+instance Hashable ChoiceString
+
+instance Hashable (MarkupM a) where
+  hashWithSalt s (Parent w x y z) =
+    s          `hashWithSalt`
+    (0 :: Int) `hashWithSalt`
+    w          `hashWithSalt`
+    y          `hashWithSalt`
+    z
+  hashWithSalt s (CustomParent cs m) =
+    s          `hashWithSalt`
+    (1 :: Int) `hashWithSalt`
+    cs         `hashWithSalt`
+    m
+  hashWithSalt s (Leaf s1 s2 s3) =
+    s          `hashWithSalt`
+    (2 :: Int) `hashWithSalt`
+    s1         `hashWithSalt`
+    s2         `hashWithSalt`
+    s3
+  hashWithSalt s (CustomLeaf cs b) =
+    s          `hashWithSalt`
+    (3 :: Int) `hashWithSalt`
+    cs         `hashWithSalt`
+    b
+  hashWithSalt s (Content cs) =
+    s          `hashWithSalt`
+    (4 :: Int) `hashWithSalt`
+    cs
+  hashWithSalt s (Append m1 m2) =
+    s          `hashWithSalt`
+    (5 :: Int) `hashWithSalt`
+    m1         `hashWithSalt`
+    m2
+  hashWithSalt s (AddAttribute s1 s2 s3 m) =
+    s          `hashWithSalt`
+    (6 :: Int) `hashWithSalt`
+    s1         `hashWithSalt`
+    s2         `hashWithSalt`
+    s3         `hashWithSalt`
+    m
+  hashWithSalt s (AddCustomAttribute s1 s2 m) =
+    s          `hashWithSalt`
+    (7 :: Int) `hashWithSalt`
+    s1         `hashWithSalt`
+    s2         `hashWithSalt`
+    m
+  hashWithSalt s Empty = s `hashWithSalt` (8 :: Int)
 
 instance Show (Options SVG R2) where
   show opts = concat $
