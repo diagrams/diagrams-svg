@@ -155,10 +155,8 @@ renderSvgWithClipping svg s =
       id_ <- use clipPathId
       R.renderClip p id_ <$> renderClips ps
 
--- | Convert an RTree to a renderable object. The unfrozen transforms have
+-- | Convert an RTree to a renderable object. The transforms have
 --   been accumulated and are in the leaves of the RTree along with the Prims.
---   Frozen transformations have their own nodes and the styles have been
---   transfomed during the contruction of the RTree.
 renderRTree :: RTree SVG R2 a -> Render SVG R2
 renderRTree (Node (RPrim accTr p) _) = (render SVG (transform accTr p))
 renderRTree (Node (RStyle sty) ts)
@@ -169,11 +167,6 @@ renderRTree (Node (RStyle sty) ts)
       ign <- use ignoreFill
       clippedSvg <- renderSvgWithClipping svg sty
       return $ (S.g ! R.renderStyles ign sty) clippedSvg
-renderRTree (Node (RFrozenTr tr) ts)
-  = R $ do
-      let R r = foldMap renderRTree ts
-      svg <- r
-      return $ R.renderTransform tr svg
 renderRTree (Node _ ts) = foldMap renderRTree ts
 
 instance Backend SVG R2 where

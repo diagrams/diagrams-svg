@@ -22,7 +22,6 @@ module Graphics.Rendering.SVG
     , renderClip
     , renderText
     , renderStyles
-    , renderTransform
     , renderMiterLimit
     , getMatrix
     ) where
@@ -115,14 +114,6 @@ getMatrix t = (a1,a2,b1,b2,c1,c2)
   (unr2 -> (a1,a2)) = apply t unitX
   (unr2 -> (b1,b2)) = apply t unitY
   (unr2 -> (c1,c2)) = transl t
-
--- | Apply a transformation to some already-rendered SVG.
-renderTransform :: Transformation R2 -> S.Svg -> S.Svg
-renderTransform t svg =
-  if i then svg
-  else S.g svg ! (A.transform $ S.matrix a1 a2 b1 b2 c1 c2)
-    where (a1,a2,b1,b2,c1,c2) = getMatrix t
-          i = (a1,a2,b1,b2,c1,c2) == (1,0,0,1,0,0)
 
 renderStyles :: Bool -> Style v -> S.Attribute
 renderStyles ignoreFill s = mconcat . map ($ s) $
