@@ -63,10 +63,17 @@ renderPath trs  = S.path ! A.d makePath
   makePath = mkPath $ mapM_ renderTrail (op Path trs)
 
 renderTrail :: Located (Trail R2) -> S.Path
-renderTrail (viewLoc -> (unp2 -> (x,y), t)) = flip withLine t $ \l -> do
-  m x y
-  mapM_ renderSeg (lineSegments l)
-  if isLoop t then z else return ()
+renderTrail (viewLoc -> (unp2 -> (x,y), t)) = m x y >> withTrail renderLine renderLoop t
+  where
+    renderLine = mapM_ renderSeg . lineSegments
+    renderLoop lp = do
+      case loopSegments lp of
+        -- let 'z' handle the last segment if it is linear
+        (segs, Linear _) -> mapM_ renderSeg segs
+
+        -- otherwise we have to emit it explicitly
+        _ -> mapM_ renderSeg (lineSegments . cutLoop $ lp)
+      z
 
 renderSeg :: Segment Closed R2 -> S.Path
 renderSeg (Linear (OffsetClosed (unr2 -> (x,0)))) = hr x
