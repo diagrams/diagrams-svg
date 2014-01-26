@@ -1,3 +1,15 @@
+1.0.1 (26 January 2014)
+-----------------------
+
+    - Add `Hashable (Options SVG R2)` instance
+    - Remove `Show (Options SVG R2)` instance
+
+    According to the PVP, these changes should require a major version
+    bump.  However, a major version bump would be quite annoying and I
+    don't expect these instance changes to affect anyone (the changes
+    were made for internal reasons).  Please yell if it does affect
+    you.
+
 1.0 (24 November 2013)
 ----------------------
 
