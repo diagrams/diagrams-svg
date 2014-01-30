@@ -1,3 +1,9 @@
+1.0.1.1 (30 January 2014)
+-------------------------
+
+    - Work around a bug in GHC 7.4.2, which chokes when deriving Generic
+      instances for associated data types.
+
 1.0.1 (26 January 2014)
 -----------------------
 
