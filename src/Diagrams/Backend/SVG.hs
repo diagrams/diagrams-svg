@@ -235,7 +235,7 @@ svgDefinitions :: Lens' (Options SVG R2) (Maybe S.Svg)
 svgDefinitions = lens getSVGDefs setSVGDefs
 
 instance Hashable (Options SVG R2) where
-  hashWithSalt s (Options sz defs) =
+  hashWithSalt s (SVGOptions sz defs) =
     s `hashWithSalt` sz `hashWithSalt` defs
 
 instance Hashable StaticString where
