@@ -194,7 +194,6 @@ instance Backend SVG R2 where
                           -- ^ Custom definitions that will be added to the @defs@
                           --   section of the output.
                         }
-    deriving (Generic)
 
   doRender _ opts (R r) =
     evalState svgOutput initialSvgRenderState
@@ -235,7 +234,9 @@ setSVGDefs o d = o {_svgDefinitions = d}
 svgDefinitions :: Lens' (Options SVG R2) (Maybe S.Svg)
 svgDefinitions = lens getSVGDefs setSVGDefs
 
-instance Hashable (Options SVG R2)
+instance Hashable (Options SVG R2) where
+  hashWithSalt s (Options sz defs) =
+    s `hashWithSalt` sz `hashWithSalt` defs
 
 instance Hashable StaticString where
   hashWithSalt s (StaticString dl bs txt)
