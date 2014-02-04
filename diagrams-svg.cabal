@@ -53,7 +53,7 @@ Library
                      , diagrams-lib  >= 1.0   && < 1.1
                      , monoid-extras >= 0.3   && < 0.4
                      , blaze-svg     >= 0.3.3
-                     , blaze-markup  >= 0.5   && < 0.6
+                     , blaze-markup  >= 0.5   && < 0.7
                      , split         >= 0.1.2 && < 0.3
                      , time
                      , containers >= 0.3 && < 0.6
