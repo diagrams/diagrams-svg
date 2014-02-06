@@ -25,3 +25,5 @@ cabal-dev
 dist_*
 history
 TAGS
+.cabal-sandbox
+cabal.sandbox.config
