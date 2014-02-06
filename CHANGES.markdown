@@ -1,3 +1,8 @@
+1.0.1.3 (6 February 2014)
+-------------------------
+
+    - require diagrams-lib >= 1.0.1 (for Hashable SizeSpec2D instance)
+
 1.0.1.2 (4 February 2014)
 -------------------------
 
