@@ -193,11 +193,7 @@ instance Backend SVG R2 where
    where
     svgOutput = do
       svg <- r
-      let (w,h) = case opts^.size of
-                    Width w'   -> (w',w')
-                    Height h'  -> (h',h')
-                    Dims w' h' -> (w',h')
-                    Absolute   -> (100,100)
+      let (w,h) = sizePair (opts^.size)
       return $ R.svgHeader w h (opts^.svgDefinitions) $ svg
 
   adjustDia c opts d = adjustDia2D _size setSvgSize c opts
@@ -209,11 +205,13 @@ instance Backend SVG R2 where
 
   renderData opts = renderRTree . toOutput w h . toRTree
     where
-      (w, h) = case opts^.size of
-                 Width w'   -> (w',w')
-                 Height h'  -> (h',h')
-                 Dims w' h' -> (w',h')
-                 Absolute   -> (100,100)
+      (w, h) = sizePair (opts^.size)
+
+sizePair :: SizeSpec2D -> (Double, Double)
+sizePair (Width w')   = (w',w')
+sizePair (Height h')  = (h',h')
+sizePair (Dims w' h') = (w',h')
+sizePair Absolute     = (100,100)
 
 getSize :: Options SVG R2 -> SizeSpec2D
 getSize (SVGOptions {_size = s}) = s
