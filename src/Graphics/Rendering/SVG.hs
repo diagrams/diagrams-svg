@@ -175,7 +175,9 @@ renderFillRule s = renderAttr A.fillRule fillRule_
 
 renderLineWidth :: Style v -> S.Attribute
 renderLineWidth s = renderAttr A.strokeWidth lineWidth_
- where lineWidth_ = getLineWidth <$> getAttr s
+ where lineWidth_ = case getLineWidth <$> getAttr s of
+                      Just (Output w) -> Just w
+                      _        -> Nothing
 
 renderLineCap :: Style v -> S.Attribute
 renderLineCap s = renderAttr A.strokeLinecap lineCap_

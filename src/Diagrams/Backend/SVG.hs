@@ -207,7 +207,13 @@ instance Backend SVG R2 where
                          )
     where setSvgSize sz o = o { _size = sz }
 
-  renderData _ = renderRTree . toRTree
+  renderData opts = renderRTree . toOutput w h . toRTree
+    where
+      (w, h) = case opts^.size of
+                 Width w'   -> (w',w')
+                 Height h'  -> (h',h')
+                 Dims w' h' -> (w',h')
+                 Absolute   -> (100,100)
 
 getSize :: Options SVG R2 -> SizeSpec2D
 getSize (SVGOptions {_size = s}) = s
