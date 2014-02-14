@@ -165,20 +165,6 @@ renderSvgWithClipping svg s =
       id_ <- use clipPathId
       R.renderClip p id_ <$> renderClips ps
 
--- | Convert an RTree to a renderable object. The transforms have
---   been accumulated and are in the leaves of the RTree along with the Prims.
-renderRTree :: RTree SVG R2 a -> Render SVG R2
-renderRTree (Node (RPrim accTr p) _) = (render SVG (transform accTr p))
-renderRTree (Node (RStyle sty) ts)
-  = R $ do
-      let R r = foldMap renderRTree ts
-      ignoreFill .= False
-      svg <- r
-      ign <- use ignoreFill
-      clippedSvg <- renderSvgWithClipping svg sty
-      return $ (S.g ! R.renderStyles ign sty) clippedSvg
-renderRTree (Node _ ts) = foldMap renderRTree ts
-
 instance Backend SVG R2 where
   data Render  SVG R2 = R SvgRenderM
   type Result  SVG R2 = S.Svg
@@ -204,13 +190,18 @@ instance Backend SVG R2 where
                          )
     where setSvgSize sz o = o { _size = sz }
 
-  renderData opts d d' = renderRTree . toOutput (opts^.size) s . toRTree $ d'
-    where
-      s = sqrt (area' / area)
-      area = dw * dh
-      area' = dw' * dh'
-      (dw, dh) = size2D d
-      (dw', dh') = size2D d'
+  renderRTree (Node (RPrim accTr p) _) = (render SVG (transform accTr p))
+  renderRTree (Node (RStyle sty) ts)
+    = R $ do
+        let R r = foldMap renderRTree ts
+        ignoreFill .= False
+        svg <- r
+        ign <- use ignoreFill
+        clippedSvg <- renderSvgWithClipping svg sty
+        return $ (S.g ! R.renderStyles ign sty) clippedSvg
+  renderRTree (Node _ ts) = foldMap renderRTree ts
+
+  renderData opts s = renderRTree . toOutput (opts^.size) s . toRTree
 
 getSize :: Options SVG R2 -> SizeSpec2D
 getSize (SVGOptions {_size = s}) = s
