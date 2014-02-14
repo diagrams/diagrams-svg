@@ -109,6 +109,7 @@ import           Control.Lens                 hiding (transform, ( # ))
 import           Diagrams.Prelude             hiding (view)
 import           Diagrams.TwoD.Adjust         (adjustDia2D)
 import           Diagrams.TwoD.Path           (Clip (Clip))
+import           Diagrams.TwoD.Size           (sizePair)
 import           Diagrams.TwoD.Text
 
 -- from blaze-svg
@@ -203,15 +204,13 @@ instance Backend SVG R2 where
                          )
     where setSvgSize sz o = o { _size = sz }
 
-  renderData opts = renderRTree . toOutput w h . toRTree
+  renderData opts d d' = renderRTree . toOutput (opts^.size) s . toRTree $ d'
     where
-      (w, h) = sizePair (opts^.size)
-
-sizePair :: SizeSpec2D -> (Double, Double)
-sizePair (Width w')   = (w',w')
-sizePair (Height h')  = (h',h')
-sizePair (Dims w' h') = (w',h')
-sizePair Absolute     = (100,100)
+      s = sqrt (area' / area)
+      area = dw * dh
+      area' = dw' * dh'
+      (dw, dh) = size2D d
+      (dw', dh') = size2D d'
 
 getSize :: Options SVG R2 -> SizeSpec2D
 getSize (SVGOptions {_size = s}) = s
