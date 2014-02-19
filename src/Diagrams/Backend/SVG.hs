@@ -190,7 +190,7 @@ instance Backend SVG R2 where
                          )
     where setSvgSize sz o = o { _size = sz }
 
-  renderRTree (Node (RPrim accTr p) _) = (render SVG (transform accTr p))
+  renderRTree (Node (RPrim p) _) = (render SVG p)
   renderRTree (Node (RStyle sty) ts)
     = R $ do
         let R r = foldMap renderRTree ts
