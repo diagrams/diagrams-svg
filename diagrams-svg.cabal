@@ -49,7 +49,7 @@ Library
                      , bytestring    >= 0.9   && < 1.0
                      , vector-space  >= 0.7   && < 0.9
                      , colour
-                     , diagrams-core >= 1.0   && < 1.1
+                     , diagrams-core >= 1.0   && < 1.2
                      , diagrams-lib  >= 1.0.1 && < 1.2
                      , monoid-extras >= 0.3   && < 0.4
                      , blaze-svg     >= 0.3.3
