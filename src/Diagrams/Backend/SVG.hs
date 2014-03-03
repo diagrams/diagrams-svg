@@ -128,12 +128,12 @@ data SVG = SVG
 
 type B = SVG
 
-data SvgRenderState = SvgRenderState { _clipPathId :: Int, _ignoreFill :: Bool }
+data SvgRenderState = SvgRenderState { _clipPathId :: Int }
 
 makeLenses ''SvgRenderState
 
 initialSvgRenderState :: SvgRenderState
-initialSvgRenderState = SvgRenderState 0 False
+initialSvgRenderState = SvgRenderState 0
 
 -- | Monad to keep track of state when rendering an SVG.
 --   Currently just keeps a monotonically increasing counter
@@ -173,11 +173,9 @@ renderRTree (Node (RPrim accTr p) _) = (render SVG (transform accTr p))
 renderRTree (Node (RStyle sty) ts)
   = R $ do
       let R r = foldMap renderRTree ts
-      ignoreFill .= False
       svg <- r
-      ign <- use ignoreFill
       clippedSvg <- renderSvgWithClipping svg sty
-      return $ (S.g ! R.renderStyles ign sty) clippedSvg
+      return $ (S.g ! R.renderStyles sty) clippedSvg
 renderRTree (Node (RFrozenTr tr) ts)
   = R $ do
       let R r = foldMap renderRTree ts
@@ -207,14 +205,14 @@ instance Backend SVG R2 where
                     Absolute   -> (100,100)
       return $ R.svgHeader w h (opts^.svgDefinitions) $ svg
 
-  adjustDia c opts d = adjustDia2D _size setSvgSize c opts
-                         (d # reflectY
-                            # recommendFillColor
-                                (transparent :: AlphaColour Double)
-                         )
+  adjustDia c opts d = adjustDia2D _size setSvgSize c opts (d # reflectY)
     where setSvgSize sz o = o { _size = sz }
 
-  renderData _ = renderRTree . toRTree
+  renderData _ = renderRTree
+               . Node (RStyle (mempty # recommendFillColor (transparent :: AlphaColour Double)))
+               . (:[])
+               . splitFills
+               . toRTree
 
 getSize :: Options SVG R2 -> SizeSpec2D
 getSize (SVGOptions {_size = s}) = s
@@ -301,11 +299,7 @@ instance Renderable (Trail R2) SVG where
   render c = render c . pathFromTrail
 
 instance Renderable (Path R2) SVG where
-  render _ p = R $ do
-    -- Don't fill lines.  diagrams-lib separates out lines and loops
-    -- for us, so if we see one line, they are all lines.
-    when (any (isLine . unLoc) . op Path $ p) $ (ignoreFill .= True)
-    return (R.renderPath p)
+  render _ = R . return . R.renderPath
 
 instance Renderable Text SVG where
   render _ = R . return . R.renderText
