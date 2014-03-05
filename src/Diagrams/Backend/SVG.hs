@@ -86,6 +86,7 @@ module Diagrams.Backend.SVG
   , renderSVG
   ) where
 
+
 -- for testing
 import           Data.Foldable                (foldMap)
 import           Data.Tree
@@ -117,6 +118,7 @@ import           Text.Blaze.Internal          (ChoiceString (..), MarkupM (..),
 import           Text.Blaze.Svg.Renderer.Utf8 (renderSvg)
 import           Text.Blaze.Svg11             ((!))
 import qualified Text.Blaze.Svg11             as S
+import           Text.Blaze.Svg11.Attributes  (xlinkHref)
 
 -- from this package
 import qualified Graphics.Rendering.SVG       as R
@@ -168,7 +170,12 @@ renderSvgWithClipping svg s =
 --   been accumulated and are in the leaves of the RTree along with the Prims.
 --   Frozen transformations have their own nodes and the styles have been
 --   transfomed during the contruction of the RTree.
-renderRTree :: RTree SVG R2 a -> Render SVG R2
+renderRTree :: RTree SVG R2 Annotation -> Render SVG R2
+renderRTree (Node (RAnnot (Href uri)) ts)
+  = R $ do
+      let R r =  foldMap renderRTree ts
+      svg <- r
+      return $ (S.a ! xlinkHref (S.toValue uri)) svg
 renderRTree (Node (RPrim accTr p) _) = (render SVG (transform accTr p))
 renderRTree (Node (RStyle sty) ts)
   = R $ do
