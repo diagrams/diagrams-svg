@@ -12,7 +12,7 @@ Stability:           Experimental
 Category:            Graphics
 Build-type:          Simple
 Cabal-version:       >=1.10
-Tested-with:         GHC == 7.4.2, GHC == 7.6.1
+Tested-with:         GHC == 7.4.2, GHC == 7.6.1, GHC == 7.8.1
 Description:         This package provides a modular backend for rendering
                      diagrams created with the diagrams EDSL to SVG
                      files.  It uses @blaze-svg@ to be a fast, native
