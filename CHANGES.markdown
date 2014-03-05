@@ -1,5 +1,9 @@
-1.0.1.4 (XXX)
--------------
+1.0.2 (XXX)
+-----------
+
+* **New features**
+
+    - Support for including hyperlinks.
 
 * **Dependency/version changes**
 
