@@ -86,7 +86,6 @@ module Diagrams.Backend.SVG
   , renderSVG
   ) where
 
-import qualified Debug.Trace as DB
 
 -- for testing
 import           Data.Foldable                (foldMap)
@@ -172,16 +171,11 @@ renderSvgWithClipping svg s =
 --   Frozen transformations have their own nodes and the styles have been
 --   transfomed during the contruction of the RTree.
 renderRTree :: RTree SVG R2 Annotation -> Render SVG R2
-
-renderRTree (Node (RAnnot (Href uri_tr)) ts)
+renderRTree (Node (RAnnot (Href uri)) ts)
   = R $ do
       let R r =  foldMap renderRTree ts
       svg <- r
-      let val = S.toValue uri
-          uri = DB.trace ("uri: " ++ show uri_tr) uri_tr
-      return $ (S.a ! xlinkHref val) svg
-      
-
+      return $ (S.a ! xlinkHref (S.toValue uri)) svg
 renderRTree (Node (RPrim accTr p) _) = (render SVG (transform accTr p))
 renderRTree (Node (RStyle sty) ts)
   = R $ do
