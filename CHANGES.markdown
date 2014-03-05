@@ -1,3 +1,25 @@
+1.0.1.4 (XXX)
+-------------
+
+* **Dependency/version changes**
+
+    - Allow `diagrams-core-1.1` and `diagrams-lib-1.1`
+    - Allow `lens-4.0`
+
+* **Bug fixes**
+
+
+    - Use `splitFills` to properly render certain diagrams with mixed
+      lines and filled loops.  Previously, in certain situations loops that should
+      have been filled were not.  ([#43](https://github.com/diagrams/diagrams-svg/issues/43))
+
+    - Don't emit last segment of a loop if it is linear.
+
+      See [diagrams-cairo#38](http://github.com/diagrams/diagrams-cairo/issues/38).  This wasn't actually causing any
+      observable problems in the SVG backend output, but this seems a
+      better/more robust way to do things in any case.
+
+
 1.0.1.3 (6 February 2014)
 -------------------------
 
