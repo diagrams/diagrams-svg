@@ -90,7 +90,6 @@ module Diagrams.Backend.SVG
 -- for testing
 import           Data.Foldable                (foldMap)
 import           Data.Tree
-import           Diagrams.Core.Compile
 
 -- from base
 import           Control.Monad.State
@@ -105,6 +104,10 @@ import qualified Data.ByteString.Lazy         as BS
 
 -- from lens
 import           Control.Lens                 hiding (transform, ( # ))
+
+-- from diagrams-core
+import           Diagrams.Core.Compile
+import           Diagrams.Core.Types          (Annotation (..))
 
 -- from diagrams-lib
 import           Diagrams.Prelude             hiding (view)
