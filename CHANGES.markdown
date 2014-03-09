@@ -1,5 +1,5 @@
-1.0.2 (XXX)
------------
+1.0.2 (8 March 2014)
+--------------------
 
 * **New features**
 
@@ -22,7 +22,6 @@
       See [diagrams-cairo#38](http://github.com/diagrams/diagrams-cairo/issues/38).  This wasn't actually causing any
       observable problems in the SVG backend output, but this seems a
       better/more robust way to do things in any case.
-
 
 1.0.1.3 (6 February 2014)
 -------------------------
