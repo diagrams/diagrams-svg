@@ -210,7 +210,9 @@ renderDashing s = (renderAttr A.strokeDasharray arr) `mappend`
 renderFontSize :: Style v -> S.Attribute
 renderFontSize s = renderAttr A.fontSize fontSize_
  where
-  fontSize_ = ((++ "em") . show . getFontSize) <$> getAttr s
+  fontSize_ = ((++ "em") . str . getFontSize) <$> getAttr s
+  str (Output w) = show w
+  str _ = "12"
 
 renderFontSlant :: Style v -> S.Attribute
 renderFontSlant s = renderAttr A.fontStyle fontSlant_

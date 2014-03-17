@@ -86,7 +86,6 @@ module Diagrams.Backend.SVG
   , renderSVG
   ) where
 
--- for testing
 import           Data.Foldable                (foldMap)
 import           Data.Tree
 import           Diagrams.Core.Compile
@@ -201,7 +200,7 @@ instance Backend SVG R2 where
         return $ (S.g ! R.renderStyles ign sty) clippedSvg
   renderRTree (Node _ ts) = foldMap renderRTree ts
 
-  renderData opts s = renderRTree . toOutput (opts^.size) s . toRTree
+  renderData opts s = renderRTree . toRTree (toOutput (opts^.size) s)
 
 getSize :: Options SVG R2 -> SizeSpec2D
 getSize (SVGOptions {_size = s}) = s
