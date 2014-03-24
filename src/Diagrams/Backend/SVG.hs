@@ -110,6 +110,7 @@ import           Diagrams.TwoD.Adjust         (adjustDia2D)
 import           Diagrams.TwoD.Path           (Clip (Clip))
 import           Diagrams.TwoD.Size           (sizePair)
 import           Diagrams.TwoD.Text
+import           Diagrams.TwoD.Transform      (avgScale)
 
 -- from blaze-svg
 import           Text.Blaze.Internal          (ChoiceString (..), MarkupM (..),
@@ -182,12 +183,11 @@ instance Backend SVG R2 where
       let (w,h) = sizePair (opts^.size)
       return $ R.svgHeader w h (opts^.svgDefinitions) $ svg
 
-  adjustDia c opts d = adjustDia2D _size setSvgSize c opts
+  adjustDia c opts d = adjustDia2D size c opts
                          (d # reflectY
                             # recommendFillColor
                                 (transparent :: AlphaColour Double)
                          )
-    where setSvgSize sz o = o { _size = sz }
 
   renderRTree (Node (RPrim p) _) = (render SVG p)
   renderRTree (Node (RStyle sty) ts)
@@ -200,7 +200,8 @@ instance Backend SVG R2 where
         return $ (S.g ! R.renderStyles ign sty) clippedSvg
   renderRTree (Node _ ts) = foldMap renderRTree ts
 
-  renderData opts s = renderRTree . toRTree (toOutput (opts^.size) s)
+  renderData _ opts t = renderRTree . toRTree (toOutput (opts^.size) s)
+    where s = avgScale t
 
 getSize :: Options SVG R2 -> SizeSpec2D
 getSize (SVGOptions {_size = s}) = s
