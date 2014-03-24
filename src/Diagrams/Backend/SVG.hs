@@ -86,9 +86,9 @@ module Diagrams.Backend.SVG
   , renderSVG
   ) where
 
+-- for testing
 import           Data.Foldable                (foldMap)
 import           Data.Tree
-import           Diagrams.Core.Compile
 
 -- from base
 import           Control.Monad.State
@@ -104,6 +104,10 @@ import qualified Data.ByteString.Lazy         as BS
 -- from lens
 import           Control.Lens                 hiding (transform, ( # ))
 
+-- from diagrams-core
+import           Diagrams.Core.Compile
+import           Diagrams.Core.Types          (Annotation (..))
+
 -- from diagrams-lib
 import           Diagrams.Prelude             hiding (view)
 import           Diagrams.TwoD.Adjust         (adjustDia2D)
@@ -118,6 +122,7 @@ import           Text.Blaze.Internal          (ChoiceString (..), MarkupM (..),
 import           Text.Blaze.Svg.Renderer.Utf8 (renderSvg)
 import           Text.Blaze.Svg11             ((!))
 import qualified Text.Blaze.Svg11             as S
+import           Text.Blaze.Svg11.Attributes  (xlinkHref)
 
 -- from this package
 import qualified Graphics.Rendering.SVG       as R
@@ -129,12 +134,12 @@ data SVG = SVG
 
 type B = SVG
 
-data SvgRenderState = SvgRenderState { _clipPathId :: Int, _ignoreFill :: Bool }
+data SvgRenderState = SvgRenderState { _clipPathId :: Int }
 
 makeLenses ''SvgRenderState
 
 initialSvgRenderState :: SvgRenderState
-initialSvgRenderState = SvgRenderState 0 False
+initialSvgRenderState = SvgRenderState 0
 
 -- | Monad to keep track of state when rendering an SVG.
 --   Currently just keeps a monotonically increasing counter
@@ -183,25 +188,27 @@ instance Backend SVG R2 where
       let (w,h) = sizePair (opts^.size)
       return $ R.svgHeader w h (opts^.svgDefinitions) $ svg
 
-  adjustDia c opts d = adjustDia2D size c opts
-                         (d # reflectY
-                            # recommendFillColor
-                                (transparent :: AlphaColour Double)
-                         )
+  adjustDia c opts d = adjustDia2D size c opts (d # reflectY)
 
-  renderRTree (Node (RPrim p) _) = (render SVG p)
+  renderRTree (Node (RAnnot (Href uri)) ts)
+    = R $ do
+        let R r =  foldMap renderRTree ts
+        svg <- r
+        return $ (S.a ! xlinkHref (S.toValue uri)) svg
+  renderRTree (Node (RPrim p) _) = render SVG p
   renderRTree (Node (RStyle sty) ts)
     = R $ do
         let R r = foldMap renderRTree ts
-        ignoreFill .= False
         svg <- r
-        ign <- use ignoreFill
         clippedSvg <- renderSvgWithClipping svg sty
-        return $ (S.g ! R.renderStyles ign sty) clippedSvg
+        return $ (S.g ! R.renderStyles sty) clippedSvg
   renderRTree (Node _ ts) = foldMap renderRTree ts
 
-  renderData _ opts t = renderRTree . toRTree (toOutput (opts^.size) s)
-    where s = avgScale t
+  renderData _ = renderRTree
+               . Node (RStyle (mempty # recommendFillColor (transparent :: AlphaColour Double)))
+               . (:[])
+               . splitFills
+               . toRTree
 
 getSize :: Options SVG R2 -> SizeSpec2D
 getSize (SVGOptions {_size = s}) = s
@@ -288,11 +295,7 @@ instance Renderable (Trail R2) SVG where
   render c = render c . pathFromTrail
 
 instance Renderable (Path R2) SVG where
-  render _ p = R $ do
-    -- Don't fill lines.  diagrams-lib separates out lines and loops
-    -- for us, so if we see one line, they are all lines.
-    when (any (isLine . unLoc) . op Path $ p) $ (ignoreFill .= True)
-    return (R.renderPath p)
+  render _ = R . return . R.renderPath
 
 instance Renderable Text SVG where
   render _ = R . return . R.renderText

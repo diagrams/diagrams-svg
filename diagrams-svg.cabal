@@ -1,5 +1,5 @@
 Name:                diagrams-svg
-Version:             1.0
+Version:             1.0.2.1
 Synopsis:            SVG backend for diagrams drawing EDSL.
 Homepage:            http://projects.haskell.org/diagrams/
 License:             BSD3
@@ -12,7 +12,7 @@ Stability:           Experimental
 Category:            Graphics
 Build-type:          Simple
 Cabal-version:       >=1.10
-Tested-with:         GHC == 7.4.2, GHC == 7.6.1
+Tested-with:         GHC == 7.4.2, GHC == 7.6.3, GHC == 7.8.1
 Description:         This package provides a modular backend for rendering
                      diagrams created with the diagrams EDSL to SVG
                      files.  It uses @blaze-svg@ to be a fast, native
@@ -49,15 +49,15 @@ Library
                      , bytestring    >= 0.9   && < 1.0
                      , vector-space  >= 0.7   && < 0.9
                      , colour
-                     , diagrams-core >= 1.0   && < 1.1
-                     , diagrams-lib  >= 1.0.1 && < 1.2
+                     , diagrams-core >= 1.1   && < 1.2
+                     , diagrams-lib  >= 1.1   && < 1.2
                      , monoid-extras >= 0.3   && < 0.4
                      , blaze-svg     >= 0.3.3
                      , blaze-markup  >= 0.5   && < 0.7
                      , split         >= 0.1.2 && < 0.3
                      , time
                      , containers >= 0.3 && < 0.6
-                     , lens >= 3.8 && < 4.1
+                     , lens >= 3.8 && < 4.2
                      , hashable >= 1.1 && < 1.3
   if impl(ghc < 7.6)
     build-depends:     ghc-prim

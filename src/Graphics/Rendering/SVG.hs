@@ -122,12 +122,10 @@ getMatrix t = (a1,a2,b1,b2,c1,c2)
   (unr2 -> (b1,b2)) = apply t unitY
   (unr2 -> (c1,c2)) = transl t
 
-renderStyles :: Bool -> Style v -> S.Attribute
-renderStyles ignoreFill s = mconcat . map ($ s) $
+renderStyles :: Style v -> S.Attribute
+renderStyles s = mconcat . map ($ s) $
   [ renderLineColor
-  , if ignoreFill
-      then const (renderAttr A.fillOpacity (Just (0 :: Double)))
-      else renderFillColor
+  , renderFillColor
   , renderLineWidth
   , renderLineCap
   , renderLineJoin
