@@ -114,7 +114,6 @@ import           Diagrams.TwoD.Adjust         (adjustDia2D)
 import           Diagrams.TwoD.Path           (Clip (Clip))
 import           Diagrams.TwoD.Size           (sizePair)
 import           Diagrams.TwoD.Text
-import           Diagrams.TwoD.Transform      (avgScale)
 
 -- from blaze-svg
 import           Text.Blaze.Internal          (ChoiceString (..), MarkupM (..),
@@ -190,25 +189,27 @@ instance Backend SVG R2 where
 
   adjustDia c opts d = adjustDia2D size c opts (d # reflectY)
 
-  renderRTree (Node (RAnnot (Href uri)) ts)
-    = R $ do
-        let R r =  foldMap renderRTree ts
-        svg <- r
-        return $ (S.a ! xlinkHref (S.toValue uri)) svg
-  renderRTree (Node (RPrim p) _) = render SVG p
-  renderRTree (Node (RStyle sty) ts)
-    = R $ do
-        let R r = foldMap renderRTree ts
-        svg <- r
-        clippedSvg <- renderSvgWithClipping svg sty
-        return $ (S.g ! R.renderStyles sty) clippedSvg
-  renderRTree (Node _ ts) = foldMap renderRTree ts
+  renderData _ t
+    = renderRTree
+    . Node (RStyle (mempty # recommendFillColor (transparent :: AlphaColour Double)))
+    . (:[])
+    . splitFills
+    . toRTree t
 
-  renderData _ = renderRTree
-               . Node (RStyle (mempty # recommendFillColor (transparent :: AlphaColour Double)))
-               . (:[])
-               . splitFills
-               . toRTree
+renderRTree :: RTree SVG R2 Annotation -> Render SVG R2
+renderRTree (Node (RAnnot (Href uri)) ts)
+  = R $ do
+      let R r =  foldMap renderRTree ts
+      svg <- r
+      return $ (S.a ! xlinkHref (S.toValue uri)) svg
+renderRTree (Node (RPrim p) _) = render SVG p
+renderRTree (Node (RStyle sty) ts)
+  = R $ do
+      let R r = foldMap renderRTree ts
+      svg <- r
+      clippedSvg <- renderSvgWithClipping svg sty
+      return $ (S.g ! R.renderStyles sty) clippedSvg
+renderRTree (Node _ ts) = foldMap renderRTree ts
 
 getSize :: Options SVG R2 -> SizeSpec2D
 getSize (SVGOptions {_size = s}) = s
