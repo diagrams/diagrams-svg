@@ -122,12 +122,10 @@ getMatrix t = (a1,a2,b1,b2,c1,c2)
   (unr2 -> (b1,b2)) = apply t unitY
   (unr2 -> (c1,c2)) = transl t
 
-renderStyles :: Bool -> Style v -> S.Attribute
-renderStyles ignoreFill s = mconcat . map ($ s) $
+renderStyles :: Style v -> S.Attribute
+renderStyles s = mconcat . map ($ s) $
   [ renderLineColor
-  , if ignoreFill
-      then const (renderAttr A.fillOpacity (Just (0 :: Double)))
-      else renderFillColor
+  , renderFillColor
   , renderLineWidth
   , renderLineCap
   , renderLineJoin
@@ -199,9 +197,10 @@ renderDashing :: Style v -> S.Attribute
 renderDashing s = (renderAttr A.strokeDasharray arr) `mappend`
                   (renderAttr A.strokeDashoffset dOffset)
  where
-  getDasharray  (Dashing a _) = a
+  getDasharray  (Dashing a  _) = [x | Output x <- a]
   getDashoffset :: Dashing -> Double
-  getDashoffset (Dashing _ o) = o
+  getDashoffset (Dashing _ (Output o)) = o
+  getDashoffset (Dashing _ _) = 0
   dashArrayToStr              = intercalate "," . map show
   dashing_                    = getDashing <$> getAttr s
   arr                         = (dashArrayToStr . getDasharray) <$> dashing_
