@@ -193,8 +193,6 @@ renderLineJoin s = renderAttr A.strokeLinejoin lineJoin_
         lineJoinToStr LineJoinRound = "round"
         lineJoinToStr LineJoinBevel = "bevel"
 
--- XXX We should probably wear the belt and suspenders and make sure a Measure
--- constructor other than Output did not slip by.
 renderDashing :: Style v -> S.Attribute
 renderDashing s = (renderAttr A.strokeDasharray arr) `mappend`
                   (renderAttr A.strokeDashoffset dOffset)
@@ -202,6 +200,7 @@ renderDashing s = (renderAttr A.strokeDasharray arr) `mappend`
   getDasharray  (Dashing a  _) = [x | Output x <- a]
   getDashoffset :: Dashing -> Double
   getDashoffset (Dashing _ (Output o)) = o
+  getDashoffset (Dashing _ _) = 0
   dashArrayToStr              = intercalate "," . map show
   dashing_                    = getDashing <$> getAttr s
   arr                         = (dashArrayToStr . getDasharray) <$> dashing_
