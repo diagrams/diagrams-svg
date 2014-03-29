@@ -197,19 +197,19 @@ instance Backend SVG R2 where
     . toRTree t
 
 renderRTree :: RTree SVG R2 Annotation -> Render SVG R2
-renderRTree (Node (RAnnot (Href uri)) ts)
+renderRTree (Node (RAnnot (Href uri)) rs)
   = R $ do
-      let R r =  foldMap renderRTree ts
+      let R r =  foldMap renderRTree rs
       svg <- r
       return $ (S.a ! xlinkHref (S.toValue uri)) svg
 renderRTree (Node (RPrim p) _) = render SVG p
-renderRTree (Node (RStyle sty) ts)
+renderRTree (Node (RStyle sty) rs)
   = R $ do
-      let R r = foldMap renderRTree ts
+      let R r = foldMap renderRTree rs
       svg <- r
       clippedSvg <- renderSvgWithClipping svg sty
       return $ (S.g ! R.renderStyles sty) clippedSvg
-renderRTree (Node _ ts) = foldMap renderRTree ts
+renderRTree (Node _ rs) = foldMap renderRTree rs
 
 getSize :: Options SVG R2 -> SizeSpec2D
 getSize (SVGOptions {_size = s}) = s
