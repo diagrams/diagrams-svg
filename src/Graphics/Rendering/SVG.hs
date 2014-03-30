@@ -175,7 +175,7 @@ renderLineWidth :: Style v -> S.Attribute
 renderLineWidth s = renderAttr A.strokeWidth lineWidth_
  where lineWidth_ = case getLineWidth <$> getAttr s of
                       Just (Output w) -> Just w
-                      _        -> Nothing
+                      _        -> Nothing -- should never be reached.
 
 renderLineCap :: Style v -> S.Attribute
 renderLineCap s = renderAttr A.strokeLinecap lineCap_
@@ -211,7 +211,7 @@ renderFontSize s = renderAttr A.fontSize fontSize_
  where
   fontSize_ = ((++ "em") . str . getFontSize) <$> getAttr s
   str (Output w) = show w
-  str _ = "12"
+  str _ = "1" -- should never be reached.
 
 renderFontSlant :: Style v -> S.Attribute
 renderFontSlant s = renderAttr A.fontStyle fontSlant_
