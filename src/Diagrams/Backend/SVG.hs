@@ -179,37 +179,36 @@ instance Backend SVG R2 where
                           --   section of the output.
                         }
 
-  doRender _ opts (R r) =
-    evalState svgOutput initialSvgRenderState
-   where
-    svgOutput = do
-      svg <- r
-      let (w,h) = sizePair (opts^.size)
-      return $ R.svgHeader w h (opts^.svgDefinitions) $ svg
+  renderRTree _ opts rt = evalState svgOutput initialSvgRenderState
+    where
+      svgOutput = do
+        let R r = toRender rt
+            (w,h) = sizePair (opts^.size)
+        svg <- r
+        return $ R.svgHeader w h (opts^.svgDefinitions) $ svg
+
 
   adjustDia c opts d = adjustDia2D size c opts (d # reflectY)
 
-  renderData _ t
-    = renderRTree
-    . Node (RStyle (mempty # recommendFillColor (transparent :: AlphaColour Double)))
-    . (:[])
-    . splitFills
-    . toRTree t
-
-renderRTree :: RTree SVG R2 Annotation -> Render SVG R2
-renderRTree (Node (RAnnot (Href uri)) rs)
-  = R $ do
-      let R r =  foldMap renderRTree rs
-      svg <- r
-      return $ (S.a ! xlinkHref (S.toValue uri)) svg
-renderRTree (Node (RPrim p) _) = render SVG p
-renderRTree (Node (RStyle sty) rs)
-  = R $ do
-      let R r = foldMap renderRTree rs
-      svg <- r
-      clippedSvg <- renderSvgWithClipping svg sty
-      return $ (S.g ! R.renderStyles sty) clippedSvg
-renderRTree (Node _ rs) = foldMap renderRTree rs
+toRender :: RTree SVG R2 Annotation -> Render SVG R2
+toRender = fromRTree
+  . Node (RStyle (mempty # recommendFillColor (transparent :: AlphaColour Double)))
+  . (:[])
+  . splitFills
+    where
+      fromRTree (Node (RAnnot (Href uri)) rs)
+        = R $ do
+            let R r =  foldMap fromRTree rs
+            svg <- r
+            return $ (S.a ! xlinkHref (S.toValue uri)) svg
+      fromRTree (Node (RPrim p) _) = render SVG p
+      fromRTree (Node (RStyle sty) rs)
+        = R $ do
+            let R r = foldMap fromRTree rs
+            svg <- r
+            clippedSvg <- renderSvgWithClipping svg sty
+            return $ (S.g ! R.renderStyles sty) clippedSvg
+      fromRTree (Node _ rs) = foldMap fromRTree rs
 
 getSize :: Options SVG R2 -> SizeSpec2D
 getSize (SVGOptions {_size = s}) = s
