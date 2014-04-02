@@ -172,10 +172,9 @@ renderFillRule s = renderAttr A.fillRule fillRule_
         fillRuleToStr EvenOdd = "evenodd"
 
 renderLineWidth :: Style v -> S.Attribute
-renderLineWidth s = renderAttr A.strokeWidth lineWidth_
- where lineWidth_ = case getLineWidth <$> getAttr s of
-                      Just o -> Just (fromOutput o)
-                      _        -> Nothing
+renderLineWidth s = renderAttr A.strokeWidth lineWidth'
+  where lineWidth' = (fromOutput . getLineWidth) <$> getAttr s
+
 
 renderLineCap :: Style v -> S.Attribute
 renderLineCap s = renderAttr A.strokeLinecap lineCap_
