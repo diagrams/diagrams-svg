@@ -174,8 +174,8 @@ renderFillRule s = renderAttr A.fillRule fillRule_
 renderLineWidth :: Style v -> S.Attribute
 renderLineWidth s = renderAttr A.strokeWidth lineWidth_
  where lineWidth_ = case getLineWidth <$> getAttr s of
-                      Just (Output w) -> Just w
-                      _        -> Nothing -- should never be reached.
+                      Just o -> Just (fromOutput o)
+                      _        -> Nothing
 
 renderLineCap :: Style v -> S.Attribute
 renderLineCap s = renderAttr A.strokeLinecap lineCap_
@@ -197,10 +197,8 @@ renderDashing :: Style v -> S.Attribute
 renderDashing s = (renderAttr A.strokeDasharray arr) `mappend`
                   (renderAttr A.strokeDashoffset dOffset)
  where
-  getDasharray  (Dashing a  _) = [x | Output x <- a]
-  getDashoffset :: Dashing -> Double
-  getDashoffset (Dashing _ (Output o)) = o
-  getDashoffset (Dashing _ _) = 0
+  getDasharray  (Dashing a  _) = map fromOutput a
+  getDashoffset (Dashing _ o) = fromOutput o
   dashArrayToStr              = intercalate "," . map show
   dashing_                    = getDashing <$> getAttr s
   arr                         = (dashArrayToStr . getDasharray) <$> dashing_
@@ -210,8 +208,7 @@ renderFontSize :: Style v -> S.Attribute
 renderFontSize s = renderAttr A.fontSize fontSize_
  where
   fontSize_ = ((++ "em") . str . getFontSize) <$> getAttr s
-  str (Output w) = show w
-  str _ = "1" -- should never be reached.
+  str o = show $ fromOutput o
 
 renderFontSlant :: Style v -> S.Attribute
 renderFontSlant s = renderAttr A.fontStyle fontSlant_
