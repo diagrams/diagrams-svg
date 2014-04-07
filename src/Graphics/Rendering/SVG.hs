@@ -22,7 +22,6 @@ module Graphics.Rendering.SVG
     , renderClip
     , renderText
     , renderStyles
-    , renderTransform
     , renderMiterLimit
     , getMatrix
     ) where
@@ -123,14 +122,6 @@ getMatrix t = (a1,a2,b1,b2,c1,c2)
   (unr2 -> (b1,b2)) = apply t unitY
   (unr2 -> (c1,c2)) = transl t
 
--- | Apply a transformation to some already-rendered SVG.
-renderTransform :: Transformation R2 -> S.Svg -> S.Svg
-renderTransform t svg =
-  if i then svg
-  else S.g svg ! (A.transform $ S.matrix a1 a2 b1 b2 c1 c2)
-    where (a1,a2,b1,b2,c1,c2) = getMatrix t
-          i = (a1,a2,b1,b2,c1,c2) == (1,0,0,1,0,0)
-
 renderStyles :: Style v -> S.Attribute
 renderStyles s = mconcat . map ($ s) $
   [ renderLineColor
@@ -181,8 +172,9 @@ renderFillRule s = renderAttr A.fillRule fillRule_
         fillRuleToStr EvenOdd = "evenodd"
 
 renderLineWidth :: Style v -> S.Attribute
-renderLineWidth s = renderAttr A.strokeWidth lineWidth_
- where lineWidth_ = getLineWidth <$> getAttr s
+renderLineWidth s = renderAttr A.strokeWidth lineWidth'
+  where lineWidth' = (fromOutput . getLineWidth) <$> getAttr s
+
 
 renderLineCap :: Style v -> S.Attribute
 renderLineCap s = renderAttr A.strokeLinecap lineCap_
@@ -204,9 +196,8 @@ renderDashing :: Style v -> S.Attribute
 renderDashing s = (renderAttr A.strokeDasharray arr) `mappend`
                   (renderAttr A.strokeDashoffset dOffset)
  where
-  getDasharray  (Dashing a _) = a
-  getDashoffset :: Dashing -> Double
-  getDashoffset (Dashing _ o) = o
+  getDasharray  (Dashing a  _) = map fromOutput a
+  getDashoffset (Dashing _ o) = fromOutput o
   dashArrayToStr              = intercalate "," . map show
   dashing_                    = getDashing <$> getAttr s
   arr                         = (dashArrayToStr . getDasharray) <$> dashing_
@@ -215,7 +206,8 @@ renderDashing s = (renderAttr A.strokeDasharray arr) `mappend`
 renderFontSize :: Style v -> S.Attribute
 renderFontSize s = renderAttr A.fontSize fontSize_
  where
-  fontSize_ = ((++ "em") . show . getFontSize) <$> getAttr s
+  fontSize_ = ((++ "em") . str . getFontSize) <$> getAttr s
+  str o = show $ fromOutput o
 
 renderFontSlant :: Style v -> S.Attribute
 renderFontSlant s = renderAttr A.fontStyle fontSlant_

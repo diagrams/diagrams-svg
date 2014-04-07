@@ -86,7 +86,6 @@ module Diagrams.Backend.SVG
   , renderSVG
   ) where
 
-
 -- for testing
 import           Data.Foldable                (foldMap)
 import           Data.Tree
@@ -113,6 +112,7 @@ import           Diagrams.Core.Types          (Annotation (..))
 import           Diagrams.Prelude             hiding (view)
 import           Diagrams.TwoD.Adjust         (adjustDia2D)
 import           Diagrams.TwoD.Path           (Clip (Clip))
+import           Diagrams.TwoD.Size           (sizePair)
 import           Diagrams.TwoD.Text
 
 -- from blaze-svg
@@ -169,30 +169,6 @@ renderSvgWithClipping svg s =
       id_ <- use clipPathId
       R.renderClip p id_ <$> renderClips ps
 
--- | Convert an RTree to a renderable object. The unfrozen transforms have
---   been accumulated and are in the leaves of the RTree along with the Prims.
---   Frozen transformations have their own nodes and the styles have been
---   transfomed during the contruction of the RTree.
-renderRTree :: RTree SVG R2 Annotation -> Render SVG R2
-renderRTree (Node (RAnnot (Href uri)) ts)
-  = R $ do
-      let R r =  foldMap renderRTree ts
-      svg <- r
-      return $ (S.a ! xlinkHref (S.toValue uri)) svg
-renderRTree (Node (RPrim accTr p) _) = (render SVG (transform accTr p))
-renderRTree (Node (RStyle sty) ts)
-  = R $ do
-      let R r = foldMap renderRTree ts
-      svg <- r
-      clippedSvg <- renderSvgWithClipping svg sty
-      return $ (S.g ! R.renderStyles sty) clippedSvg
-renderRTree (Node (RFrozenTr tr) ts)
-  = R $ do
-      let R r = foldMap renderRTree ts
-      svg <- r
-      return $ R.renderTransform tr svg
-renderRTree (Node _ ts) = foldMap renderRTree ts
-
 instance Backend SVG R2 where
   data Render  SVG R2 = R SvgRenderM
   type Result  SVG R2 = S.Svg
@@ -203,26 +179,36 @@ instance Backend SVG R2 where
                           --   section of the output.
                         }
 
-  doRender _ opts (R r) =
-    evalState svgOutput initialSvgRenderState
-   where
-    svgOutput = do
-      svg <- r
-      let (w,h) = case opts^.size of
-                    Width w'   -> (w',w')
-                    Height h'  -> (h',h')
-                    Dims w' h' -> (w',h')
-                    Absolute   -> (100,100)
-      return $ R.svgHeader w h (opts^.svgDefinitions) $ svg
+  renderRTree _ opts rt = evalState svgOutput initialSvgRenderState
+    where
+      svgOutput = do
+        let R r = toRender rt
+            (w,h) = sizePair (opts^.size)
+        svg <- r
+        return $ R.svgHeader w h (opts^.svgDefinitions) $ svg
 
-  adjustDia c opts d = adjustDia2D _size setSvgSize c opts (d # reflectY)
-    where setSvgSize sz o = o { _size = sz }
 
-  renderData _ = renderRTree
-               . Node (RStyle (mempty # recommendFillColor (transparent :: AlphaColour Double)))
-               . (:[])
-               . splitFills
-               . toRTree
+  adjustDia c opts d = adjustDia2D size c opts (d # reflectY)
+
+toRender :: RTree SVG R2 Annotation -> Render SVG R2
+toRender = fromRTree
+  . Node (RStyle (mempty # recommendFillColor (transparent :: AlphaColour Double)))
+  . (:[])
+  . splitFills
+    where
+      fromRTree (Node (RAnnot (Href uri)) rs)
+        = R $ do
+            let R r =  foldMap fromRTree rs
+            svg <- r
+            return $ (S.a ! xlinkHref (S.toValue uri)) svg
+      fromRTree (Node (RPrim p) _) = render SVG p
+      fromRTree (Node (RStyle sty) rs)
+        = R $ do
+            let R r = foldMap fromRTree rs
+            svg <- r
+            clippedSvg <- renderSvgWithClipping svg sty
+            return $ (S.g ! R.renderStyles sty) clippedSvg
+      fromRTree (Node _ rs) = foldMap fromRTree rs
 
 getSize :: Options SVG R2 -> SizeSpec2D
 getSize (SVGOptions {_size = s}) = s
