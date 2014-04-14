@@ -22,7 +22,6 @@ module Graphics.Rendering.SVG
     , renderClip
     , renderText
     , renderStyles
-    , renderTransform
     , renderMiterLimit
     , getMatrix
     , renderFillTextureDefs
@@ -38,7 +37,7 @@ import           Data.List                   (intercalate, intersperse)
 import           Control.Lens                hiding (transform)
 
 -- from diagrams-lib
-import           Diagrams.Prelude            hiding (Attribute, Render, e, (<>))
+import           Diagrams.Prelude            hiding (Attribute, Render, (<>))
 import           Diagrams.TwoD.Path          (getFillRule)
 import           Diagrams.TwoD.Text
 
@@ -69,10 +68,17 @@ renderPath trs  = S.path ! A.d makePath
     makePath = mkPath $ mapM_ renderTrail (op Path trs)
 
 renderTrail :: Located (Trail R2) -> S.Path
-renderTrail (viewLoc -> (unp2 -> (x,y), t)) = flip withLine t $ \l -> do
-  m x y
-  mapM_ renderSeg (lineSegments l)
-  if isLoop t then z else return ()
+renderTrail (viewLoc -> (unp2 -> (x,y), t)) = m x y >> withTrail renderLine renderLoop t
+  where
+    renderLine = mapM_ renderSeg . lineSegments
+    renderLoop lp = do
+      case loopSegments lp of
+        -- let 'z' handle the last segment if it is linear
+        (segs, Linear _) -> mapM_ renderSeg segs
+
+        -- otherwise we have to emit it explicitly
+        _ -> mapM_ renderSeg (lineSegments . cutLoop $ lp)
+      z
 
 renderSeg :: Segment Closed R2 -> S.Path
 renderSeg (Linear (OffsetClosed (unr2 -> (x,0)))) = hr x
@@ -221,14 +227,6 @@ getMatrix t = (a1,a2,b1,b2,c1,c2)
   (unr2 -> (b1,b2)) = apply t unitY
   (unr2 -> (c1,c2)) = transl t
 
--- | Apply a transformation to some already-rendered SVG.
-renderTransform :: Transformation R2 -> S.Svg -> S.Svg
-renderTransform t svg =
-  if i then svg
-  else S.g svg ! (A.transform $ S.matrix a1 a2 b1 b2 c1 c2)
-    where (a1,a2,b1,b2,c1,c2) = getMatrix t
-          i = (a1,a2,b1,b2,c1,c2) == (1,0,0,1,0,0)
-
 renderStyles :: Bool -> Int -> Int -> Style v -> S.Attribute
 renderStyles ignoreFill fillId lineId s = mconcat . map ($ s) $
   [ renderLineTexture lineId
@@ -264,8 +262,9 @@ renderFillRule s = renderAttr A.fillRule fillRule_
         fillRuleToStr EvenOdd = "evenodd"
 
 renderLineWidth :: Style v -> S.Attribute
-renderLineWidth s = renderAttr A.strokeWidth lineWidth_
- where lineWidth_ = getLineWidth <$> getAttr s
+renderLineWidth s = renderAttr A.strokeWidth lineWidth'
+  where lineWidth' = (fromOutput . getLineWidth) <$> getAttr s
+
 
 renderLineCap :: Style v -> S.Attribute
 renderLineCap s = renderAttr A.strokeLinecap lineCap_
@@ -287,9 +286,8 @@ renderDashing :: Style v -> S.Attribute
 renderDashing s = (renderAttr A.strokeDasharray arr) `mappend`
                   (renderAttr A.strokeDashoffset dOffset)
  where
-  getDasharray  (Dashing a _) = a
-  getDashoffset :: Dashing -> Double
-  getDashoffset (Dashing _ o) = o
+  getDasharray  (Dashing a  _) = map fromOutput a
+  getDashoffset (Dashing _ o) = fromOutput o
   dashArrayToStr              = intercalate "," . map show
   dashing_                    = getDashing <$> getAttr s
   arr                         = (dashArrayToStr . getDasharray) <$> dashing_
@@ -298,7 +296,8 @@ renderDashing s = (renderAttr A.strokeDasharray arr) `mappend`
 renderFontSize :: Style v -> S.Attribute
 renderFontSize s = renderAttr A.fontSize fontSize_
  where
-  fontSize_ = ((++ "em") . show . getFontSize) <$> getAttr s
+  fontSize_ = ((++ "em") . str . getFontSize) <$> getAttr s
+  str o = show $ fromOutput o
 
 renderFontSlant :: Style v -> S.Attribute
 renderFontSlant s = renderAttr A.fontStyle fontSlant_

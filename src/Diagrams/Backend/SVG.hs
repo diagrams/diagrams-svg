@@ -1,10 +1,14 @@
 {-# LANGUAGE DeriveDataTypeable    #-}
+{-# LANGUAGE DeriveGeneric         #-}
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE StandaloneDeriving    #-}
 {-# LANGUAGE TemplateHaskell       #-}
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE TypeSynonymInstances  #-}
+
+{-# OPTIONS_GHC -fno-warn-orphans  #-}
 
 ----------------------------------------------------------------------------
 -- |
@@ -83,31 +87,41 @@ module Diagrams.Backend.SVG
   ) where
 
 -- for testing
-import           Diagrams.Core.Compile
+import           Data.Foldable                (foldMap)
 import           Data.Tree
-import           Data.Foldable (foldMap)
 
 -- from base
 import           Control.Monad.State
 import           Data.Typeable
+import           GHC.Generics                 (Generic)
+
+-- from hashable
+import           Data.Hashable                (Hashable (..))
 
 -- from bytestring
 import qualified Data.ByteString.Lazy         as BS
 
 -- from lens
-import           Control.Lens                 hiding ((#), transform)
+import           Control.Lens                 hiding (transform, ( # ))
+
+-- from diagrams-core
+import           Diagrams.Core.Compile
+import           Diagrams.Core.Types          (Annotation (..))
 
 -- from diagrams-lib
 import           Diagrams.Prelude             hiding (view)
 import           Diagrams.TwoD.Adjust         (adjustDia2D)
-import           Diagrams.TwoD.Path           (Clip(Clip))
+import           Diagrams.TwoD.Path           (Clip (Clip))
+import           Diagrams.TwoD.Size           (sizePair)
 import           Diagrams.TwoD.Text
 
 -- from blaze-svg
+import           Text.Blaze.Internal          (ChoiceString (..), MarkupM (..),
+                                               StaticString (..))
 import           Text.Blaze.Svg.Renderer.Utf8 (renderSvg)
 import           Text.Blaze.Svg11             ((!))
 import qualified Text.Blaze.Svg11             as S
-import qualified Text.Blaze.Svg.Renderer.String as StringSvg
+import           Text.Blaze.Svg11.Attributes  (xlinkHref)
 
 -- from this package
 import qualified Graphics.Rendering.SVG       as R
@@ -120,7 +134,6 @@ data SVG = SVG
 type B = SVG
 
 data SvgRenderState = SvgRenderState { _clipPathId :: Int
-                                     , _ignoreFill :: Bool
                                      , _fillGradId :: Int
                                      , _lineGradId :: Int }
 
@@ -128,7 +141,7 @@ makeLenses ''SvgRenderState
 
 -- Fill gradients ids are even, line gradient ids are odd.
 initialSvgRenderState :: SvgRenderState
-initialSvgRenderState = SvgRenderState 0 False 0 1
+initialSvgRenderState = SvgRenderState 0 0 1
 
 -- | Monad to keep track of state when rendering an SVG.
 --   Currently just keeps a monotonically increasing counter
@@ -143,7 +156,7 @@ instance Monoid (Render SVG R2) where
       svg2 <- r2_
       return (svg1 `mappend` svg2)
 
--- XXX comment me
+-- Handle clip attributes.
 renderSvgWithClipping :: S.Svg             -- ^ Input SVG
                       -> Style v           -- ^ Styles
                       -> SvgRenderM        -- ^ Resulting svg
@@ -173,31 +186,6 @@ lineTextureDefs s = do
   lineGradId += 2 -- always odd
   return $ R.renderLineTextureDefs id_ s
 
--- | Convert an RTree to a renderable object. The unfrozen transforms have
---   been accumulated and are in the leaves of the RTree along with the Prims.
---   Frozen transformations have their own nodes and the styles have been
---   transfomed during the contruction of the RTree.
-renderRTree :: RTree SVG R2 a -> Render SVG R2
-renderRTree (Node (RPrim accTr p) _) = (render SVG (transform accTr p))
-renderRTree (Node (RStyle sty) ts)
-  = R $ do
-      let R r = foldMap renderRTree ts
-      svg <- r
-      idFill <- use fillGradId
-      idLine <- use lineGradId
-      clippedSvg <- renderSvgWithClipping svg sty
-      lineGradDefs <- lineTextureDefs sty
-      fillGradDefs <- fillTextureDefs sty
-      let textureDefs = fillGradDefs `mappend` lineGradDefs
-      return $ (S.g ! R.renderStyles False idFill idLine sty)
-               (textureDefs `mappend` clippedSvg)
-renderRTree (Node (RFrozenTr tr) ts)
-  = R $ do
-      let R r = foldMap renderRTree ts
-      svg <- r
-      return $ R.renderTransform tr svg
-renderRTree (Node _ ts) = foldMap renderRTree ts
-
 instance Backend SVG R2 where
   data Render  SVG R2 = R SvgRenderM
   type Result  SVG R2 = S.Svg
@@ -208,26 +196,41 @@ instance Backend SVG R2 where
                           --   section of the output.
                         }
 
-  doRender _ opts (R r) =
-    evalState svgOutput initialSvgRenderState
-   where
-    svgOutput = do
-      svg <- r
-      let (w,h) = case opts^.size of
-                    Width w'   -> (w',w')
-                    Height h'  -> (h',h')
-                    Dims w' h' -> (w',h')
-                    Absolute   -> (100,100)
-      return $ R.svgHeader w h (opts^.svgDefinitions) $ svg
+  renderRTree _ opts rt = evalState svgOutput initialSvgRenderState
+    where
+      svgOutput = do
+        let R r = toRender rt
+            (w,h) = sizePair (opts^.size)
+        svg <- r
+        return $ R.svgHeader w h (opts^.svgDefinitions) $ svg
 
-  adjustDia c opts d = adjustDia2D _size setSvgSize c opts
-                         (withEnvelope d d # reflectY -- XXX withEnvelope for Gradients?
-                            # recommendFillColor
-                                (transparent :: AlphaColour Double)
-                         )
-    where setSvgSize sz o = o { _size = sz }
+  adjustDia c opts d = adjustDia2D size c opts (d # reflectY)
 
-  renderData _ = renderRTree . toRTree
+toRender :: RTree SVG R2 Annotation -> Render SVG R2
+toRender = fromRTree
+  . Node (RStyle (mempty # recommendFillColor (transparent :: AlphaColour Double)))
+  . (:[])
+  . splitFills
+    where
+      fromRTree (Node (RAnnot (Href uri)) rs)
+        = R $ do
+            let R r =  foldMap fromRTree rs
+            svg <- r
+            return $ (S.a ! xlinkHref (S.toValue uri)) svg
+      fromRTree (Node (RPrim p) _) = render SVG p
+      fromRTree (Node (RStyle sty) ts)
+        = R $ do
+            let R r = foldMap fromRTree ts
+            svg <- r
+            idFill <- use fillGradId
+            idLine <- use lineGradId
+            clippedSvg <- renderSvgWithClipping svg sty
+            lineGradDefs <- lineTextureDefs sty
+            fillGradDefs <- fillTextureDefs sty
+            let textureDefs = fillGradDefs `mappend` lineGradDefs
+            return $ (S.g ! R.renderStyles False idFill idLine sty)
+                     (textureDefs `mappend` clippedSvg)
+      fromRTree (Node _ rs) = foldMap fromRTree rs
 
 getSize :: Options SVG R2 -> SizeSpec2D
 getSize (SVGOptions {_size = s}) = s
@@ -247,18 +250,65 @@ setSVGDefs o d = o {_svgDefinitions = d}
 svgDefinitions :: Lens' (Options SVG R2) (Maybe S.Svg)
 svgDefinitions = lens getSVGDefs setSVGDefs
 
-instance Show (Options SVG R2) where
-  show opts = concat $
-            [ "SVGOptions { "
-            , "size = "
-            , show $ opts^.size
-            , " , "
-            , "svgDefinitions = "
-            , case opts^.svgDefinitions of
-                Nothing -> "Nothing"
-                Just svg -> "Just " ++ StringSvg.renderSvg svg
-            , " }"
-            ]
+instance Hashable (Options SVG R2) where
+  hashWithSalt s (SVGOptions sz defs) =
+    s `hashWithSalt` sz `hashWithSalt` defs
+
+instance Hashable StaticString where
+  hashWithSalt s (StaticString dl bs txt)
+    = s `hashWithSalt` dl [] `hashWithSalt` bs `hashWithSalt` txt
+
+deriving instance Generic ChoiceString
+
+instance Hashable ChoiceString
+
+instance Hashable (MarkupM a) where
+  hashWithSalt s (Parent w x y z) =
+    s          `hashWithSalt`
+    (0 :: Int) `hashWithSalt`
+    w          `hashWithSalt`
+    x          `hashWithSalt`
+    y          `hashWithSalt`
+    z
+  hashWithSalt s (CustomParent cs m) =
+    s          `hashWithSalt`
+    (1 :: Int) `hashWithSalt`
+    cs         `hashWithSalt`
+    m
+  hashWithSalt s (Leaf s1 s2 s3) =
+    s          `hashWithSalt`
+    (2 :: Int) `hashWithSalt`
+    s1         `hashWithSalt`
+    s2         `hashWithSalt`
+    s3
+  hashWithSalt s (CustomLeaf cs b) =
+    s          `hashWithSalt`
+    (3 :: Int) `hashWithSalt`
+    cs         `hashWithSalt`
+    b
+  hashWithSalt s (Content cs) =
+    s          `hashWithSalt`
+    (4 :: Int) `hashWithSalt`
+    cs
+  hashWithSalt s (Append m1 m2) =
+    s          `hashWithSalt`
+    (5 :: Int) `hashWithSalt`
+    m1         `hashWithSalt`
+    m2
+  hashWithSalt s (AddAttribute s1 s2 s3 m) =
+    s          `hashWithSalt`
+    (6 :: Int) `hashWithSalt`
+    s1         `hashWithSalt`
+    s2         `hashWithSalt`
+    s3         `hashWithSalt`
+    m
+  hashWithSalt s (AddCustomAttribute s1 s2 m) =
+    s          `hashWithSalt`
+    (7 :: Int) `hashWithSalt`
+    s1         `hashWithSalt`
+    s2         `hashWithSalt`
+    m
+  hashWithSalt s Empty = s `hashWithSalt` (8 :: Int)
 
 instance Renderable (Segment Closed R2) SVG where
   render c = render c . (fromSegments :: [Segment Closed R2] -> Path R2) . (:[])
@@ -267,17 +317,12 @@ instance Renderable (Trail R2) SVG where
   render c = render c . pathFromTrail
 
 instance Renderable (Path R2) SVG where
-  render _ p = R $ do
-    -- Don't fill lines.  diagrams-lib separates out lines and loops
-    -- for us, so if we see one line, they are all lines.
-    when (any (isLine . unLoc) . op Path $ p) $ (ignoreFill .= True)
-    return (R.renderPath p)
+  render _ = R . return . R.renderPath
 
 instance Renderable Text SVG where
   render _ = R . return . R.renderText
 
 -- TODO: instance Renderable Image SVG where
-
 
 -- | Render a diagram as an SVG, writing to the specified output file
 --   and using the requested size.

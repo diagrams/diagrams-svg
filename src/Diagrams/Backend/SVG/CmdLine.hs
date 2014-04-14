@@ -1,8 +1,12 @@
-{-# LANGUAGE DeriveDataTypeable, CPP #-}
+{-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
+{-# LANGUAGE CPP #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Diagrams.Backend.SVG.CmdLine
--- Copyright   :  (c) 2011 Diagrams team (see LICENSE)
+-- Copyright   :  (c) 2013 Diagrams team (see LICENSE)
 -- License     :  BSD-style (see LICENSE)
 -- Maintainer  :  diagrams-discuss@googlegroups.com
 --
@@ -15,42 +19,69 @@
 -- * 'multiMain' is like 'defaultMain' but allows for a list of
 --   diagrams from which the user can choose one to render.
 --
+-- * 'mainWith' is a generic form that does all of the above but with
+--   a slightly scarier type.  See "Diagrams.Backend.CmdLine".  This
+--   form can also take a function type that has a subtable final result
+--   (any of arguments to the above types) and 'Parseable' arguments.
+--
 -- If you want to generate diagrams programmatically---/i.e./ if you
 -- want to do anything more complex than what the below functions
 -- provide---you have several options.
 --
--- * A simple but somewhat inflexible approach is to wrap up
---   'defaultMain' (or 'multiMain') in a call to
---   'System.Environment.withArgs'.
+-- * Use a function with 'mainWith'.  This may require making
+--   'Parseable' instances for custom argument types.
+--
+-- * Make a new 'Mainable' instance.  This may require a newtype
+--   wrapper on your diagram type to avoid the existing instances.
+--   This gives you more control over argument parsing, intervening
+--   steps, and diagram creation.
+--
+-- * Build option records and pass them along with a diagram to 'mainRender'
+--   from "Diagrams.Backend.CmdLine".
 --
 -- * You can use 'Diagrams.Backend.SVG.renderSVG' to render a diagram
 --   to a file directly; see "Diagrams.Backend.SVG".
 --
 -- * A more flexible approach is to directly call 'renderDia'; see
 --   "Diagrams.Backend.SVG" for more information.
-
+--
+-- For a tutorial on command-line diagram creation see
+-- <http://projects.haskell.org/diagrams/doc/cmdline.html>.
+-- 
 -----------------------------------------------------------------------------
 
 module Diagrams.Backend.SVG.CmdLine
-       ( defaultMain
+       ( 
+         -- * General form of @main@
+         -- $mainwith
+
+         mainWith
+
+         -- * Supported forms of @main@
+
+       , defaultMain
        , multiMain
 
+         -- * Backend tokens
+
        , SVG
+       , B
        ) where
 
 import Diagrams.Prelude hiding (width, height, interval)
 import Diagrams.Backend.SVG
+import Diagrams.Backend.CmdLine
 
-import System.Console.CmdArgs.Implicit hiding (args)
+import Control.Lens
 
 import Text.Blaze.Svg.Renderer.Utf8 (renderSvg)
 import qualified Data.ByteString.Lazy as BS
 
-import Data.Maybe          (fromMaybe)
-import Control.Monad       (when)
 import Data.List.Split
 
-import System.Environment  (getArgs, getProgName)
+#ifdef CMDLINELOOP
+import Data.Maybe          (fromMaybe)
+import Control.Monad       (when)
 import System.Directory    (getModificationTime)
 import System.Process      (runProcess, waitForProcess)
 import System.IO           (openFile, hClose, IOMode(..),
@@ -60,9 +91,8 @@ import Control.Concurrent  (threadDelay)
 import qualified Control.Exception as Exc  (catch,  bracket)
 import Control.Exception (SomeException(..))
 
-#ifdef CMDLINELOOP
+import System.Environment  (getProgName,getArgs)
 import System.Posix.Process (executeFile)
-#endif
 
 
 # if MIN_VERSION_directory(1,2,0)
@@ -76,50 +106,29 @@ type ModuleTime = ClockTime
 getModuleTime :: IO  ModuleTime
 getModuleTime = getClockTime
 #endif
-
-
-data DiagramOpts = DiagramOpts
-                   { width     :: Maybe Int
-                   , height    :: Maybe Int
-                   , output    :: FilePath
-                   , selection :: Maybe String
-#ifdef CMDLINELOOP
-                   , loop      :: Bool
-                   , src       :: Maybe String
-                   , interval  :: Int
 #endif
-                   }
-  deriving (Show, Data, Typeable)
 
-diagramOpts :: String -> Bool -> DiagramOpts
-diagramOpts prog sel = DiagramOpts
-  { width =  def
-             &= typ "INT"
-             &= help "Desired width of the output image"
+-- $mainwith
+-- The 'mainWith' method unifies all of the other forms of @main@ and is
+-- now the recommended way to build a command-line diagrams program.  It
+-- works as a direct replacement for 'defaultMain' or 'multiMain' as well
+-- as allowing more general arguments.  For example, given a function that
+-- produces a diagram when given an @Int@ and a @'Colour' Double@, 'mainWith'
+-- will produce a program that looks for additional number and color arguments.
+--
+-- > ... definitions ...
+-- > f :: Int -> Colour Double -> Diagram SVG R2
+-- > f i c = ...
+-- >
+-- > main = mainWith f
+--
+-- We can run this program as follows:
+--
+-- > $ ghc --make MyDiagram
+-- > 
+-- > # output image.svg built by `f 20 red`
+-- > $ ./MyDiagram -o image.svg -w 200 20 red
 
-  , height = def
-             &= typ "INT"
-             &= help "Desired height of the output image"
-
-  , output = def
-           &= typFile
-           &= help "Output file"
-
-  , selection = def
-              &= help "Name of the diagram to render"
-              &= (if sel then typ "NAME" else ignore)
-#ifdef CMDLINELOOP
-  , loop = False
-            &= help "Run in a self-recompiling loop"
-  , src  = def
-            &= typFile
-            &= help "Source file to watch"
-  , interval = 1 &= typ "SECONDS"
-                 &= help "When running in a loop, check for changes every n seconds."
-#endif
-  }
-  &= summary "Command-line diagram generation."
-  &= program prog
 
 -- | This is the simplest way to render diagrams, and is intended to
 --   be used like so:
@@ -133,23 +142,55 @@ diagramOpts prog sel = DiagramOpts
 --   and so on, and renders @myDiagram@ with the specified options.
 --
 --   Pass @--help@ to the generated executable to see all available
---   options.
+--   options.  Currently it looks something like
+--
+-- @
+-- ./Program
+--
+-- Usage: ./Program [-w|--width WIDTH] [-h|--height HEIGHT] [-o|--output OUTPUT] [--loop] [-s|--src ARG] [-i|--interval INTERVAL]
+--   Command-line diagram generation.
+--
+-- Available options:
+--   -?,--help                Show this help text
+--   -w,--width WIDTH         Desired WIDTH of the output image
+--   -h,--height HEIGHT       Desired HEIGHT of the output image
+--   -o,--output OUTPUT       OUTPUT file
+--   -l,--loop                Run in a self-recompiling loop
+--   -s,--src ARG             Source file to watch
+--   -i,--interval INTERVAL   When running in a loop, check for changes every INTERVAL seconds.
+-- @
+--
+--   For example, a common scenario is
+--
+-- @
+-- $ ghc --make MyDiagram
+--
+--   # output image.svg with a width of 400pt (and auto-determined height)
+-- $ ./MyDiagram -o image.svg -w 400
+-- @
+
 defaultMain :: Diagram SVG R2 -> IO ()
-defaultMain d = do
-  prog <- getProgName
-  args <- getArgs
-  opts <- cmdArgs (diagramOpts prog False)
-  chooseRender opts d
+defaultMain = mainWith
+
+instance Mainable (Diagram SVG R2) where
 #ifdef CMDLINELOOP
-  when (loop opts) (waitForChange Nothing opts prog args)
+    type MainOpts (Diagram SVG R2) = (DiagramOpts, DiagramLoopOpts)
+
+    mainRender (opts,loopOpts) d = do
+        chooseRender opts d
+        when (loopOpts^.loop) (waitForChange Nothing loopOpts)
+#else
+    type MainOpts (Diagram SVG R2) = DiagramOpts
+
+    mainRender opts d = chooseRender opts d
 #endif
 
 chooseRender :: DiagramOpts -> Diagram SVG R2 -> IO ()
 chooseRender opts d =
-  case splitOn "." (output opts) of
+  case splitOn "." (opts^.output) of
     [""] -> putStrLn "No output file given."
     ps | last ps `elem` ["svg"] -> do
-           let sizeSpec = case (width opts, height opts) of
+           let sizeSpec = case (opts^.width, opts^.height) of
                             (Nothing, Nothing) -> Absolute
                             (Just w, Nothing)  -> Width (fromIntegral w)
                             (Nothing, Just h)  -> Height (fromIntegral h)
@@ -157,39 +198,52 @@ chooseRender opts d =
                                                        (fromIntegral h)
 
                build = renderDia SVG (SVGOptions sizeSpec Nothing) d
-           BS.writeFile (output opts) (renderSvg build)
+           BS.writeFile (opts^.output) (renderSvg build)
        | otherwise -> putStrLn $ "Unknown file type: " ++ last ps
-
 
 -- | @multiMain@ is like 'defaultMain', except instead of a single
 --   diagram it takes a list of diagrams paired with names as input.
---   The generated executable then takes an argument specifying the
---   name of the diagram that should be rendered.  This is a
---   convenient way to create an executable that can render many
---   different diagrams without modifying the source code in between
---   each one.
+--   The generated executable then takes a @--selection@ option
+--   specifying the name of the diagram that should be rendered.  The
+--   list of available diagrams may also be printed by passing the
+--   option @--list@.
+--
+--   Example usage:
+--
+-- @
+-- $ ghc --make MultiTest
+-- [1 of 1] Compiling Main             ( MultiTest.hs, MultiTest.o )
+-- Linking MultiTest ...
+-- $ ./MultiTest --list
+-- Available diagrams:
+--   foo bar
+-- $ ./MultiTest --selection bar -o Bar.eps -w 200
+-- @
+
 multiMain :: [(String, Diagram SVG R2)] -> IO ()
-multiMain ds = do
-  prog <- getProgName
-  opts <- cmdArgs (diagramOpts prog True)
-  case selection opts of
-    Nothing  -> putStrLn "No diagram selected."
-    Just sel -> case lookup sel ds of
-      Nothing -> putStrLn $ "Unknown diagram: " ++ sel
-      Just d  -> chooseRender opts d
+multiMain = mainWith
+
+instance Mainable [(String,Diagram SVG R2)] where
+    type MainOpts [(String,Diagram SVG R2)] 
+        = (MainOpts (Diagram SVG R2), DiagramMultiOpts)
+
+    mainRender = defaultMultiMainRender
+
 
 #ifdef CMDLINELOOP
-waitForChange :: Maybe ModuleTime -> DiagramOpts -> String -> [String] -> IO ()
-waitForChange lastAttempt opts prog args = do
+waitForChange :: Maybe ModuleTime -> DiagramLoopOpts -> IO ()
+waitForChange lastAttempt opts = do
+    prog <- getProgName
+    args <- getArgs
     hSetBuffering stdout NoBuffering
-    go lastAttempt
-  where go lastAtt = do
-          threadDelay (1000000 * interval opts)
+    go prog args lastAttempt
+  where go prog args lastAtt = do
+          threadDelay (1000000 * opts^.interval)
           -- putStrLn $ "Checking... (last attempt = " ++ show lastAttempt ++ ")"
-          (newBin, newAttempt) <- recompile lastAtt prog (src opts)
+          (newBin, newAttempt) <- recompile lastAtt prog (opts^.src)
           if newBin
             then executeFile prog False args Nothing
-            else go $ getFirst (First newAttempt <> First lastAtt)
+            else go prog args $ getFirst (First newAttempt <> First lastAtt)
 
 -- | @recompile t prog@ attempts to recompile @prog@, assuming the
 --   last attempt was made at time @t@.  If @t@ is @Nothing@ assume
