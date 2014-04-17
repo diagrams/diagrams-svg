@@ -110,10 +110,10 @@ spreadMethodStr GradRepeat   = "repeat"
 renderLinearGradient :: LGradient -> Int -> S.Svg
 renderLinearGradient g i = S.lineargradient
     ! A.id_ (S.toValue ("gradient" ++ (show i)))
-    ! A.x1  (S.toValue (x1' - 0.5))
-    ! A.y1  (S.toValue (y1' - 0.5))
-    ! A.x2  (S.toValue (x2' - 0.5))
-    ! A.y2  (S.toValue (y2' - 0.5))
+    ! A.x1  (S.toValue x1)
+    ! A.y1  (S.toValue y1)
+    ! A.x2  (S.toValue x2)
+    ! A.y2  (S.toValue y2)
     ! A.gradienttransform (S.toValue matrix)
     ! A.gradientunits "userSpaceOnUse"
     ! A.spreadmethod (S.toValue (spreadMethodStr (g^.lGradSpreadMethod)))
@@ -121,8 +121,8 @@ renderLinearGradient g i = S.lineargradient
   where
     matrix = S.matrix a1 a2 b1 b2 c1 c2
     (a1, a2, b1, b2, c1, c2) = getMatrix (g^.lGradTrans)
-    (x1', y1') = unp2 (g^.lGradStart)
-    (x2', y2') = unp2 (g^.lGradEnd)
+    (x1, y1) = unp2 (g^.lGradStart)
+    (x2, y2) = unp2 (g^.lGradEnd)
 
 renderRadialGradient :: RGradient -> Int -> S.Svg
 renderRadialGradient g i = S.radialgradient
