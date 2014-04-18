@@ -111,6 +111,7 @@ import           Diagrams.Core.Types          (Annotation (..))
 -- from diagrams-lib
 import           Diagrams.Prelude             hiding (view)
 import           Diagrams.TwoD.Adjust         (adjustDia2D)
+import           Diagrams.TwoD.Attributes     (splitFills)
 import           Diagrams.TwoD.Path           (Clip (Clip))
 import           Diagrams.TwoD.Size           (sizePair)
 import           Diagrams.TwoD.Text
