@@ -230,7 +230,7 @@ toRender = fromRTree
             lineGradDefs <- lineTextureDefs sty
             fillGradDefs <- fillTextureDefs sty
             let textureDefs = fillGradDefs `mappend` lineGradDefs
-            return $ (S.g ! R.renderStyles False idFill idLine sty)
+            return $ (S.g ! R.renderStyles idFill idLine sty)
                      (textureDefs `mappend` clippedSvg)
       fromRTree (Node _ rs) = foldMap fromRTree rs
 
