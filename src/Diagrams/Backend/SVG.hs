@@ -111,7 +111,7 @@ import           Diagrams.Core.Types          (Annotation (..))
 -- from diagrams-lib
 import           Diagrams.Prelude             hiding (view)
 import           Diagrams.TwoD.Adjust         (adjustDia2D)
-import           Diagrams.TwoD.Attributes     (splitColorFills, splitTextureFills)
+import           Diagrams.TwoD.Attributes     (splitTextureFills)
 import           Diagrams.TwoD.Path           (Clip (Clip))
 import           Diagrams.TwoD.Size           (sizePair)
 import           Diagrams.TwoD.Text
@@ -212,7 +212,6 @@ toRender = fromRTree
   . Node (RStyle (mempty # recommendFillColor (transparent :: AlphaColour Double)))
   . (:[])
   . splitTextureFills
-  . splitColorFills
     where
       fromRTree (Node (RAnnot (Href uri)) rs)
         = R $ do
