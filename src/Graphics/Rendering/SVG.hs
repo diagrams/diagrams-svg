@@ -23,7 +23,6 @@ module Graphics.Rendering.SVG
     , renderText
     , renderStyles
     , renderMiterLimit
-    , getMatrix
     , renderFillTextureDefs
     , renderFillTexture
     , renderLineTextureDefs
@@ -35,6 +34,9 @@ import           Data.List                   (intercalate, intersperse)
 
 -- from lens
 import           Control.Lens                hiding (transform)
+
+-- from diagrams-core
+import           Diagrams.Core.Transform     (matrixRep)
 
 -- from diagrams-lib
 import           Diagrams.Prelude            hiding (Attribute, Render, (<>))
@@ -120,7 +122,7 @@ renderLinearGradient g i = S.lineargradient
     $ do mconcat $ (map renderStop) (g^.lGradStops)
   where
     matrix = S.matrix a1 a2 b1 b2 c1 c2
-    (a1, a2, b1, b2, c1, c2) = getMatrix (g^.lGradTrans)
+    [[a1, a2], [b1, b2], [c1, c2]] = matrixRep (g^.lGradTrans)
     (x1, y1) = unp2 (g^.lGradStart)
     (x2, y2) = unp2 (g^.lGradEnd)
 
@@ -138,7 +140,7 @@ renderRadialGradient g i = S.radialgradient
     $ do mconcat $ map renderStop ss
   where
     matrix = S.matrix a1 a2 b1 b2 c1 c2
-    (a1, a2, b1, b2, c1, c2) = getMatrix (g^.rGradTrans)
+    [[a1, a2], [b1, b2], [c1, c2]] = matrixRep (g^.rGradTrans)
     (cx', cy') = unp2 (g^.rGradCenter1)
     (fx', fy') = unp2 (g^.rGradCenter0) -- SVG's focal point is our inner center.
 
@@ -217,15 +219,8 @@ renderText (Text tr tAlign str) =
                w' | w' >= 0.75 -> "end"
                _ -> "middle"
   t                   = tr `mappend` reflectionY
-  (a,b,c,d,e,f)       = getMatrix t
-  transformMatrix     =  S.matrix a b c d e f
-
-getMatrix :: Transformation R2 -> (Double, Double, Double, Double, Double, Double)
-getMatrix t = (a1,a2,b1,b2,c1,c2)
- where
-  (unr2 -> (a1,a2)) = apply t unitX
-  (unr2 -> (b1,b2)) = apply t unitY
-  (unr2 -> (c1,c2)) = transl t
+  [[a,b],[c,d],[e,f]] = matrixRep t
+  transformMatrix     = S.matrix a b c d e f
 
 renderStyles :: Int -> Int -> Style v -> S.Attribute
 renderStyles fillId lineId s = mconcat . map ($ s) $
