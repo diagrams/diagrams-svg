@@ -111,6 +111,7 @@ import           Diagrams.Core.Types          (Annotation (..))
 -- from diagrams-lib
 import           Diagrams.Prelude             hiding (view)
 import           Diagrams.TwoD.Adjust         (adjustDia2D)
+import           Diagrams.TwoD.Attributes     (splitTextureFills)
 import           Diagrams.TwoD.Path           (Clip (Clip))
 import           Diagrams.TwoD.Size           (sizePair)
 import           Diagrams.TwoD.Text
@@ -133,12 +134,15 @@ data SVG = SVG
 
 type B = SVG
 
-data SvgRenderState = SvgRenderState { _clipPathId :: Int }
+data SvgRenderState = SvgRenderState { _clipPathId :: Int
+                                     , _fillGradId :: Int
+                                     , _lineGradId :: Int }
 
 makeLenses ''SvgRenderState
 
+-- Fill gradients ids are even, line gradient ids are odd.
 initialSvgRenderState :: SvgRenderState
-initialSvgRenderState = SvgRenderState 0
+initialSvgRenderState = SvgRenderState 0 0 1
 
 -- | Monad to keep track of state when rendering an SVG.
 --   Currently just keeps a monotonically increasing counter
@@ -153,7 +157,7 @@ instance Monoid (Render SVG R2) where
       svg2 <- r2_
       return (svg1 `mappend` svg2)
 
--- XXX comment me
+-- Handle clip attributes.
 renderSvgWithClipping :: S.Svg             -- ^ Input SVG
                       -> Style v           -- ^ Styles
                       -> SvgRenderM        -- ^ Resulting svg
@@ -168,6 +172,20 @@ renderSvgWithClipping svg s =
       clipPathId += 1
       id_ <- use clipPathId
       R.renderClip p id_ <$> renderClips ps
+
+-- | Create a new texture defs svg element using the style and the current
+--   id number, then increment the gradient id number.
+fillTextureDefs :: Style v -> SvgRenderM
+fillTextureDefs s = do
+  id_ <- use fillGradId
+  fillGradId += 2 -- always even
+  return $ R.renderFillTextureDefs id_ s
+
+lineTextureDefs :: Style v -> SvgRenderM
+lineTextureDefs s = do
+  id_ <- use lineGradId
+  lineGradId += 2 -- always odd
+  return $ R.renderLineTextureDefs id_ s
 
 instance Backend SVG R2 where
   data Render  SVG R2 = R SvgRenderM
@@ -187,14 +205,13 @@ instance Backend SVG R2 where
         svg <- r
         return $ R.svgHeader w h (opts^.svgDefinitions) $ svg
 
-
   adjustDia c opts d = adjustDia2D size c opts (d # reflectY)
 
 toRender :: RTree SVG R2 Annotation -> Render SVG R2
 toRender = fromRTree
   . Node (RStyle (mempty # recommendFillColor (transparent :: AlphaColour Double)))
   . (:[])
-  . splitFills
+  . splitTextureFills
     where
       fromRTree (Node (RAnnot (Href uri)) rs)
         = R $ do
@@ -202,12 +219,18 @@ toRender = fromRTree
             svg <- r
             return $ (S.a ! xlinkHref (S.toValue uri)) svg
       fromRTree (Node (RPrim p) _) = render SVG p
-      fromRTree (Node (RStyle sty) rs)
+      fromRTree (Node (RStyle sty) ts)
         = R $ do
-            let R r = foldMap fromRTree rs
+            let R r = foldMap fromRTree ts
             svg <- r
+            idFill <- use fillGradId
+            idLine <- use lineGradId
             clippedSvg <- renderSvgWithClipping svg sty
-            return $ (S.g ! R.renderStyles sty) clippedSvg
+            lineGradDefs <- lineTextureDefs sty
+            fillGradDefs <- fillTextureDefs sty
+            let textureDefs = fillGradDefs `mappend` lineGradDefs
+            return $ (S.g ! R.renderStyles idFill idLine sty)
+                     (textureDefs `mappend` clippedSvg)
       fromRTree (Node _ rs) = foldMap fromRTree rs
 
 getSize :: Options SVG R2 -> SizeSpec2D
@@ -301,7 +324,6 @@ instance Renderable Text SVG where
   render _ = R . return . R.renderText
 
 -- TODO: instance Renderable Image SVG where
-
 
 -- | Render a diagram as an SVG, writing to the specified output file
 --   and using the requested size.

@@ -23,14 +23,20 @@ module Graphics.Rendering.SVG
     , renderText
     , renderStyles
     , renderMiterLimit
-    , getMatrix
+    , renderFillTextureDefs
+    , renderFillTexture
+    , renderLineTextureDefs
+    , renderLineTexture
     ) where
 
 -- from base
 import           Data.List                   (intercalate, intersperse)
 
 -- from lens
-import           Control.Lens
+import           Control.Lens                hiding (transform)
+
+-- from diagrams-core
+import           Diagrams.Core.Transform     (matrixHomRep)
 
 -- from diagrams-lib
 import           Diagrams.Prelude            hiding (Attribute, Render, (<>))
@@ -51,6 +57,8 @@ svgHeader w h_ defines s =  S.docTypeSvg
   ! A.height   (S.toValue h_)
   ! A.fontSize "1"
   ! A.viewbox (S.toValue $ concat . intersperse " " $ map show ([0, 0, round w, round h_] :: [Int]))
+  ! A.stroke "rgb(0,0,0)"
+  ! A.strokeOpacity "1"
   $ do case defines of
          Nothing -> return ()
          Just defs -> S.defs $ defs
@@ -58,8 +66,8 @@ svgHeader w h_ defines s =  S.docTypeSvg
 
 renderPath :: Path R2 -> S.Svg
 renderPath trs  = S.path ! A.d makePath
- where
-  makePath = mkPath $ mapM_ renderTrail (op Path trs)
+  where
+    makePath = mkPath $ mapM_ renderTrail (op Path trs)
 
 renderTrail :: Located (Trail R2) -> S.Path
 renderTrail (viewLoc -> (unp2 -> (x,y), t)) = m x y >> withTrail renderLine renderLoop t
@@ -90,6 +98,105 @@ renderClip p id_ svg = do
     svg
   where clipPathId i = "myClip" ++ show i
 
+renderStop :: GradientStop -> S.Svg
+renderStop (GradientStop c v)
+  = S.stop ! A.stopColor (S.toValue (colorToRgbString c))
+           ! A.offset (S.toValue (show v))
+           ! A.stopOpacity (S.toValue (colorToOpacity c))
+
+spreadMethodStr :: SpreadMethod -> String
+spreadMethodStr GradPad      = "pad"
+spreadMethodStr GradReflect  = "reflect"
+spreadMethodStr GradRepeat   = "repeat"
+
+renderLinearGradient :: LGradient -> Int -> S.Svg
+renderLinearGradient g i = S.lineargradient
+    ! A.id_ (S.toValue ("gradient" ++ (show i)))
+    ! A.x1  (S.toValue x1)
+    ! A.y1  (S.toValue y1)
+    ! A.x2  (S.toValue x2)
+    ! A.y2  (S.toValue y2)
+    ! A.gradienttransform (S.toValue matrix)
+    ! A.gradientunits "userSpaceOnUse"
+    ! A.spreadmethod (S.toValue (spreadMethodStr (g^.lGradSpreadMethod)))
+    $ do mconcat $ (map renderStop) (g^.lGradStops)
+  where
+    matrix = S.matrix a1 a2 b1 b2 c1 c2
+    [[a1, a2], [b1, b2], [c1, c2]] = matrixHomRep (g^.lGradTrans)
+    (x1, y1) = unp2 (g^.lGradStart)
+    (x2, y2) = unp2 (g^.lGradEnd)
+
+renderRadialGradient :: RGradient -> Int -> S.Svg
+renderRadialGradient g i = S.radialgradient
+    ! A.id_ (S.toValue ("gradient" ++ (show i)))
+    ! A.r (S.toValue (g^.rGradRadius1))
+    ! A.cx (S.toValue cx')
+    ! A.cy (S.toValue cy')
+    ! A.fx (S.toValue fx')
+    ! A.fy (S.toValue fy')
+    ! A.gradienttransform (S.toValue matrix)
+    ! A.gradientunits "userSpaceOnUse"
+    ! A.spreadmethod (S.toValue (spreadMethodStr (g^.rGradSpreadMethod)))
+    $ do mconcat $ map renderStop ss
+  where
+    matrix = S.matrix a1 a2 b1 b2 c1 c2
+    [[a1, a2], [b1, b2], [c1, c2]] = matrixHomRep (g^.rGradTrans)
+    (cx', cy') = unp2 (g^.rGradCenter1)
+    (fx', fy') = unp2 (g^.rGradCenter0) -- SVG's focal point is our inner center.
+
+    -- Adjust the stops so that the gradient begins at the perimeter of
+    -- the inner circle (center0, radius0) and ends at the outer circle.
+    r0 = g^.rGradRadius0
+    r1 = g^.rGradRadius1
+    stopFracs = r0 / r1 : map (\s -> (r0 + (s^.stopFraction) * (r1-r0)) / r1)
+                (g^.rGradStops)
+    gradStops = case g^.rGradStops of
+      []       -> []
+      xs@(x:_) -> x : xs
+    ss = zipWith (\gs sf -> gs & stopFraction .~ sf ) gradStops stopFracs
+
+-- Create a gradient element so that it can be used as an attribute value for fill.
+renderFillTextureDefs :: Int -> Style v -> S.Svg
+renderFillTextureDefs i s =
+  case (getFillTexture <$> getAttr s) of
+    Just (LG g) -> renderLinearGradient g i
+    Just (RG g) -> renderRadialGradient g i
+    _           -> mempty
+
+-- Render the gradient using the id set up in renderFillTextureDefs.
+renderFillTexture :: Int -> Style v -> S.Attribute
+renderFillTexture id_ s = case (getFillTexture <$> getAttr s) of
+  Just (SC (SomeColor c)) -> (renderAttr A.fill fillColorRgb) `mappend`
+                             (renderAttr A.fillOpacity fillColorOpacity)
+    where
+      fillColorRgb     = Just $ colorToRgbString c
+      fillColorOpacity = Just $ colorToOpacity c
+  Just (LG _) -> A.fill (S.toValue ("url(#gradient" ++ show id_ ++ ")"))
+                `mappend` A.fillOpacity "1"
+  Just (RG _) -> A.fill (S.toValue ("url(#gradient" ++ show id_ ++ ")"))
+                `mappend` A.fillOpacity "1"
+  Nothing     -> mempty
+
+renderLineTextureDefs :: Int -> Style v -> S.Svg
+renderLineTextureDefs i s =
+  case (getLineTexture <$> getAttr s) of
+    Just (LG g) -> renderLinearGradient g i
+    Just (RG g) -> renderRadialGradient g i
+    _           -> mempty
+
+renderLineTexture :: Int -> Style v -> S.Attribute
+renderLineTexture id_ s = case (getLineTexture <$> getAttr s) of
+  Just (SC (SomeColor c)) -> (renderAttr A.stroke lineColorRgb) `mappend`
+                             (renderAttr A.strokeOpacity lineColorOpacity)
+    where
+      lineColorRgb     = Just $ colorToRgbString c
+      lineColorOpacity = Just $ colorToOpacity c
+  Just (LG _) -> A.stroke (S.toValue ("url(#gradient" ++ show id_ ++ ")"))
+                `mappend` A.strokeOpacity "1"
+  Just (RG _) -> A.stroke (S.toValue ("url(#gradient" ++ show id_ ++ ")"))
+                `mappend` A.strokeOpacity "1"
+  Nothing     -> mempty
+
 renderText :: Text -> S.Svg
 renderText (Text tr tAlign str) =
   S.text_
@@ -112,20 +219,13 @@ renderText (Text tr tAlign str) =
                w' | w' >= 0.75 -> "end"
                _ -> "middle"
   t                   = tr `mappend` reflectionY
-  (a,b,c,d,e,f)       = getMatrix t
-  transformMatrix     =  S.matrix a b c d e f
+  [[a,b],[c,d],[e,f]] = matrixHomRep t
+  transformMatrix     = S.matrix a b c d e f
 
-getMatrix :: Transformation R2 -> (Double, Double, Double, Double, Double, Double)
-getMatrix t = (a1,a2,b1,b2,c1,c2)
- where
-  (unr2 -> (a1,a2)) = apply t unitX
-  (unr2 -> (b1,b2)) = apply t unitY
-  (unr2 -> (c1,c2)) = transl t
-
-renderStyles :: Style v -> S.Attribute
-renderStyles s = mconcat . map ($ s) $
-  [ renderLineColor
-  , renderFillColor
+renderStyles :: Int -> Int -> Style v -> S.Attribute
+renderStyles fillId lineId s = mconcat . map ($ s) $
+  [ renderLineTexture lineId
+  , renderFillTexture fillId
   , renderLineWidth
   , renderLineCap
   , renderLineJoin
@@ -142,23 +242,6 @@ renderStyles s = mconcat . map ($ s) $
 renderMiterLimit :: Style v -> S.Attribute
 renderMiterLimit s = renderAttr A.strokeMiterlimit miterLimit
  where miterLimit = getLineMiterLimit <$> getAttr s
-
-renderLineColor :: Style v -> S.Attribute
-renderLineColor s =
-  (renderAttr A.stroke lineColorRgb) `mappend`
-  (renderAttr A.strokeOpacity lineColorOpacity)
- where lineColor_       = getLineColor <$> getAttr s
-       lineColorRgb     = colorToRgbString <$> lineColor_
-       lineColorOpacity = colorToOpacity <$> lineColor_
-
-renderFillColor :: Style v -> S.Attribute
-renderFillColor s =
-  (renderAttr A.fill fillColorRgb) `mappend`
-  (renderAttr A.fillOpacity fillColorOpacity)
- where fillColor_       = getFillColor <$> getAttr s
-       fillColorRgb     = colorToRgbString <$> fillColor_
-       fillColorOpacity = colorToOpacity <$> fillColor_
-
 
 renderOpacity :: Style v -> S.Attribute
 renderOpacity s = renderAttr A.opacity opacity_
