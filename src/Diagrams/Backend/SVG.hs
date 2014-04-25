@@ -311,12 +311,6 @@ instance Hashable (MarkupM a) where
     m
   hashWithSalt s Empty = s `hashWithSalt` (8 :: Int)
 
-instance Renderable (Segment Closed R2) SVG where
-  render c = render c . (fromSegments :: [Segment Closed R2] -> Path R2) . (:[])
-
-instance Renderable (Trail R2) SVG where
-  render c = render c . pathFromTrail
-
 instance Renderable (Path R2) SVG where
   render _ = R . return . R.renderPath
 
