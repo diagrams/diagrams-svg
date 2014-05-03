@@ -197,8 +197,8 @@ renderLineTexture id_ s = case (getLineTexture <$> getAttr s) of
                 `mappend` A.strokeOpacity "1"
   Nothing     -> mempty
 
-renderText :: Text -> S.Svg
-renderText (Text tr tAlign str) =
+renderText :: Bool -> Text -> S.Svg
+renderText isLocal (Text tt tn tAlign str) =
   S.text_
     ! A.transform transformMatrix
     ! A.dominantBaseline vAlign
@@ -218,7 +218,7 @@ renderText (Text tr tAlign str) =
                w' | w' <= 0.25 -> "start"
                w' | w' >= 0.75 -> "end"
                _ -> "middle"
-  t                   = tr `mappend` reflectionY
+  t                   = (if isLocal then tt else tn) `mappend` reflectionY
   [[a,b],[c,d],[e,f]] = matrixHomRep t
   transformMatrix     = S.matrix a b c d e f
 
