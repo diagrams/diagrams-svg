@@ -134,15 +134,16 @@ data SVG = SVG
 
 type B = SVG
 
-data SvgRenderState = SvgRenderState { _clipPathId :: Int
-                                     , _fillGradId :: Int
-                                     , _lineGradId :: Int }
+data SvgRenderState = SvgRenderState { _clipPathId  :: Int
+                                     , _fillGradId  :: Int
+                                     , _lineGradId  :: Int
+                                     , _isLocalText :: Bool }
 
 makeLenses ''SvgRenderState
 
 -- Fill gradients ids are even, line gradient ids are odd.
 initialSvgRenderState :: SvgRenderState
-initialSvgRenderState = SvgRenderState 0 0 1
+initialSvgRenderState = SvgRenderState 0 0 1 True
 
 -- | Monad to keep track of state when rendering an SVG.
 --   Currently just keeps a monotonically increasing counter
@@ -222,7 +223,18 @@ toRender = fromRTree
       fromRTree (Node (RStyle sty) ts)
         = R $ do
             let R r = foldMap fromRTree ts
+
+            -- save current setting for local text
+            oldIsLocal <- use isLocalText
+            -- check if this style speficies a font size in Local units
+            case getFontSizeIsLocal <$> getAttr sty of
+              Nothing      -> return ()
+              Just isLocal -> isLocalText .= isLocal
+            -- render subtrees
             svg <- r
+            -- restore the old setting for local text
+            isLocalText .= oldIsLocal
+
             idFill <- use fillGradId
             idLine <- use lineGradId
             clippedSvg <- renderSvgWithClipping svg sty
@@ -315,7 +327,9 @@ instance Renderable (Path R2) SVG where
   render _ = R . return . R.renderPath
 
 instance Renderable Text SVG where
-  render _ = R . return . R.renderText
+  render _ t = R $ do
+    isLocal <- use isLocalText
+    return $ R.renderText isLocal t
 
 -- TODO: instance Renderable Image SVG where
 
