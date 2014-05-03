@@ -317,7 +317,7 @@ renderPrim :: Prim R2 -> Render SVG R2
 renderPrim (Prim p)
   | q == (typeOf (undefined :: Path R2)) = R . return . R.renderPath $ unsafeCoerce p
   | q == (typeOf (undefined :: Text)) = R . return . R.renderText $ unsafeCoerce p
-  | otherwise = error $ "Primitive " ++ show q ++ " no supported by backend."
+  | otherwise = error $ "Primitive " ++ show q ++ " not supported by backend."
   where
     q = typeOf p
 
