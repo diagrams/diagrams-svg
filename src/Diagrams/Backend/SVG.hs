@@ -136,15 +136,16 @@ data SVG = SVG
 
 type B = SVG
 
-data SvgRenderState = SvgRenderState { _clipPathId :: Int
-                                     , _fillGradId :: Int
-                                     , _lineGradId :: Int }
+data SvgRenderState = SvgRenderState { _clipPathId  :: Int
+                                     , _fillGradId  :: Int
+                                     , _lineGradId  :: Int
+                                     , _isLocalText :: Bool }
 
 makeLenses ''SvgRenderState
 
 -- Fill gradients ids are even, line gradient ids are odd.
 initialSvgRenderState :: SvgRenderState
-initialSvgRenderState = SvgRenderState 0 0 1
+initialSvgRenderState = SvgRenderState 0 0 1 True
 
 -- | Monad to keep track of state when rendering an SVG.
 --   Currently just keeps a monotonically increasing counter
@@ -224,7 +225,18 @@ toRender = fromRTree
       fromRTree (Node (RStyle sty) ts)
         = R $ do
             let R r = foldMap fromRTree ts
+
+            -- save current setting for local text
+            oldIsLocal <- use isLocalText
+            -- check if this style speficies a font size in Local units
+            case getFontSizeIsLocal <$> getAttr sty of
+              Nothing      -> return ()
+              Just isLocal -> isLocalText .= isLocal
+            -- render subtrees
             svg <- r
+            -- restore the old setting for local text
+            isLocalText .= oldIsLocal
+
             idFill <- use fillGradId
             idLine <- use lineGradId
             clippedSvg <- renderSvgWithClipping svg sty
@@ -316,10 +328,14 @@ instance Hashable (MarkupM a) where
 renderPrim :: Prim R2 -> Render SVG R2
 renderPrim (Prim p)
   | q == (typeOf (undefined :: Path R2)) = R . return . R.renderPath $ unsafeCoerce p
-  | q == (typeOf (undefined :: Text)) = R . return . R.renderText $ unsafeCoerce p
+  | q == (typeOf (undefined :: Text)) = R $ do
+      isLocal <- use isLocalText
+      return $ R.renderText isLocal (unsafeCoerce p)
   | otherwise = error $ "Primitive " ++ show q ++ " not supported by backend."
   where
     q = typeOf p
+
+-- TODO: instance Renderable Image SVG where
 
 -- | Render a diagram as an SVG, writing to the specified output file
 --   and using the requested size.
