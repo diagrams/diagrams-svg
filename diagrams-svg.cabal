@@ -45,7 +45,7 @@ Library
                      , process
                      , directory
                      , filepath
-                     , mtl           >= 1     && < 2.2
+                     , mtl           >= 1     && < 2.3
                      , bytestring    >= 0.9   && < 1.0
                      , vector-space  >= 0.7   && < 0.9
                      , colour
