@@ -216,7 +216,7 @@ renderDImage (DImage iD w h tr) =
     transformMatrix = S.matrix a b c d e f
     mkDataURI dat = "data:image/png;base64," ++ BS8.unpack (BS64.encode dat)
     img = case encodeDynamicPng dImg of
-            Left str   -> error $ "Pixel format " ++ str ++ " not supported"
+            Left str   -> error str
             Right img' -> img'
     ImageRaster dImg = iD
     tX = translationX $ fromIntegral (-w)/2
