@@ -47,6 +47,7 @@ Library
                      , filepath
                      , mtl           >= 1     && < 2.2
                      , bytestring    >= 0.9   && < 1.0
+                     , base64-bytestring >= 1 && < 1.1
                      , vector-space  >= 0.7   && < 0.9
                      , colour
                      , diagrams-core >= 1.1   && < 1.2
@@ -54,6 +55,7 @@ Library
                      , monoid-extras >= 0.3   && < 0.4
                      , blaze-svg     >= 0.3.3
                      , blaze-markup  >= 0.5   && < 0.7
+                     , JuicyPixels >= 3.1.5 && < 3.2
                      , split         >= 0.1.2 && < 0.3
                      , time
                      , containers >= 0.3 && < 0.6

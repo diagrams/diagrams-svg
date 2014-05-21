@@ -21,6 +21,7 @@ module Graphics.Rendering.SVG
     , renderPath
     , renderClip
     , renderText
+    , renderDImage
     , renderStyles
     , renderMiterLimit
     , renderFillTextureDefs
@@ -47,6 +48,11 @@ import           Diagrams.TwoD.Text
 import           Text.Blaze.Svg11            (cr, hr, lr, m, mkPath, vr, z, (!))
 import qualified Text.Blaze.Svg11            as S
 import qualified Text.Blaze.Svg11.Attributes as A
+import qualified Data.ByteString.Base64.Lazy as BS64
+import qualified Data.ByteString.Lazy        as BS
+import qualified Data.ByteString.Lazy.Char8  as BS8
+
+import           Codec.Picture
 
 -- | @svgHeader w h defs s@: @w@ width, @h@ height,
 --   @defs@ global definitions for defs sections, @s@ actual SVG content.
@@ -196,6 +202,25 @@ renderLineTexture id_ s = case (getLineTexture <$> getAttr s) of
   Just (RG _) -> A.stroke (S.toValue ("url(#gradient" ++ show id_ ++ ")"))
                 `mappend` A.strokeOpacity "1"
   Nothing     -> mempty
+
+renderDImage :: DImage Embedded -> S.Svg
+renderDImage (DImage iD w h tr) =
+  S.image
+    ! A.transform transformMatrix
+    ! A.width (S.toValue w)
+    ! A.height (S.toValue h)
+    ! A.xlinkHref (S.preEscapedToValue (mkDataURI img))
+  where
+    [[a,b],[c,d],[e,f]] = matrixHomRep (tr `mappend` reflectionY 
+                                           `mappend` tX `mappend` tY)
+    transformMatrix     = S.matrix a b c d e f
+    mkDataURI dat       = "data:image/png;base64," ++ BS8.unpack (BS64.encode dat)
+    ImageRaster dImg = iD
+    img = case dImg of
+            ImageRGBA8 i -> encodePng i
+            _            -> error "Invalid image type"
+    tX = translationX $ fromIntegral (-w)/2
+    tY = translationY $ fromIntegral (-h)/2
 
 renderText :: Bool -> Text -> S.Svg
 renderText isLocal (Text tt tn tAlign str) =
