@@ -213,12 +213,12 @@ renderDImage (DImage iD w h tr) =
   where
     [[a,b],[c,d],[e,f]] = matrixHomRep (tr `mappend` reflectionY 
                                            `mappend` tX `mappend` tY)
-    transformMatrix     = S.matrix a b c d e f
-    mkDataURI dat       = "data:image/png;base64," ++ BS8.unpack (BS64.encode dat)
+    transformMatrix = S.matrix a b c d e f
+    mkDataURI dat = "data:image/png;base64," ++ BS8.unpack (BS64.encode dat)
+    img = case encodeDynamicPng dImg of
+            Left str   -> error $ "Pixel format " ++ str ++ " not supported"
+            Right img' -> img'
     ImageRaster dImg = iD
-    img = case dImg of
-            ImageRGBA8 i -> encodePng i
-            _            -> error "Invalid image type"
     tX = translationX $ fromIntegral (-w)/2
     tY = translationY $ fromIntegral (-h)/2
 
