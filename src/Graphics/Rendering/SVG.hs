@@ -49,7 +49,6 @@ import           Text.Blaze.Svg11            (cr, hr, lr, m, mkPath, vr, z, (!))
 import qualified Text.Blaze.Svg11            as S
 import qualified Text.Blaze.Svg11.Attributes as A
 import qualified Data.ByteString.Base64.Lazy as BS64
-import qualified Data.ByteString.Lazy        as BS
 import qualified Data.ByteString.Lazy.Char8  as BS8
 
 import           Codec.Picture
