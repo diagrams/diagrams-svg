@@ -331,6 +331,9 @@ instance Renderable Text SVG where
     isLocal <- use isLocalText
     return $ R.renderText isLocal t
 
+instance Renderable (DImage Embedded) SVG where
+  render _ = R . return . R.renderDImage
+
 -- TODO: instance Renderable Image SVG where
 
 -- | Render a diagram as an SVG, writing to the specified output file
