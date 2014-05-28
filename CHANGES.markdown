@@ -1,11 +1,11 @@
-1.2 (27 May 2014)
+1.1 (27 May 2014)
 -----------------
 
 * **New features**
 
     - Support for radial and linear gradients.
 
-    - Support for embedded images in .png format.
+    - Support for embedded images in `.png` format.
 
 * **New instances**
 
@@ -13,16 +13,15 @@
 
 * **API changes**
 
-    - Updates to work with `Measure` units
+    - Updates to work with `Measure` units.
 
     - Substantial refactoring of `Backend` instance to support changes in
       `Diagrams.Core`.
 
-* **Dependency/version chagnes
+* **Dependency/version changes**
 
-    - Requires `base64-bytestring` and `JuicyPixels`
-
-    - Allow `lens-4.1`
+    - New dependencies: `base64-bytestring` and `JuicyPixels`.
+    - Allow `lens-4.1`.
 
 1.0.2.1 (19 March 2014)
 ----------------------
