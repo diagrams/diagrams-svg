@@ -1,3 +1,29 @@
+1.2 (27 May 2014)
+-----------------
+
+* **New features**
+
+    - Support for radial and linear gradients.
+
+    - Support for embedded images in .png format.
+
+* **New instances**
+
+    - `Renderable` instances for `DImage Embedded`.
+
+* **API changes**
+
+    - Updates to work with `Measure` units
+
+    - Substantial refactoring of `Backend` instance to support changes in
+      `Diagrams.Core`.
+
+* **Dependency/version chagnes
+
+    - Requires `base64-bytestring` and `JuicyPixels`
+
+    - Allow `lens-4.1`
+
 1.0.2.1 (19 March 2014)
 ----------------------
 
