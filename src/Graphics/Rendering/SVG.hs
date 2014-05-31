@@ -109,7 +109,7 @@ spreadMethodStr GradPad      = "pad"
 spreadMethodStr GradReflect  = "reflect"
 spreadMethodStr GradRepeat   = "repeat"
 
-renderLinearGradient :: LGradient -> Int -> S.Svg
+renderLinearGradient :: LGradient R2 -> Int -> S.Svg
 renderLinearGradient g i = S.lineargradient
     ! A.id_ (S.toValue ("gradient" ++ (show i)))
     ! A.x1  (S.toValue x1)
@@ -126,7 +126,7 @@ renderLinearGradient g i = S.lineargradient
     (x1, y1) = unp2 (g^.lGradStart)
     (x2, y2) = unp2 (g^.lGradEnd)
 
-renderRadialGradient :: RGradient -> Int -> S.Svg
+renderRadialGradient :: RGradient R2 -> Int -> S.Svg
 renderRadialGradient g i = S.radialgradient
     ! A.id_ (S.toValue ("gradient" ++ (show i)))
     ! A.r (S.toValue (g^.rGradRadius1))
@@ -165,7 +165,7 @@ renderFillTextureDefs i s =
 
 -- Render the gradient using the id set up in renderFillTextureDefs.
 renderFillTexture :: Int -> Style v -> S.Attribute
-renderFillTexture id_ s = case (getFillTexture <$> getAttr s) of
+renderFillTexture id_ s = case (getFillTexture <$> getAttr s) :: Maybe (Texture R2) of
   Just (SC (SomeColor c)) -> (renderAttr A.fill fillColorRgb) `mappend`
                              (renderAttr A.fillOpacity fillColorOpacity)
     where
@@ -185,7 +185,7 @@ renderLineTextureDefs i s =
     _           -> mempty
 
 renderLineTexture :: Int -> Style v -> S.Attribute
-renderLineTexture id_ s = case (getLineTexture <$> getAttr s) of
+renderLineTexture id_ s = case (getLineTexture <$> getAttr s) :: Maybe (Texture R2) of
   Just (SC (SomeColor c)) -> (renderAttr A.stroke lineColorRgb) `mappend`
                              (renderAttr A.strokeOpacity lineColorOpacity)
     where
@@ -197,7 +197,7 @@ renderLineTexture id_ s = case (getLineTexture <$> getAttr s) of
                 `mappend` A.strokeOpacity "1"
   Nothing     -> mempty
 
-renderText :: Bool -> Text -> S.Svg
+renderText :: Bool -> Text R2 -> S.Svg
 renderText isLocal (Text tt tn tAlign str) =
   S.text_
     ! A.transform transformMatrix
@@ -256,7 +256,7 @@ renderFillRule s = renderAttr A.fillRule fillRule_
 
 renderLineWidth :: Style v -> S.Attribute
 renderLineWidth s = renderAttr A.strokeWidth lineWidth'
-  where lineWidth' = (fromOutput . getLineWidth) <$> getAttr s
+  where lineWidth' = (fromOutput . getLineWidth) <$> (getAttr s :: Maybe (LineWidth R2))
 
 
 renderLineCap :: Style v -> S.Attribute
@@ -282,14 +282,14 @@ renderDashing s = (renderAttr A.strokeDasharray arr) `mappend`
   getDasharray  (Dashing a  _) = map fromOutput a
   getDashoffset (Dashing _ o) = fromOutput o
   dashArrayToStr              = intercalate "," . map show
-  dashing_                    = getDashing <$> getAttr s
+  dashing_                    = getDashing <$> (getAttr s :: Maybe (DashingA R2))
   arr                         = (dashArrayToStr . getDasharray) <$> dashing_
   dOffset                     = getDashoffset <$> dashing_
 
 renderFontSize :: Style v -> S.Attribute
 renderFontSize s = renderAttr A.fontSize fontSize_
  where
-  fontSize_ = ((++ "em") . str . getFontSize) <$> getAttr s
+  fontSize_ = ((++ "em") . str . getFontSize) <$> (getAttr s :: Maybe (FontSize R2))
   str o = show $ fromOutput o
 
 renderFontSlant :: Style v -> S.Attribute

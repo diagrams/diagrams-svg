@@ -48,7 +48,7 @@
 -- particular backend.  For @b ~ SVG@ and @v ~ R2@, we have
 --
 -- > data Options SVG R2 = SVGOptions
--- >                       { size :: SizeSpec2D   -- ^ The requested size.
+-- >                       { size :: SizeSpec2D Double   -- ^ The requested size.
 -- >                       , svgDefinitions :: Maybe S.Svg
 -- >                       -- ^ Custom definitions that will be added to the @defs@
 -- >                       --  section of the output.
@@ -192,7 +192,7 @@ instance Backend SVG R2 where
   data Render  SVG R2 = R SvgRenderM
   type Result  SVG R2 = S.Svg
   data Options SVG R2 = SVGOptions
-                        { _size :: SizeSpec2D   -- ^ The requested size.
+                        { _size :: SizeSpec2D Double  -- ^ The requested size.
                         , _svgDefinitions :: Maybe S.Svg
                           -- ^ Custom definitions that will be added to the @defs@
                           --   section of the output.
@@ -227,7 +227,7 @@ toRender = fromRTree
             -- save current setting for local text
             oldIsLocal <- use isLocalText
             -- check if this style speficies a font size in Local units
-            case getFontSizeIsLocal <$> getAttr sty of
+            case getFontSizeIsLocal <$> (getAttr sty :: Maybe (FontSize R2)) of
               Nothing      -> return ()
               Just isLocal -> isLocalText .= isLocal
             -- render subtrees
@@ -245,13 +245,13 @@ toRender = fromRTree
                      (textureDefs `mappend` clippedSvg)
       fromRTree (Node _ rs) = foldMap fromRTree rs
 
-getSize :: Options SVG R2 -> SizeSpec2D
+getSize :: Options SVG R2 -> SizeSpec2D Double
 getSize (SVGOptions {_size = s}) = s
 
-setSize :: Options SVG R2 -> SizeSpec2D -> Options SVG R2
+setSize :: Options SVG R2 -> SizeSpec2D Double -> Options SVG R2
 setSize o s = o {_size = s}
 
-size :: Lens' (Options SVG R2) SizeSpec2D
+size :: Lens' (Options SVG R2) (SizeSpec2D Double)
 size = lens getSize setSize
 
 getSVGDefs :: Options SVG R2 -> Maybe S.Svg
@@ -326,7 +326,7 @@ instance Hashable (MarkupM a) where
 instance Renderable (Path R2) SVG where
   render _ = R . return . R.renderPath
 
-instance Renderable Text SVG where
+instance Renderable (Text R2) SVG where
   render _ t = R $ do
     isLocal <- use isLocalText
     return $ R.renderText isLocal t
@@ -335,7 +335,7 @@ instance Renderable Text SVG where
 
 -- | Render a diagram as an SVG, writing to the specified output file
 --   and using the requested size.
-renderSVG :: FilePath -> SizeSpec2D -> Diagram SVG R2 -> IO ()
+renderSVG :: FilePath -> SizeSpec2D Double -> Diagram SVG R2 -> IO ()
 renderSVG outFile sizeSpec
   = BS.writeFile outFile
   . renderSvg
