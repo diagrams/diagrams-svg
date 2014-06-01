@@ -21,7 +21,6 @@
 * **Dependency/version changes**
 
     - New dependencies: `base64-bytestring` and `JuicyPixels`.
-    - Allow `lens-4.1`.
 
 1.0.2.1 (19 March 2014)
 ----------------------
