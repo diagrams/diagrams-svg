@@ -47,11 +47,11 @@
 --
 -- For a tutorial on command-line diagram creation see
 -- <http://projects.haskell.org/diagrams/doc/cmdline.html>.
--- 
+--
 -----------------------------------------------------------------------------
 
 module Diagrams.Backend.SVG.CmdLine
-       ( 
+       (
          -- * General form of @main@
          -- $mainwith
 
@@ -125,7 +125,7 @@ getModuleTime = getClockTime
 -- We can run this program as follows:
 --
 -- > $ ghc --make MyDiagram
--- > 
+-- >
 -- > # output image.svg built by `f 20 red`
 -- > $ ./MyDiagram -o image.svg -w 200 20 red
 
@@ -169,12 +169,12 @@ getModuleTime = getClockTime
 -- $ ./MyDiagram -o image.svg -w 400
 -- @
 
-defaultMain :: Diagram SVG R2 -> IO ()
+defaultMain :: Diagram R2 -> IO ()
 defaultMain = mainWith
 
-instance Mainable (Diagram SVG R2) where
+instance Mainable (Diagram R2) where
 #ifdef CMDLINELOOP
-    type MainOpts (Diagram SVG R2) = (DiagramOpts, DiagramLoopOpts)
+    type MainOpts (Diagram R2) = (DiagramOpts, DiagramLoopOpts)
 
     mainRender (opts,loopOpts) d = do
         chooseRender opts d
@@ -185,7 +185,7 @@ instance Mainable (Diagram SVG R2) where
     mainRender opts d = chooseRender opts d
 #endif
 
-chooseRender :: DiagramOpts -> Diagram SVG R2 -> IO ()
+chooseRender :: DiagramOpts -> Diagram R2 -> IO ()
 chooseRender opts d =
   case splitOn "." (opts^.output) of
     [""] -> putStrLn "No output file given."
@@ -220,12 +220,12 @@ chooseRender opts d =
 -- $ ./MultiTest --selection bar -o Bar.eps -w 200
 -- @
 
-multiMain :: [(String, Diagram SVG R2)] -> IO ()
+multiMain :: [(String, Diagram R2)] -> IO ()
 multiMain = mainWith
 
-instance Mainable [(String,Diagram SVG R2)] where
-    type MainOpts [(String,Diagram SVG R2)] 
-        = (MainOpts (Diagram SVG R2), DiagramMultiOpts)
+instance Mainable [(String,Diagram R2)] where
+    type MainOpts [(String,Diagram R2)]
+        = (MainOpts (Diagram R2), DiagramMultiOpts)
 
     mainRender = defaultMultiMainRender
 

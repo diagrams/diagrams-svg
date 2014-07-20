@@ -2,6 +2,7 @@
 {-# LANGUAGE DeriveGeneric         #-}
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE FlexibleInstances     #-}
+{-# LANGUAGE GADTs                 #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE StandaloneDeriving    #-}
 {-# LANGUAGE TemplateHaskell       #-}
@@ -94,6 +95,7 @@ import           Data.Tree
 import           Control.Monad.State
 import           Data.Typeable
 import           GHC.Generics                 (Generic)
+import           Unsafe.Coerce
 
 -- from hashable
 import           Data.Hashable                (Hashable (..))
@@ -208,7 +210,7 @@ instance Backend SVG R2 where
 
   adjustDia c opts d = adjustDia2D size c opts (d # reflectY)
 
-toRender :: RTree SVG R2 Annotation -> Render SVG R2
+toRender :: RTree R2 Annotation -> Render SVG R2
 toRender = fromRTree
   . Node (RStyle (mempty # recommendFillColor (transparent :: AlphaColour Double)))
   . (:[])
@@ -219,7 +221,7 @@ toRender = fromRTree
             let R r =  foldMap fromRTree rs
             svg <- r
             return $ (S.a ! xlinkHref (S.toValue uri)) svg
-      fromRTree (Node (RPrim p) _) = render SVG p
+      fromRTree (Node (RPrim p) _) = renderPrim p
       fromRTree (Node (RStyle sty) ts)
         = R $ do
             let R r = foldMap fromRTree ts
@@ -323,13 +325,15 @@ instance Hashable (MarkupM a) where
     m
   hashWithSalt s Empty = s `hashWithSalt` (8 :: Int)
 
-instance Renderable (Path R2) SVG where
-  render _ = R . return . R.renderPath
-
-instance Renderable Text SVG where
-  render _ t = R $ do
-    isLocal <- use isLocalText
-    return $ R.renderText isLocal t
+renderPrim :: Prim R2 -> Render SVG R2
+renderPrim (Prim p)
+  | q == (typeOf (undefined :: Path R2)) = R . return . R.renderPath $ unsafeCoerce p
+  | q == (typeOf (undefined :: Text)) = R $ do
+      isLocal <- use isLocalText
+      return $ R.renderText isLocal (unsafeCoerce p)
+  | otherwise = error $ "Primitive " ++ show q ++ " not supported by backend."
+  where
+    q = typeOf p
 
 instance Renderable (DImage Embedded) SVG where
   render _ = R . return . R.renderDImage
@@ -338,7 +342,7 @@ instance Renderable (DImage Embedded) SVG where
 
 -- | Render a diagram as an SVG, writing to the specified output file
 --   and using the requested size.
-renderSVG :: FilePath -> SizeSpec2D -> Diagram SVG R2 -> IO ()
+renderSVG :: FilePath -> SizeSpec2D -> Diagram R2 -> IO ()
 renderSVG outFile sizeSpec
   = BS.writeFile outFile
   . renderSvg
