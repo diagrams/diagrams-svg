@@ -152,7 +152,7 @@ getModuleTime = getClockTime
 -- @
 -- ./Program
 --
--- Usage: ./Program [-w|--width WIDTH] [-h|--height HEIGHT] [-o|--output OUTPUT] [--loop] [-s|--src ARG] [-i|--interval INTERVAL]
+-- Usage: ./Program [-w|--width WIDTH] [-h|--height HEIGHT] [-o|--output OUTPUT] [--loop] [-s|--src ARG] [-i|--interval INTERVAL] [-p|--pretty]
 --   Command-line diagram generation.
 --
 -- Available options:
@@ -163,6 +163,7 @@ getModuleTime = getClockTime
 --   -l,--loop                Run in a self-recompiling loop
 --   -s,--src ARG             Source file to watch
 --   -i,--interval INTERVAL   When running in a loop, check for changes every INTERVAL seconds.
+--   -p,--pretty              Pretty print the SVG output
 -- @
 --
 --   For example, a common scenario is
