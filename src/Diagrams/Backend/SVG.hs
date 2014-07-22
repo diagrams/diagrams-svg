@@ -84,6 +84,7 @@ module Diagrams.Backend.SVG
   , Options(..), size, svgDefinitions -- for rendering options specific to SVG
 
   , renderSVG
+  , renderPretty
   ) where
 
 -- for testing
@@ -123,6 +124,7 @@ import           Text.Blaze.Svg.Renderer.Utf8 (renderSvg)
 import           Text.Blaze.Svg11             ((!))
 import qualified Text.Blaze.Svg11             as S
 import           Text.Blaze.Svg11.Attributes  (xlinkHref)
+import qualified Text.Blaze.Svg.Renderer.Pretty as Pretty
 
 -- from this package
 import qualified Graphics.Rendering.SVG       as R
@@ -343,3 +345,10 @@ renderSVG outFile sizeSpec
   = BS.writeFile outFile
   . renderSvg
   . renderDia SVG (SVGOptions sizeSpec Nothing)
+
+-- | Render a diagram as a pretty printed SVG.
+renderPretty :: FilePath -> SizeSpec2D -> Diagram SVG R2 -> IO ()
+renderPretty outFile sizeSpec
+  = writeFile outFile
+  . Pretty.renderSvg
+  .renderDia SVG (SVGOptions sizeSpec Nothing)

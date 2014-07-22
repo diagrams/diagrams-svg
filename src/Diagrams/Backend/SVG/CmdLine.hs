@@ -1,8 +1,10 @@
-{-# LANGUAGE TypeSynonymInstances #-}
-{-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# OPTIONS_GHC -fno-warn-orphans #-}
-{-# LANGUAGE CPP #-}
+{-# LANGUAGE TypeSynonymInstances  #-}
+{-# LANGUAGE TypeFamilies          #-}
+{-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE FlexibleInstances     #-}
+{-# LANGUAGE UndecidableInstances #-}
+{-# OPTIONS_GHC -fno-warn-orphans  #-}
+{-# LANGUAGE CPP                   #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Diagrams.Backend.SVG.CmdLine
@@ -72,8 +74,11 @@ import Diagrams.Prelude hiding (width, height, interval)
 import Diagrams.Backend.SVG
 import Diagrams.Backend.CmdLine
 
-import Control.Lens
+import Control.Lens hiding (argument)
+import Options.Applicative hiding ((&), (<>))
+import qualified Options.Applicative as O ((<>))
 
+import qualified Text.Blaze.Svg.Renderer.Pretty as Pretty
 import Text.Blaze.Svg.Renderer.Utf8 (renderSvg)
 import qualified Data.ByteString.Lazy as BS
 
@@ -93,6 +98,7 @@ import Control.Exception (SomeException(..))
 
 import System.Environment  (getProgName,getArgs)
 import System.Posix.Process (executeFile)
+import Safe                (readMay)
 
 
 # if MIN_VERSION_directory(1,2,0)
@@ -172,21 +178,35 @@ getModuleTime = getClockTime
 defaultMain :: Diagram SVG R2 -> IO ()
 defaultMain = mainWith
 
+newtype PrettyOpt = PrettyOpt {isPretty :: Bool}
+
+prettyOpt :: Parser PrettyOpt
+prettyOpt = PrettyOpt <$> switch (long "pretty" 
+                     O.<> short 'p' 
+                     O.<> help "Pretty print the SVG output")
+
+instance Parseable PrettyOpt where
+  parser = prettyOpt
+
+instance (Parseable a, Parseable b, Parseable c) => Parseable (a, b, c)
+   where
+     parser = (,,) <$> parser <*> parser <*> parser
+
 instance Mainable (Diagram SVG R2) where
 #ifdef CMDLINELOOP
-    type MainOpts (Diagram SVG R2) = (DiagramOpts, DiagramLoopOpts)
+    type MainOpts (Diagram SVG R2) = (DiagramOpts, DiagramLoopOpts, PrettyOpt)
 
-    mainRender (opts,loopOpts) d = do
-        chooseRender opts d
+    mainRender (opts, loopOpts, pretty) d = do
+        chooseRender opts pretty d
         when (loopOpts^.loop) (waitForChange Nothing loopOpts)
 #else
-    type MainOpts (Diagram SVG R2) = DiagramOpts
+    type MainOpts (Diagram SVG R2) = (DiagramOpts, PrettyOpt)
 
-    mainRender opts d = chooseRender opts d
+    mainRender (opts, pretty) d = chooseRender opts pretty d
 #endif
 
-chooseRender :: DiagramOpts -> Diagram SVG R2 -> IO ()
-chooseRender opts d =
+chooseRender :: DiagramOpts -> PrettyOpt -> Diagram SVG R2 -> IO ()
+chooseRender opts pretty d =
   case splitOn "." (opts^.output) of
     [""] -> putStrLn "No output file given."
     ps | last ps `elem` ["svg"] -> do
@@ -198,7 +218,9 @@ chooseRender opts d =
                                                        (fromIntegral h)
 
                build = renderDia SVG (SVGOptions sizeSpec Nothing) d
-           BS.writeFile (opts^.output) (renderSvg build)
+           if isPretty pretty
+             then writeFile (opts^.output) (Pretty.renderSvg build)
+             else BS.writeFile (opts^.output) (renderSvg build)
        | otherwise -> putStrLn $ "Unknown file type: " ++ last ps
 
 -- | @multiMain@ is like 'defaultMain', except instead of a single
