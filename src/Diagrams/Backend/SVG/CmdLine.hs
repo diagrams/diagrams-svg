@@ -98,7 +98,6 @@ import Control.Exception (SomeException(..))
 
 import System.Environment  (getProgName,getArgs)
 import System.Posix.Process (executeFile)
-import Safe                (readMay)
 
 
 # if MIN_VERSION_directory(1,2,0)
