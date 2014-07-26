@@ -188,10 +188,6 @@ prettyOpt = PrettyOpt <$> switch (long "pretty"
 instance Parseable PrettyOpt where
   parser = prettyOpt
 
-instance (Parseable a, Parseable b, Parseable c) => Parseable (a, b, c)
-   where
-     parser = (,,) <$> parser <*> parser <*> parser
-
 instance Mainable (Diagram SVG R2) where
 #ifdef CMDLINELOOP
     type MainOpts (Diagram SVG R2) = (DiagramOpts, DiagramLoopOpts, PrettyOpt)
