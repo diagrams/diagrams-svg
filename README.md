@@ -1,4 +1,4 @@
-[![Build Status](https://secure.travis-ci.org/diagrams/diagrams-svg.png)](http://travis-ci.org/diagrams/diagrams-svg)
+[![Build Status](https://travis-ci.org/diagrams/diagrams-svg.png?branch=master)](http://travis-ci.org/diagrams/diagrams-svg)
 
 _diagrams-svg_ is a an SVG backend for [diagrams]. Diagrams is a powerful,
 flexible, declarative domain-specific language for creating vector graphics,

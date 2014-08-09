@@ -1,8 +1,10 @@
-{-# LANGUAGE TypeSynonymInstances #-}
-{-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# OPTIONS_GHC -fno-warn-orphans #-}
-{-# LANGUAGE CPP #-}
+{-# LANGUAGE TypeSynonymInstances  #-}
+{-# LANGUAGE TypeFamilies          #-}
+{-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE FlexibleInstances     #-}
+{-# LANGUAGE UndecidableInstances #-}
+{-# OPTIONS_GHC -fno-warn-orphans  #-}
+{-# LANGUAGE CPP                   #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Diagrams.Backend.SVG.CmdLine
@@ -72,8 +74,11 @@ import Diagrams.Prelude hiding (width, height, interval)
 import Diagrams.Backend.SVG
 import Diagrams.Backend.CmdLine
 
-import Control.Lens
+import Control.Lens hiding (argument)
+import Options.Applicative hiding ((&), (<>))
+import qualified Options.Applicative as O ((<>))
 
+import qualified Text.Blaze.Svg.Renderer.Pretty as Pretty
 import Text.Blaze.Svg.Renderer.Utf8 (renderSvg)
 import qualified Data.ByteString.Lazy as BS
 
@@ -147,7 +152,7 @@ getModuleTime = getClockTime
 -- @
 -- ./Program
 --
--- Usage: ./Program [-w|--width WIDTH] [-h|--height HEIGHT] [-o|--output OUTPUT] [--loop] [-s|--src ARG] [-i|--interval INTERVAL]
+-- Usage: ./Program [-w|--width WIDTH] [-h|--height HEIGHT] [-o|--output OUTPUT] [--loop] [-s|--src ARG] [-i|--interval INTERVAL] [-p|--pretty]
 --   Command-line diagram generation.
 --
 -- Available options:
@@ -158,6 +163,7 @@ getModuleTime = getClockTime
 --   -l,--loop                Run in a self-recompiling loop
 --   -s,--src ARG             Source file to watch
 --   -i,--interval INTERVAL   When running in a loop, check for changes every INTERVAL seconds.
+--   -p,--pretty              Pretty print the SVG output
 -- @
 --
 --   For example, a common scenario is
@@ -172,21 +178,31 @@ getModuleTime = getClockTime
 defaultMain :: Diagram SVG R2 -> IO ()
 defaultMain = mainWith
 
+newtype PrettyOpt = PrettyOpt {isPretty :: Bool}
+
+prettyOpt :: Parser PrettyOpt
+prettyOpt = PrettyOpt <$> switch (long "pretty" 
+                     O.<> short 'p' 
+                     O.<> help "Pretty print the SVG output")
+
+instance Parseable PrettyOpt where
+  parser = prettyOpt
+
 instance Mainable (Diagram SVG R2) where
 #ifdef CMDLINELOOP
-    type MainOpts (Diagram SVG R2) = (DiagramOpts, DiagramLoopOpts)
+    type MainOpts (Diagram SVG R2) = (DiagramOpts, DiagramLoopOpts, PrettyOpt)
 
-    mainRender (opts,loopOpts) d = do
-        chooseRender opts d
+    mainRender (opts, loopOpts, pretty) d = do
+        chooseRender opts pretty d
         when (loopOpts^.loop) (waitForChange Nothing loopOpts)
 #else
-    type MainOpts (Diagram SVG R2) = DiagramOpts
+    type MainOpts (Diagram SVG R2) = (DiagramOpts, PrettyOpt)
 
-    mainRender opts d = chooseRender opts d
+    mainRender (opts, pretty) d = chooseRender opts pretty d
 #endif
 
-chooseRender :: DiagramOpts -> Diagram SVG R2 -> IO ()
-chooseRender opts d =
+chooseRender :: DiagramOpts -> PrettyOpt -> Diagram SVG R2 -> IO ()
+chooseRender opts pretty d =
   case splitOn "." (opts^.output) of
     [""] -> putStrLn "No output file given."
     ps | last ps `elem` ["svg"] -> do
@@ -198,7 +214,9 @@ chooseRender opts d =
                                                        (fromIntegral h)
 
                build = renderDia SVG (SVGOptions sizeSpec Nothing) d
-           BS.writeFile (opts^.output) (renderSvg build)
+           if isPretty pretty
+             then writeFile (opts^.output) (Pretty.renderSvg build)
+             else BS.writeFile (opts^.output) (renderSvg build)
        | otherwise -> putStrLn $ "Unknown file type: " ++ last ps
 
 -- | @multiMain@ is like 'defaultMain', except instead of a single

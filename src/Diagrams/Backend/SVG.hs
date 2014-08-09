@@ -26,11 +26,13 @@
 -- * You can use the "Diagrams.Backend.SVG.CmdLine" module to create
 --   standalone executables which output SVG images when invoked.
 --
--- * You can use the 'renderSVG' function provided by this module,
---   which gives you more flexible programmatic control over when and
---   how images are output (making it easy to, for example, write a
+-- * You can use the 'renderSVG' or 'renderPretty' functions provided by
+--   this module, which give you more flexible programmatic control over when
+--   and how images are output (making it easy to, for example, write a
 --   single program that outputs multiple images, or one that outputs
---   images dynamically based on user input, and so on).
+--   images dynamically based on user input, and so on). The only
+--   difference between the two functions is that 'renderPretty', pretty
+--   prints the SVG output.
 --
 -- * For the most flexibility (/e.g./ if you want access to the
 --   resulting SVG value directly in memory without writing it to
@@ -84,6 +86,7 @@ module Diagrams.Backend.SVG
   , Options(..), size, svgDefinitions -- for rendering options specific to SVG
 
   , renderSVG
+  , renderPretty
   ) where
 
 -- for testing
@@ -123,6 +126,7 @@ import           Text.Blaze.Svg.Renderer.Utf8 (renderSvg)
 import           Text.Blaze.Svg11             ((!))
 import qualified Text.Blaze.Svg11             as S
 import           Text.Blaze.Svg11.Attributes  (xlinkHref)
+import qualified Text.Blaze.Svg.Renderer.Pretty as Pretty
 
 -- from this package
 import qualified Graphics.Rendering.SVG       as R
@@ -331,6 +335,9 @@ instance Renderable (Text R2) SVG where
     isLocal <- use isLocalText
     return $ R.renderText isLocal t
 
+instance Renderable (DImage R2 Embedded) SVG where
+  render _ = R . return . R.renderDImage
+
 -- TODO: instance Renderable Image SVG where
 
 -- | Render a diagram as an SVG, writing to the specified output file
@@ -340,3 +347,10 @@ renderSVG outFile sizeSpec
   = BS.writeFile outFile
   . renderSvg
   . renderDia SVG (SVGOptions sizeSpec Nothing)
+
+-- | Render a diagram as a pretty printed SVG.
+renderPretty :: FilePath -> SizeSpec2D Double -> Diagram SVG R2 -> IO ()
+renderPretty outFile sizeSpec
+  = writeFile outFile
+  . Pretty.renderSvg
+  .renderDia SVG (SVGOptions sizeSpec Nothing)
