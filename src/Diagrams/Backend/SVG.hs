@@ -7,6 +7,8 @@
 {-# LANGUAGE TemplateHaskell       #-}
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE TypeSynonymInstances  #-}
+{-# LANGUAGE NondecreasingIndentation #-}
+{-# LANGUAGE GADTs #-}
 
 {-# OPTIONS_GHC -fno-warn-orphans  #-}
 
@@ -87,8 +89,12 @@ module Diagrams.Backend.SVG
 
   , renderSVG
   , renderPretty
+  , loadImageSVG
   ) where
 
+-- from JuicyPixels
+import           Codec.Picture
+import           Codec.Picture.Types(dynamicMap)
 -- for testing
 import           Data.Foldable                (foldMap)
 import           Data.Tree
@@ -102,6 +108,7 @@ import           GHC.Generics                 (Generic)
 import           Data.Hashable                (Hashable (..))
 
 -- from bytestring
+import qualified Data.ByteString              as SBS
 import qualified Data.ByteString.Lazy         as BS
 
 -- from lens
@@ -336,7 +343,7 @@ instance Renderable Text SVG where
     return $ R.renderText isLocal t
 
 instance Renderable (DImage Embedded) SVG where
-  render _ = R . return . R.renderDImage
+  render _ = R . return . R.renderDImageEmb
 
 -- TODO: instance Renderable Image SVG where
 
@@ -354,3 +361,35 @@ renderPretty outFile sizeSpec
   = writeFile outFile
   . Pretty.renderSvg
   .renderDia SVG (SVGOptions sizeSpec Nothing)
+
+
+
+data Img = Img !Char !BS.ByteString deriving(Typeable)
+
+-- | Load images (JPG/PNG/...) in a SVG specific way.
+loadImageSVG :: FilePath -> IO (Diagram SVG R2)
+loadImageSVG fp = do
+    raw <- SBS.readFile fp
+    dyn <- eIO $ decodeImage raw
+    let dat = BS.fromChunks [raw]
+    let pic t d = return $ image (DImage (ImageNative (Img t d)) (dynamicMap imageWidth dyn) (dynamicMap imageHeight dyn) mempty)
+    if pngHeader `SBS.isPrefixOf` raw then pic 'P' dat else do
+    if jpgHeader `SBS.isPrefixOf` raw then pic 'J' dat else do
+    case dyn of
+      (ImageYCbCr8 _) -> pic 'J' dat
+      _               -> pic 'P' =<< (eIO $ encodeDynamicPng dyn)
+  where pngHeader :: SBS.ByteString
+        pngHeader = SBS.pack [137, 80, 78, 71, 13, 10, 26, 10]
+        jpgHeader :: SBS.ByteString
+        jpgHeader = SBS.pack [0xFF, 0xD8]
+        eIO :: Either String a -> IO a
+        eIO = either fail return
+
+instance Renderable (DImage (Native Img)) SVG where
+  render _ di@(DImage (ImageNative (Img t d)) _ _ _) = R $ do
+    mime <- case t of
+          'J' -> return "image/jpeg"
+          'P' -> return "image/png"
+          _   -> fail "Unknown mime type while rendering image"
+    return $ R.renderDImage di $ R.dataUri mime d
+

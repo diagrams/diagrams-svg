@@ -22,12 +22,14 @@ module Graphics.Rendering.SVG
     , renderClip
     , renderText
     , renderDImage
+    , renderDImageEmb
     , renderStyles
     , renderMiterLimit
     , renderFillTextureDefs
     , renderFillTexture
     , renderLineTextureDefs
     , renderLineTexture
+    , dataUri
     ) where
 
 -- from base
@@ -202,22 +204,28 @@ renderLineTexture id_ s = case (getLineTexture <$> getAttr s) of
                 `mappend` A.strokeOpacity "1"
   Nothing     -> mempty
 
-renderDImage :: DImage Embedded -> S.Svg
-renderDImage (DImage iD w h tr) =
+dataUri :: String -> BS8.ByteString -> String
+dataUri mime dat = "data:"++mime++";base64," ++ BS8.unpack (BS64.encode dat)
+
+renderDImageEmb :: DImage Embedded -> S.Svg
+renderDImageEmb di@(DImage (ImageRaster dImg) _ _ _) =
+  renderDImage di $ dataUri "image/png" img
+  where
+    img = case encodeDynamicPng dImg of
+            Left str   -> error str
+            Right img' -> img'
+
+renderDImage :: DImage any -> String -> S.Svg
+renderDImage (DImage _ w h tr) uridata =
   S.image
     ! A.transform transformMatrix
     ! A.width (S.toValue w)
     ! A.height (S.toValue h)
-    ! A.xlinkHref (S.preEscapedToValue (mkDataURI img))
+    ! A.xlinkHref (S.preEscapedToValue uridata)
   where
     [[a,b],[c,d],[e,f]] = matrixHomRep (tr `mappend` reflectionY 
                                            `mappend` tX `mappend` tY)
     transformMatrix = S.matrix a b c d e f
-    mkDataURI dat = "data:image/png;base64," ++ BS8.unpack (BS64.encode dat)
-    img = case encodeDynamicPng dImg of
-            Left str   -> error str
-            Right img' -> img'
-    ImageRaster dImg = iD
     tX = translationX $ fromIntegral (-w)/2
     tY = translationY $ fromIntegral (-h)/2
 
