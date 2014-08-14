@@ -43,6 +43,7 @@ import           Diagrams.Core.Transform     (matrixHomRep)
 import           Diagrams.Prelude            hiding (Attribute, Render, (<>))
 import           Diagrams.TwoD.Path          (getFillRule)
 import           Diagrams.TwoD.Text
+import           Diagrams.TwoD.Types.Double
 
 -- from blaze-svg
 import           Text.Blaze.Svg11            (cr, hr, lr, m, mkPath, vr, z, (!))

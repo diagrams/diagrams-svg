@@ -82,7 +82,7 @@
 
 module Diagrams.Backend.SVG
   ( SVG(..) -- rendering token
-  , B
+  , B, R2, P2, T2
   , Options(..), size, svgDefinitions -- for rendering options specific to SVG
 
   , renderSVG
@@ -118,6 +118,7 @@ import           Diagrams.TwoD.Attributes     (splitTextureFills)
 import           Diagrams.TwoD.Path           (Clip (Clip))
 import           Diagrams.TwoD.Size           (sizePair)
 import           Diagrams.TwoD.Text
+import           Diagrams.TwoD.Types.Double
 
 -- from blaze-svg
 import           Text.Blaze.Internal          (ChoiceString (..), MarkupM (..),
