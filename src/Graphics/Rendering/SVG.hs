@@ -104,7 +104,7 @@ renderClip p id_ svg = do
     svg
   where clipPathId i = "myClip" ++ show i
 
-renderStop :: GradientStop -> S.Svg
+renderStop :: GradientStop Double -> S.Svg
 renderStop (GradientStop c v)
   = S.stop ! A.stopColor (S.toValue (colorToRgbString c))
            ! A.offset (S.toValue (show v))
