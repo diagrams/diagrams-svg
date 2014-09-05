@@ -119,7 +119,7 @@ import           Diagrams.Core.Compile
 import           Diagrams.Core.Types          (Annotation (..))
 
 -- from diagrams-lib
-import           Diagrams.Prelude             hiding (view)
+import           Diagrams.Prelude             hiding (view, size)
 import           Diagrams.TwoD.Adjust         (adjustDia2D)
 import           Diagrams.TwoD.Attributes     (splitTextureFills)
 import           Diagrams.TwoD.Path           (Clip (Clip))
@@ -161,7 +161,7 @@ initialSvgRenderState = SvgRenderState 0 0 1 True
 --   for assiging a unique clip path ID.
 type SvgRenderM = State SvgRenderState S.Svg
 
-instance Monoid (Render SVG R2) where
+instance Monoid (Render SVG V2 Double) where
   mempty  = R $ return mempty
   (R r1) `mappend` (R r2_) =
     R $ do
@@ -171,15 +171,15 @@ instance Monoid (Render SVG R2) where
 
 -- Handle clip attributes.
 renderSvgWithClipping :: S.Svg             -- ^ Input SVG
-                      -> Style v           -- ^ Styles
+                      -> Style v Double    -- ^ Styles
                       -> SvgRenderM        -- ^ Resulting svg
 renderSvgWithClipping svg s =
-  case (op Clip <$> getAttr s) of
-    Nothing -> return $ svg
+  case op Clip <$> getAttr s of
+    Nothing -> return svg
     Just paths -> renderClips paths
   where
-    renderClips :: [Path R2] -> SvgRenderM
-    renderClips [] = return $ svg
+    renderClips :: [Path V2 Double] -> SvgRenderM
+    renderClips []     = return svg
     renderClips (p:ps) = do
       clipPathId += 1
       id_ <- use clipPathId
@@ -187,39 +187,39 @@ renderSvgWithClipping svg s =
 
 -- | Create a new texture defs svg element using the style and the current
 --   id number, then increment the gradient id number.
-fillTextureDefs :: Style v -> SvgRenderM
+fillTextureDefs :: Style v Double -> SvgRenderM
 fillTextureDefs s = do
   id_ <- use fillGradId
   fillGradId += 2 -- always even
   return $ R.renderFillTextureDefs id_ s
 
-lineTextureDefs :: Style v -> SvgRenderM
+lineTextureDefs :: Style v Double -> SvgRenderM
 lineTextureDefs s = do
   id_ <- use lineGradId
   lineGradId += 2 -- always odd
   return $ R.renderLineTextureDefs id_ s
 
-instance Backend SVG R2 where
-  data Render  SVG R2 = R SvgRenderM
-  type Result  SVG R2 = S.Svg
-  data Options SVG R2 = SVGOptions
-                        { _size :: SizeSpec2D   -- ^ The requested size.
-                        , _svgDefinitions :: Maybe S.Svg
+instance Backend SVG V2 Double where
+  data Render  SVG V2 Double = R SvgRenderM
+  type Result  SVG V2 Double = S.Svg
+  data Options SVG V2 Double = SVGOptions
+    { _size :: SizeSpec2D Double   -- ^ The requested size.
+    , _svgDefinitions :: Maybe S.Svg
                           -- ^ Custom definitions that will be added to the @defs@
                           --   section of the output.
-                        }
+    }
 
   renderRTree _ opts rt = evalState svgOutput initialSvgRenderState
     where
       svgOutput = do
-        let R r = toRender rt
+        let R r   = toRender rt
             (w,h) = sizePair (opts^.size)
         svg <- r
-        return $ R.svgHeader w h (opts^.svgDefinitions) $ svg
+        return $ R.svgHeader w h (opts^.svgDefinitions) svg
 
   adjustDia c opts d = adjustDia2D size c opts (d # reflectY)
 
-toRender :: RTree SVG R2 Annotation -> Render SVG R2
+toRender :: RTree SVG V2 Double Annotation -> Render SVG V2 Double
 toRender = fromRTree
   . Node (RStyle (mempty # recommendFillColor (transparent :: AlphaColour Double)))
   . (:[])
@@ -238,9 +238,11 @@ toRender = fromRTree
             -- save current setting for local text
             oldIsLocal <- use isLocalText
             -- check if this style speficies a font size in Local units
-            case getFontSizeIsLocal <$> getAttr sty of
-              Nothing      -> return ()
-              Just isLocal -> isLocalText .= isLocal
+            -- mapM_ (assign isLocalText) (getFontSizeIsLocal <$> getAttr sty)
+            -- case getFontSizeIsLocal <$> getAttr sty of
+            --   Nothing      -> return ()
+            --   Just isLocal -> isLocalText .= isLocal
+
             -- render subtrees
             svg <- r
             -- restore the old setting for local text
@@ -256,25 +258,25 @@ toRender = fromRTree
                      (textureDefs `mappend` clippedSvg)
       fromRTree (Node _ rs) = foldMap fromRTree rs
 
-getSize :: Options SVG R2 -> SizeSpec2D
+getSize :: Options SVG V2 Double -> SizeSpec2D Double
 getSize (SVGOptions {_size = s}) = s
 
-setSize :: Options SVG R2 -> SizeSpec2D -> Options SVG R2
+setSize :: Options SVG V2 Double -> SizeSpec2D Double -> Options SVG V2 Double
 setSize o s = o {_size = s}
 
-size :: Lens' (Options SVG R2) SizeSpec2D
+size :: Lens' (Options SVG V2 Double) (SizeSpec2D Double)
 size = lens getSize setSize
 
-getSVGDefs :: Options SVG R2 -> Maybe S.Svg
+getSVGDefs :: Options SVG V2 Double -> Maybe S.Svg
 getSVGDefs (SVGOptions {_svgDefinitions = d}) = d
 
-setSVGDefs :: Options SVG R2 -> Maybe S.Svg -> Options SVG R2
+setSVGDefs :: Options SVG V2 Double -> Maybe S.Svg -> Options SVG V2 Double
 setSVGDefs o d = o {_svgDefinitions = d}
 
-svgDefinitions :: Lens' (Options SVG R2) (Maybe S.Svg)
+svgDefinitions :: Lens' (Options SVG V2 Double) (Maybe S.Svg)
 svgDefinitions = lens getSVGDefs setSVGDefs
 
-instance Hashable (Options SVG R2) where
+instance Hashable (Options SVG V2 Double) where
   hashWithSalt s (SVGOptions sz defs) =
     s `hashWithSalt` sz `hashWithSalt` defs
 
@@ -334,29 +336,29 @@ instance Hashable (MarkupM a) where
     m
   hashWithSalt s Empty = s `hashWithSalt` (8 :: Int)
 
-instance Renderable (Path R2) SVG where
+instance Renderable (Path V2 Double) SVG where
   render _ = R . return . R.renderPath
 
-instance Renderable Text SVG where
+instance Renderable (Text Double) SVG where
   render _ t = R $ do
     isLocal <- use isLocalText
     return $ R.renderText isLocal t
 
-instance Renderable (DImage Embedded) SVG where
+instance Renderable (DImage Double Embedded) SVG where
   render _ = R . return . R.renderDImageEmb
 
 -- TODO: instance Renderable Image SVG where
 
 -- | Render a diagram as an SVG, writing to the specified output file
 --   and using the requested size.
-renderSVG :: FilePath -> SizeSpec2D -> Diagram SVG R2 -> IO ()
+renderSVG :: FilePath -> SizeSpec2D Double -> Diagram SVG V2 Double -> IO ()
 renderSVG outFile sizeSpec
   = BS.writeFile outFile
   . renderSvg
   . renderDia SVG (SVGOptions sizeSpec Nothing)
 
 -- | Render a diagram as a pretty printed SVG.
-renderPretty :: FilePath -> SizeSpec2D -> Diagram SVG R2 -> IO ()
+renderPretty :: FilePath -> SizeSpec2D Double -> Diagram SVG V2 Double -> IO ()
 renderPretty outFile sizeSpec
   = writeFile outFile
   . Pretty.renderSvg
@@ -364,10 +366,10 @@ renderPretty outFile sizeSpec
 
 
 
-data Img = Img !Char !BS.ByteString deriving(Typeable)
+data Img = Img !Char !BS.ByteString deriving Typeable
 
 -- | Load images (JPG/PNG/...) in a SVG specific way.
-loadImageSVG :: FilePath -> IO (Diagram SVG R2)
+loadImageSVG :: FilePath -> IO (Diagram SVG V2 Double)
 loadImageSVG fp = do
     raw <- SBS.readFile fp
     dyn <- eIO $ decodeImage raw
@@ -377,7 +379,7 @@ loadImageSVG fp = do
     if jpgHeader `SBS.isPrefixOf` raw then pic 'J' dat else do
     case dyn of
       (ImageYCbCr8 _) -> pic 'J' dat
-      _               -> pic 'P' =<< (eIO $ encodeDynamicPng dyn)
+      _               -> pic 'P' =<< eIO (encodeDynamicPng dyn)
   where pngHeader :: SBS.ByteString
         pngHeader = SBS.pack [137, 80, 78, 71, 13, 10, 26, 10]
         jpgHeader :: SBS.ByteString
@@ -385,7 +387,7 @@ loadImageSVG fp = do
         eIO :: Either String a -> IO a
         eIO = either fail return
 
-instance Renderable (DImage (Native Img)) SVG where
+instance Renderable (DImage Double (Native Img)) SVG where
   render _ di@(DImage (ImageNative (Img t d)) _ _ _) = R $ do
     mime <- case t of
           'J' -> return "image/jpeg"

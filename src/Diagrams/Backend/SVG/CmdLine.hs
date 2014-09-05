@@ -1,10 +1,10 @@
-{-# LANGUAGE TypeSynonymInstances  #-}
-{-# LANGUAGE TypeFamilies          #-}
-{-# LANGUAGE FlexibleContexts      #-}
-{-# LANGUAGE FlexibleInstances     #-}
+{-# LANGUAGE FlexibleContexts     #-}
+{-# LANGUAGE FlexibleInstances    #-}
+{-# LANGUAGE TypeFamilies         #-}
+{-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# OPTIONS_GHC -fno-warn-orphans  #-}
-{-# LANGUAGE CPP                   #-}
+{-# LANGUAGE CPP                  #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Diagrams.Backend.SVG.CmdLine
@@ -49,11 +49,11 @@
 --
 -- For a tutorial on command-line diagram creation see
 -- <http://projects.haskell.org/diagrams/doc/cmdline.html>.
--- 
+--
 -----------------------------------------------------------------------------
 
 module Diagrams.Backend.SVG.CmdLine
-       ( 
+       (
          -- * General form of @main@
          -- $mainwith
 
@@ -70,38 +70,38 @@ module Diagrams.Backend.SVG.CmdLine
        , B
        ) where
 
-import Diagrams.Prelude hiding (width, height, interval)
-import Diagrams.Backend.SVG
-import Diagrams.Backend.CmdLine
+import           Diagrams.Backend.CmdLine
+import           Diagrams.Backend.SVG
+import           Diagrams.Prelude               hiding (height, interval, width)
 
-import Control.Lens hiding (argument)
-import Options.Applicative hiding ((&), (<>))
-import qualified Options.Applicative as O ((<>))
+import           Control.Lens                   hiding (argument)
+import           Options.Applicative            hiding ((&), (<>))
+import qualified Options.Applicative            as O ((<>))
 
+import qualified Data.ByteString.Lazy           as BS
 import qualified Text.Blaze.Svg.Renderer.Pretty as Pretty
-import Text.Blaze.Svg.Renderer.Utf8 (renderSvg)
-import qualified Data.ByteString.Lazy as BS
+import           Text.Blaze.Svg.Renderer.Utf8   (renderSvg)
 
-import Data.List.Split
+import           Data.List.Split
 
 #ifdef CMDLINELOOP
-import Data.Maybe          (fromMaybe)
-import Control.Monad       (when)
-import System.Directory    (getModificationTime)
-import System.Process      (runProcess, waitForProcess)
-import System.IO           (openFile, hClose, IOMode(..),
-                            hSetBuffering, BufferMode(..), stdout)
-import System.Exit         (ExitCode(..))
-import Control.Concurrent  (threadDelay)
-import qualified Control.Exception as Exc  (catch,  bracket)
-import Control.Exception (SomeException(..))
+import           Control.Concurrent             (threadDelay)
+import           Control.Exception              (SomeException (..))
+import qualified Control.Exception              as Exc (bracket, catch)
+import           Control.Monad                  (when)
+import           Data.Maybe                     (fromMaybe)
+import           System.Directory               (getModificationTime)
+import           System.Exit                    (ExitCode (..))
+import           System.IO                      (BufferMode (..), IOMode (..), hClose,
+                                                 hSetBuffering, openFile, stdout)
+import           System.Process                 (runProcess, waitForProcess)
 
-import System.Environment  (getProgName,getArgs)
-import System.Posix.Process (executeFile)
+import           System.Environment             (getArgs, getProgName)
+import           System.Posix.Process           (executeFile)
 
 
 # if MIN_VERSION_directory(1,2,0)
-import Data.Time.Clock (UTCTime,getCurrentTime)
+import           Data.Time.Clock                (UTCTime, getCurrentTime)
 type ModuleTime = UTCTime
 getModuleTime :: IO  ModuleTime
 getModuleTime = getCurrentTime
@@ -130,7 +130,7 @@ getModuleTime = getClockTime
 -- We can run this program as follows:
 --
 -- > $ ghc --make MyDiagram
--- > 
+-- >
 -- > # output image.svg built by `f 20 red`
 -- > $ ./MyDiagram -o image.svg -w 200 20 red
 
@@ -175,22 +175,22 @@ getModuleTime = getClockTime
 -- $ ./MyDiagram -o image.svg -w 400
 -- @
 
-defaultMain :: Diagram SVG R2 -> IO ()
+defaultMain :: Diagram SVG V2 Double -> IO ()
 defaultMain = mainWith
 
 newtype PrettyOpt = PrettyOpt {isPretty :: Bool}
 
 prettyOpt :: Parser PrettyOpt
-prettyOpt = PrettyOpt <$> switch (long "pretty" 
-                     O.<> short 'p' 
+prettyOpt = PrettyOpt <$> switch (long "pretty"
+                     O.<> short 'p'
                      O.<> help "Pretty print the SVG output")
 
 instance Parseable PrettyOpt where
   parser = prettyOpt
 
-instance Mainable (Diagram SVG R2) where
+instance Mainable (Diagram SVG V2 Double) where
 #ifdef CMDLINELOOP
-    type MainOpts (Diagram SVG R2) = (DiagramOpts, DiagramLoopOpts, PrettyOpt)
+    type MainOpts (Diagram SVG V2 Double) = (DiagramOpts, DiagramLoopOpts, PrettyOpt)
 
     mainRender (opts, loopOpts, pretty) d = do
         chooseRender opts pretty d
@@ -198,10 +198,10 @@ instance Mainable (Diagram SVG R2) where
 #else
     type MainOpts (Diagram SVG R2) = (DiagramOpts, PrettyOpt)
 
-    mainRender (opts, pretty) d = chooseRender opts pretty d
+    mainRender (opts, pretty) = chooseRender opts pretty
 #endif
 
-chooseRender :: DiagramOpts -> PrettyOpt -> Diagram SVG R2 -> IO ()
+chooseRender :: DiagramOpts -> PrettyOpt -> Diagram SVG V2 Double -> IO ()
 chooseRender opts pretty d =
   case splitOn "." (opts^.output) of
     [""] -> putStrLn "No output file given."
@@ -238,12 +238,12 @@ chooseRender opts pretty d =
 -- $ ./MultiTest --selection bar -o Bar.eps -w 200
 -- @
 
-multiMain :: [(String, Diagram SVG R2)] -> IO ()
+multiMain :: [(String, Diagram SVG V2 Double)] -> IO ()
 multiMain = mainWith
 
-instance Mainable [(String,Diagram SVG R2)] where
-    type MainOpts [(String,Diagram SVG R2)] 
-        = (MainOpts (Diagram SVG R2), DiagramMultiOpts)
+instance Mainable [(String,Diagram SVG V2 Double)] where
+    type MainOpts [(String,Diagram SVG V2 Double)]
+        = (MainOpts (Diagram SVG V2 Double), DiagramMultiOpts)
 
     mainRender = defaultMultiMainRender
 
