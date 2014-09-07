@@ -49,11 +49,11 @@
 --
 -- For a tutorial on command-line diagram creation see
 -- <http://projects.haskell.org/diagrams/doc/cmdline.html>.
--- 
+--
 -----------------------------------------------------------------------------
 
 module Diagrams.Backend.SVG.CmdLine
-       ( 
+       (
          -- * General form of @main@
          -- $mainwith
 
@@ -75,7 +75,7 @@ import Diagrams.Backend.SVG
 import Diagrams.Backend.CmdLine
 
 import Control.Lens hiding (argument)
-import Options.Applicative hiding ((&), (<>))
+import Options.Applicative hiding ((<>))
 import qualified Options.Applicative as O ((<>))
 
 import qualified Text.Blaze.Svg.Renderer.Pretty as Pretty
@@ -130,7 +130,7 @@ getModuleTime = getClockTime
 -- We can run this program as follows:
 --
 -- > $ ghc --make MyDiagram
--- > 
+-- >
 -- > # output image.svg built by `f 20 red`
 -- > $ ./MyDiagram -o image.svg -w 200 20 red
 
@@ -181,8 +181,8 @@ defaultMain = mainWith
 newtype PrettyOpt = PrettyOpt {isPretty :: Bool}
 
 prettyOpt :: Parser PrettyOpt
-prettyOpt = PrettyOpt <$> switch (long "pretty" 
-                     O.<> short 'p' 
+prettyOpt = PrettyOpt <$> switch (long "pretty"
+                     O.<> short 'p'
                      O.<> help "Pretty print the SVG output")
 
 instance Parseable PrettyOpt where
@@ -242,7 +242,7 @@ multiMain :: [(String, Diagram SVG R2)] -> IO ()
 multiMain = mainWith
 
 instance Mainable [(String,Diagram SVG R2)] where
-    type MainOpts [(String,Diagram SVG R2)] 
+    type MainOpts [(String,Diagram SVG R2)]
         = (MainOpts (Diagram SVG R2), DiagramMultiOpts)
 
     mainRender = defaultMultiMainRender
