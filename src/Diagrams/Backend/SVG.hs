@@ -10,6 +10,9 @@
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE TypeSynonymInstances  #-}
 {-# LANGUAGE NondecreasingIndentation #-}
+{-# LANGUAGE UndecidableInstances #-}
+-- UndecidableInstances needed for ghc < 707
+
 {-# LANGUAGE GADTs #-}
 
 {-# OPTIONS_GHC -fno-warn-orphans  #-}
