@@ -96,7 +96,7 @@ module Diagrams.Backend.SVG
 import           Codec.Picture
 import           Codec.Picture.Types(dynamicMap)
 -- for testing
-import           Data.Foldable                (foldMap)
+import           Data.Foldable                as F (foldMap, mapM_)
 import           Data.Tree
 
 -- from base
@@ -237,11 +237,10 @@ toRender = fromRTree
 
             -- save current setting for local text
             oldIsLocal <- use isLocalText
+
             -- check if this style speficies a font size in Local units
-            -- mapM_ (assign isLocalText) (getFontSizeIsLocal <$> getAttr sty)
-            -- case getFontSizeIsLocal <$> getAttr sty of
-            --   Nothing      -> return ()
-            --   Just isLocal -> isLocalText .= isLocal
+            F.mapM_ (assign isLocalText)
+                    ((getFontSizeIsLocal :: FontSize Double -> Bool) <$> getAttr sty)    
 
             -- render subtrees
             svg <- r
