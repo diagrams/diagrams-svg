@@ -1,8 +1,10 @@
+{-# LANGUAGE ConstraintKinds       #-}
 {-# LANGUAGE DeriveDataTypeable    #-}
 {-# LANGUAGE DeriveGeneric         #-}
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE StandaloneDeriving    #-}
 {-# LANGUAGE TemplateHaskell       #-}
 {-# LANGUAGE TypeFamilies          #-}
@@ -85,7 +87,8 @@
 module Diagrams.Backend.SVG
   ( SVG(..) -- rendering token
   , B
-  , Options(..), size, svgDefinitions -- for rendering options specific to SVG
+  , Options(..), sizeSpec, svgDefinitions -- for rendering options specific to SVG
+  , SVGFloat
 
   , renderSVG
   , renderPretty
@@ -137,11 +140,12 @@ import qualified Text.Blaze.Svg.Renderer.Pretty as Pretty
 
 -- from this package
 import qualified Graphics.Rendering.SVG       as R
+import           Graphics.Rendering.SVG       (SVGFloat)
 
 -- | @SVG@ is simply a token used to identify this rendering backend
 --   (to aid type inference).
 data SVG = SVG
-    deriving (Show, Typeable)
+  deriving (Show, Typeable)
 
 type B = SVG
 
@@ -161,7 +165,7 @@ initialSvgRenderState = SvgRenderState 0 0 1 True
 --   for assiging a unique clip path ID.
 type SvgRenderM = State SvgRenderState S.Svg
 
-instance Monoid (Render SVG V2 Double) where
+instance SVGFloat n => Monoid (Render SVG V2 n) where
   mempty  = R $ return mempty
   (R r1) `mappend` (R r2_) =
     R $ do
@@ -170,15 +174,16 @@ instance Monoid (Render SVG V2 Double) where
       return (svg1 `mappend` svg2)
 
 -- Handle clip attributes.
-renderSvgWithClipping :: S.Svg             -- ^ Input SVG
-                      -> Style v Double    -- ^ Styles
+renderSvgWithClipping :: forall n. SVGFloat n
+                      => S.Svg             -- ^ Input SVG
+                      -> Style V2 n    -- ^ Styles
                       -> SvgRenderM        -- ^ Resulting svg
 renderSvgWithClipping svg s =
   case op Clip <$> getAttr s of
     Nothing -> return svg
     Just paths -> renderClips paths
   where
-    renderClips :: [Path V2 Double] -> SvgRenderM
+    renderClips :: SVGFloat n => [Path V2 n] -> SvgRenderM
     renderClips []     = return svg
     renderClips (p:ps) = do
       clipPathId += 1
@@ -187,23 +192,23 @@ renderSvgWithClipping svg s =
 
 -- | Create a new texture defs svg element using the style and the current
 --   id number, then increment the gradient id number.
-fillTextureDefs :: Style v Double -> SvgRenderM
+fillTextureDefs :: SVGFloat n => Style v n -> SvgRenderM
 fillTextureDefs s = do
   id_ <- use fillGradId
   fillGradId += 2 -- always even
   return $ R.renderFillTextureDefs id_ s
 
-lineTextureDefs :: Style v Double -> SvgRenderM
+lineTextureDefs :: SVGFloat n => Style v n -> SvgRenderM
 lineTextureDefs s = do
   id_ <- use lineGradId
   lineGradId += 2 -- always odd
   return $ R.renderLineTextureDefs id_ s
 
-instance Backend SVG V2 Double where
-  data Render  SVG V2 Double = R SvgRenderM
-  type Result  SVG V2 Double = S.Svg
-  data Options SVG V2 Double = SVGOptions
-    { _size :: SizeSpec2D Double   -- ^ The requested size.
+instance SVGFloat n => Backend SVG V2 n where
+  data Render  SVG V2 n = R SvgRenderM
+  type Result  SVG V2 n = S.Svg
+  data Options SVG V2 n = SVGOptions
+    { _size :: SizeSpec2D n   -- ^ The requested size.
     , _svgDefinitions :: Maybe S.Svg
                           -- ^ Custom definitions that will be added to the @defs@
                           --   section of the output.
@@ -213,13 +218,13 @@ instance Backend SVG V2 Double where
     where
       svgOutput = do
         let R r   = toRender rt
-            (w,h) = sizePair (opts^.size)
+            (w,h) = sizePair (opts^.sizeSpec)
         svg <- r
         return $ R.svgHeader w h (opts^.svgDefinitions) svg
 
-  adjustDia c opts d = adjustDia2D size c opts (d # reflectY)
+  adjustDia c opts d = adjustDia2D sizeSpec c opts (d # reflectY)
 
-toRender :: RTree SVG V2 Double Annotation -> Render SVG V2 Double
+toRender :: forall n. SVGFloat n => RTree SVG V2 n Annotation -> Render SVG V2 n
 toRender = fromRTree
   . Node (RStyle (mempty # recommendFillColor (transparent :: AlphaColour Double)))
   . (:[])
@@ -240,7 +245,8 @@ toRender = fromRTree
 
             -- check if this style speficies a font size in Local units
             F.mapM_ (assign isLocalText)
-                    ((getFontSizeIsLocal :: FontSize Double -> Bool) <$> getAttr sty)    
+                    -- getNumAttr getFontSizeIsLocal sty
+                    ((getFontSizeIsLocal :: FontSize n -> Bool) <$> getAttr sty)    
 
             -- render subtrees
             svg <- r
@@ -257,25 +263,25 @@ toRender = fromRTree
                      (textureDefs `mappend` clippedSvg)
       fromRTree (Node _ rs) = foldMap fromRTree rs
 
-getSize :: Options SVG V2 Double -> SizeSpec2D Double
+getSize :: SVGFloat n => Options SVG V2 n -> SizeSpec2D n
 getSize (SVGOptions {_size = s}) = s
 
-setSize :: Options SVG V2 Double -> SizeSpec2D Double -> Options SVG V2 Double
+setSize :: SVGFloat n => Options SVG V2 n -> SizeSpec2D n -> Options SVG V2 n
 setSize o s = o {_size = s}
 
-size :: Lens' (Options SVG V2 Double) (SizeSpec2D Double)
-size = lens getSize setSize
+sizeSpec :: SVGFloat n => Lens' (Options SVG V2 n) (SizeSpec2D n)
+sizeSpec = lens getSize setSize
 
-getSVGDefs :: Options SVG V2 Double -> Maybe S.Svg
+getSVGDefs :: SVGFloat n => Options SVG V2 n -> Maybe S.Svg
 getSVGDefs (SVGOptions {_svgDefinitions = d}) = d
 
-setSVGDefs :: Options SVG V2 Double -> Maybe S.Svg -> Options SVG V2 Double
+setSVGDefs :: SVGFloat n => Options SVG V2 n -> Maybe S.Svg -> Options SVG V2 n
 setSVGDefs o d = o {_svgDefinitions = d}
 
-svgDefinitions :: Lens' (Options SVG V2 Double) (Maybe S.Svg)
+svgDefinitions :: SVGFloat n => Lens' (Options SVG V2 n) (Maybe S.Svg)
 svgDefinitions = lens getSVGDefs setSVGDefs
 
-instance Hashable (Options SVG V2 Double) where
+instance (Hashable n, SVGFloat n) => Hashable (Options SVG V2 n) where
   hashWithSalt s (SVGOptions sz defs) =
     s `hashWithSalt` sz `hashWithSalt` defs
 
@@ -335,40 +341,40 @@ instance Hashable (MarkupM a) where
     m
   hashWithSalt s Empty = s `hashWithSalt` (8 :: Int)
 
-instance Renderable (Path V2 Double) SVG where
+instance SVGFloat n => Renderable (Path V2 n) SVG where
   render _ = R . return . R.renderPath
 
-instance Renderable (Text Double) SVG where
+instance SVGFloat n => Renderable (Text n) SVG where
   render _ t = R $ do
     isLocal <- use isLocalText
     return $ R.renderText isLocal t
 
-instance Renderable (DImage Double Embedded) SVG where
+instance SVGFloat n => Renderable (DImage n Embedded) SVG where
   render _ = R . return . R.renderDImageEmb
 
 -- TODO: instance Renderable Image SVG where
 
 -- | Render a diagram as an SVG, writing to the specified output file
 --   and using the requested size.
-renderSVG :: FilePath -> SizeSpec2D Double -> Diagram SVG V2 Double -> IO ()
-renderSVG outFile sizeSpec
+renderSVG :: SVGFloat n => FilePath -> SizeSpec2D n -> Diagram SVG V2 n -> IO ()
+renderSVG outFile szSpec
   = BS.writeFile outFile
   . renderSvg
-  . renderDia SVG (SVGOptions sizeSpec Nothing)
+  . renderDia SVG (SVGOptions szSpec Nothing)
 
 -- | Render a diagram as a pretty printed SVG.
-renderPretty :: FilePath -> SizeSpec2D Double -> Diagram SVG V2 Double -> IO ()
-renderPretty outFile sizeSpec
+renderPretty :: SVGFloat n => FilePath -> SizeSpec2D n -> Diagram SVG V2 n -> IO ()
+renderPretty outFile szSpec
   = writeFile outFile
   . Pretty.renderSvg
-  .renderDia SVG (SVGOptions sizeSpec Nothing)
+  . renderDia SVG (SVGOptions szSpec Nothing)
 
 
 
 data Img = Img !Char !BS.ByteString deriving Typeable
 
 -- | Load images (JPG/PNG/...) in a SVG specific way.
-loadImageSVG :: FilePath -> IO (Diagram SVG V2 Double)
+loadImageSVG :: SVGFloat n => FilePath -> IO (Diagram SVG V2 n)
 loadImageSVG fp = do
     raw <- SBS.readFile fp
     dyn <- eIO $ decodeImage raw
@@ -386,7 +392,7 @@ loadImageSVG fp = do
         eIO :: Either String a -> IO a
         eIO = either fail return
 
-instance Renderable (DImage Double (Native Img)) SVG where
+instance SVGFloat n => Renderable (DImage n (Native Img)) SVG where
   render _ di@(DImage (ImageNative (Img t d)) _ _ _) = R $ do
     mime <- case t of
           'J' -> return "image/jpeg"

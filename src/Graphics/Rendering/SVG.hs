@@ -1,8 +1,9 @@
-{-# LANGUAGE FlexibleContexts           #-}
-{-# LANGUAGE GADTs                      #-}
-{-# LANGUAGE OverloadedStrings          #-}
-{-# LANGUAGE RankNTypes                 #-}
-{-# LANGUAGE ViewPatterns               #-}
+{-# LANGUAGE ConstraintKinds   #-}
+{-# LANGUAGE FlexibleContexts  #-}
+{-# LANGUAGE GADTs             #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RankNTypes        #-}
+{-# LANGUAGE ViewPatterns      #-}
 
 -----------------------------------------------------------------------------
 -- |
@@ -16,7 +17,8 @@
 -----------------------------------------------------------------------------
 
 module Graphics.Rendering.SVG
-    ( svgHeader
+    ( SVGFloat
+    , svgHeader
     , renderPath
     , renderClip
     , renderText
@@ -29,6 +31,7 @@ module Graphics.Rendering.SVG
     , renderLineTextureDefs
     , renderLineTexture
     , dataUri
+    , getNumAttr
     ) where
 
 -- from base
@@ -56,6 +59,12 @@ import qualified Data.ByteString.Lazy.Char8  as BS8
 
 import           Codec.Picture
 
+-- | Constaint on number type that diagrams-svg can use to render an SVG. This 
+--   includes the common number types: 'Double', 'Float'
+type SVGFloat n = (Show n, DataFloat n, S.ToValue n)
+-- Could we change Text.Blaze.SVG to use
+--   showFFloat :: RealFloat a => Maybe Int -> a -> ShowS 
+-- or something similar for all numbers so we need DataFloat constraint.
 
 getNumAttr :: AttributeClass (a n) => (a n -> t) -> Style v n -> Maybe t
 getNumAttr f = (f <$>) . getAttr
@@ -63,11 +72,9 @@ getNumAttr f = (f <$>) . getAttr
 getMeasuredAttr :: AttributeClass (a n) => (a n -> Measure t) -> Style v n -> Maybe t
 getMeasuredAttr f = (fromOutput . f <$>) . getAttr
 
-
-
 -- | @svgHeader w h defs s@: @w@ width, @h@ height,
 --   @defs@ global definitions for defs sections, @s@ actual SVG content.
-svgHeader :: Double -> Double -> Maybe S.Svg -> S.Svg -> S.Svg
+svgHeader :: SVGFloat n => n -> n -> Maybe S.Svg -> S.Svg -> S.Svg
 svgHeader w h_ defines s =  S.docTypeSvg
   ! A.version "1.1"
   ! A.width    (S.toValue w)
@@ -77,17 +84,13 @@ svgHeader w h_ defines s =  S.docTypeSvg
   ! A.stroke "rgb(0,0,0)"
   ! A.strokeOpacity "1"
   $ F.mapM_ S.defs defines >> S.g s
-  -- $ do case defines of
-  --        Nothing -> return ()
-  --        Just defs -> S.defs $ defs
-  --      S.g $ s
 
-renderPath :: Path V2 Double -> S.Svg
+renderPath :: SVGFloat n => Path V2 n -> S.Svg
 renderPath trs  = S.path ! A.d makePath
   where
     makePath = mkPath $ mapM_ renderTrail (op Path trs)
 
-renderTrail :: Located (Trail V2 Double) -> S.Path
+renderTrail :: SVGFloat n => Located (Trail V2 n) -> S.Path
 renderTrail (viewLoc -> (P (V2 x y), t)) = m x y >> withTrail renderLine renderLoop t
   where
     renderLine = mapM_ renderSeg . lineSegments
@@ -100,7 +103,7 @@ renderTrail (viewLoc -> (P (V2 x y), t)) = m x y >> withTrail renderLine renderL
         _ -> mapM_ renderSeg (lineSegments . cutLoop $ lp)
       z
 
-renderSeg :: Segment Closed V2 Double -> S.Path
+renderSeg :: SVGFloat n => Segment Closed V2 n -> S.Path
 renderSeg (Linear (OffsetClosed (V2 x 0))) = hr x
 renderSeg (Linear (OffsetClosed (V2 0 y))) = vr y
 renderSeg (Linear (OffsetClosed (V2 x y))) = lr x y
@@ -108,14 +111,14 @@ renderSeg (Cubic  (V2 x0 y0)
                   (V2 x1 y1)
                   (OffsetClosed (V2 x2 y2))) = cr x0 y0 x1 y1 x2 y2
 
-renderClip :: Path V2 Double -> Int -> S.Svg -> S.Svg
+renderClip :: SVGFloat n => Path V2 n -> Int -> S.Svg -> S.Svg
 renderClip p id_ svg =
   S.g ! A.clipPath (S.toValue $ "url(#" ++ clipPathId id_ ++ ")") $ do
     S.clippath ! A.id_ (S.toValue $ clipPathId id_) $ renderPath p
     svg
   where clipPathId i = "myClip" ++ show i
 
-renderStop :: GradientStop Double -> S.Svg
+renderStop :: SVGFloat n => GradientStop n -> S.Svg
 renderStop (GradientStop c v)
   = S.stop ! A.stopColor (S.toValue (colorToRgbString c))
            ! A.offset (S.toValue (show v))
@@ -126,7 +129,7 @@ spreadMethodStr GradPad      = "pad"
 spreadMethodStr GradReflect  = "reflect"
 spreadMethodStr GradRepeat   = "repeat"
 
-renderLinearGradient :: LGradient Double -> Int -> S.Svg
+renderLinearGradient :: SVGFloat n => LGradient n -> Int -> S.Svg
 renderLinearGradient g i = S.lineargradient
     ! A.id_ (S.toValue ("gradient" ++ show i))
     ! A.x1  (S.toValue x1)
@@ -140,12 +143,10 @@ renderLinearGradient g i = S.lineargradient
   where
     matrix = S.matrix a1 a2 b1 b2 c1 c2
     [[a1, a2], [b1, b2], [c1, c2]] = matrixHomRep (g^.lGradTrans)
-    -- (x1, y1) = unp2 (g^.lGradStart)
-    -- (x2, y2) = unp2 (g^.lGradEnd)
     P (V2 x1 y1) = g ^. lGradStart
     P (V2 x2 y2) = g ^. lGradEnd
 
-renderRadialGradient :: RGradient Double -> Int -> S.Svg
+renderRadialGradient :: SVGFloat n => RGradient n -> Int -> S.Svg
 renderRadialGradient g i = S.radialgradient
     ! A.id_ (S.toValue ("gradient" ++ show i))
     ! A.r (S.toValue (g^.rGradRadius1))
@@ -162,8 +163,6 @@ renderRadialGradient g i = S.radialgradient
     [[a1, a2], [b1, b2], [c1, c2]] = matrixHomRep (g^.rGradTrans)
     P (V2 cx' cy') = g ^. rGradCenter1
     P (V2 fx' fy') = g ^. rGradCenter0 -- SVG's focal point is our inner center.
-    -- (cx', cy') = unp2 (g^.rGradCenter1)
-    -- (fx', fy') = unp2 (g^.rGradCenter0) -- SVG's focal point is our inner center.
 
     -- Adjust the stops so that the gradient begins at the perimeter of
     -- the inner circle (center0, radius0) and ends at the outer circle.
@@ -177,15 +176,15 @@ renderRadialGradient g i = S.radialgradient
     ss = zipWith (\gs sf -> gs & stopFraction .~ sf ) gradStops stopFracs
 
 -- Create a gradient element so that it can be used as an attribute value for fill.
-renderFillTextureDefs :: Int -> Style v Double -> S.Svg
+renderFillTextureDefs :: SVGFloat n => Int -> Style v n -> S.Svg
 renderFillTextureDefs i s =
-  case getFillTexture <$> getAttr s of
+  case getNumAttr getFillTexture s of
     Just (LG g) -> renderLinearGradient g i
     Just (RG g) -> renderRadialGradient g i
     _           -> mempty
 
 -- Render the gradient using the id set up in renderFillTextureDefs.
-renderFillTexture :: Int -> Style v Double -> S.Attribute
+renderFillTexture :: SVGFloat n => Int -> Style v n -> S.Attribute
 renderFillTexture id_ s = case getNumAttr getFillTexture s of
   Just (SC (SomeColor c)) -> renderAttr A.fill fillColorRgb `mappend`
                              renderAttr A.fillOpacity fillColorOpacity
@@ -198,14 +197,14 @@ renderFillTexture id_ s = case getNumAttr getFillTexture s of
                 `mappend` A.fillOpacity "1"
   Nothing     -> mempty
 
-renderLineTextureDefs :: Int -> Style v Double -> S.Svg
+renderLineTextureDefs :: SVGFloat n => Int -> Style v n -> S.Svg
 renderLineTextureDefs i s =
-  case getLineTexture <$> getAttr s of
+  case getNumAttr getLineTexture s of
     Just (LG g) -> renderLinearGradient g i
     Just (RG g) -> renderRadialGradient g i
     _           -> mempty
 
-renderLineTexture :: Int -> Style v Double -> S.Attribute
+renderLineTexture :: SVGFloat n => Int -> Style v n -> S.Attribute
 renderLineTexture id_ s = case getNumAttr getLineTexture s of
   Just (SC (SomeColor c)) -> renderAttr A.stroke lineColorRgb `mappend`
                              renderAttr A.strokeOpacity lineColorOpacity
@@ -221,7 +220,7 @@ renderLineTexture id_ s = case getNumAttr getLineTexture s of
 dataUri :: String -> BS8.ByteString -> String
 dataUri mime dat = "data:"++mime++";base64," ++ BS8.unpack (BS64.encode dat)
 
-renderDImageEmb :: DImage Double Embedded -> S.Svg
+renderDImageEmb :: SVGFloat n => DImage n Embedded -> S.Svg
 renderDImageEmb di@(DImage (ImageRaster dImg) _ _ _) =
   renderDImage di $ dataUri "image/png" img
   where
@@ -229,7 +228,7 @@ renderDImageEmb di@(DImage (ImageRaster dImg) _ _ _) =
             Left str   -> error str
             Right img' -> img'
 
-renderDImage :: DImage Double any -> String -> S.Svg
+renderDImage :: SVGFloat n => DImage n any -> String -> S.Svg
 renderDImage (DImage _ w h tr) uridata =
   S.image
     ! A.transform transformMatrix
@@ -243,7 +242,7 @@ renderDImage (DImage _ w h tr) uridata =
     tX = translationX $ fromIntegral (-w)/2
     tY = translationY $ fromIntegral (-h)/2
 
-renderText :: Bool -> Text Double -> S.Svg
+renderText :: SVGFloat n => Bool -> Text n -> S.Svg
 renderText isLocal (Text tt tn tAlign str) =
   S.text_
     ! A.transform transformMatrix
@@ -268,7 +267,7 @@ renderText isLocal (Text tt tn tAlign str) =
   [[a,b],[c,d],[e,f]] = matrixHomRep t
   transformMatrix     = S.matrix a b c d e f
 
-renderStyles :: Int -> Int -> Style v Double -> S.Attribute
+renderStyles :: SVGFloat n => Int -> Int -> Style v n -> S.Attribute
 renderStyles fillId lineId s = mconcat . map ($ s) $
   [ renderLineTexture lineId
   , renderFillTexture fillId
@@ -285,27 +284,27 @@ renderStyles fillId lineId s = mconcat . map ($ s) $
   , renderMiterLimit
   ]
 
-renderMiterLimit :: Style v Double -> S.Attribute
+renderMiterLimit :: SVGFloat n => Style v n -> S.Attribute
 renderMiterLimit s = renderAttr A.strokeMiterlimit miterLimit
  where miterLimit = getLineMiterLimit <$> getAttr s
 
-renderOpacity :: Style v Double -> S.Attribute
+renderOpacity :: SVGFloat n => Style v n -> S.Attribute
 renderOpacity s = renderAttr A.opacity opacity_
  where opacity_ = getOpacity <$> getAttr s
 
-renderFillRule :: Style v Double -> S.Attribute
+renderFillRule :: SVGFloat n => Style v n -> S.Attribute
 renderFillRule s = renderAttr A.fillRule fillRule_
   where fillRule_ = (fillRuleToStr . getFillRule) <$> getAttr s
         fillRuleToStr :: FillRule -> String
         fillRuleToStr Winding = "nonzero"
         fillRuleToStr EvenOdd = "evenodd"
 
-renderLineWidth :: Style v Double -> S.Attribute
+renderLineWidth :: SVGFloat n => Style v n -> S.Attribute
 renderLineWidth s = renderAttr A.strokeWidth lineWidth'
   where lineWidth' = getMeasuredAttr getLineWidth s
 
 
-renderLineCap :: Style v Double -> S.Attribute
+renderLineCap :: SVGFloat n => Style v n -> S.Attribute
 renderLineCap s = renderAttr A.strokeLinecap lineCap_
   where lineCap_ = (lineCapToStr . getLineCap) <$> getAttr s
         lineCapToStr :: LineCap -> String
@@ -313,7 +312,7 @@ renderLineCap s = renderAttr A.strokeLinecap lineCap_
         lineCapToStr LineCapRound  = "round"
         lineCapToStr LineCapSquare = "square"
 
-renderLineJoin :: Style v Double -> S.Attribute
+renderLineJoin :: SVGFloat n => Style v n -> S.Attribute
 renderLineJoin s = renderAttr A.strokeLinejoin lineJoin_
   where lineJoin_ = (lineJoinToStr . getLineJoin) <$> getAttr s
         lineJoinToStr :: LineJoin -> String
@@ -321,7 +320,7 @@ renderLineJoin s = renderAttr A.strokeLinejoin lineJoin_
         lineJoinToStr LineJoinRound = "round"
         lineJoinToStr LineJoinBevel = "bevel"
 
-renderDashing :: Style v Double -> S.Attribute
+renderDashing :: SVGFloat n => Style v n -> S.Attribute
 renderDashing s = renderAttr A.strokeDasharray arr `mappend`
                   renderAttr A.strokeDashoffset dOffset
  where
@@ -332,13 +331,13 @@ renderDashing s = renderAttr A.strokeDasharray arr `mappend`
   arr                         = (dashArrayToStr . getDasharray) <$> dashing_
   dOffset                     = getDashoffset <$> dashing_
 
-renderFontSize :: Style v Double -> S.Attribute
+renderFontSize :: SVGFloat n => Style v n -> S.Attribute
 renderFontSize s = renderAttr A.fontSize fontSize_
  where
   fontSize_ = getNumAttr ((++ "em") . str . getFontSize) s
   str o = show $ fromOutput o
 
-renderFontSlant :: Style v Double -> S.Attribute
+renderFontSlant :: SVGFloat n => Style v n -> S.Attribute
 renderFontSlant s = renderAttr A.fontStyle fontSlant_
  where
   fontSlant_ = (fontSlantAttr . getFontSlant) <$> getAttr s
@@ -347,7 +346,7 @@ renderFontSlant s = renderAttr A.fontStyle fontSlant_
   fontSlantAttr FontSlantOblique = "oblique"
   fontSlantAttr FontSlantNormal  = "normal"
 
-renderFontWeight :: Style v Double -> S.Attribute
+renderFontWeight :: SVGFloat n => Style v n -> S.Attribute
 renderFontWeight s = renderAttr A.fontWeight fontWeight_
  where
   fontWeight_ = (fontWeightAttr . getFontWeight) <$> getAttr s
@@ -355,7 +354,7 @@ renderFontWeight s = renderAttr A.fontWeight fontWeight_
   fontWeightAttr FontWeightNormal = "normal"
   fontWeightAttr FontWeightBold   = "bold"
 
-renderFontFamily :: Style v Double -> S.Attribute
+renderFontFamily :: SVGFloat n => Style v n -> S.Attribute
 renderFontFamily s = renderAttr A.fontFamily fontFamily_
  where
   fontFamily_ = getFont <$> getAttr s

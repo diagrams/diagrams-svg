@@ -1,10 +1,11 @@
+{-# LANGUAGE CPP                  #-}
+{-# LANGUAGE ConstraintKinds      #-}
 {-# LANGUAGE FlexibleContexts     #-}
 {-# LANGUAGE FlexibleInstances    #-}
 {-# LANGUAGE TypeFamilies         #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE UndecidableInstances #-}
-{-# OPTIONS_GHC -fno-warn-orphans  #-}
-{-# LANGUAGE CPP                  #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Diagrams.Backend.SVG.CmdLine
@@ -122,7 +123,7 @@ getModuleTime = getClockTime
 -- will produce a program that looks for additional number and color arguments.
 --
 -- > ... definitions ...
--- > f :: Int -> Colour Double -> Diagram SVG R2
+-- > f :: Int -> Colour Double -> Diagram SVG V2 Double
 -- > f i c = ...
 -- >
 -- > main = mainWith f
@@ -175,7 +176,7 @@ getModuleTime = getClockTime
 -- $ ./MyDiagram -o image.svg -w 400
 -- @
 
-defaultMain :: Diagram SVG V2 Double -> IO ()
+defaultMain :: SVGFloat n => Diagram SVG V2 n -> IO ()
 defaultMain = mainWith
 
 newtype PrettyOpt = PrettyOpt {isPretty :: Bool}
@@ -188,9 +189,9 @@ prettyOpt = PrettyOpt <$> switch (long "pretty"
 instance Parseable PrettyOpt where
   parser = prettyOpt
 
-instance Mainable (Diagram SVG V2 Double) where
+instance SVGFloat n => Mainable (Diagram SVG V2 n) where
 #ifdef CMDLINELOOP
-    type MainOpts (Diagram SVG V2 Double) = (DiagramOpts, DiagramLoopOpts, PrettyOpt)
+    type MainOpts (Diagram SVG V2 n) = (DiagramOpts, DiagramLoopOpts, PrettyOpt)
 
     mainRender (opts, loopOpts, pretty) d = do
         chooseRender opts pretty d
@@ -201,19 +202,19 @@ instance Mainable (Diagram SVG V2 Double) where
     mainRender (opts, pretty) = chooseRender opts pretty
 #endif
 
-chooseRender :: DiagramOpts -> PrettyOpt -> Diagram SVG V2 Double -> IO ()
+chooseRender :: SVGFloat n => DiagramOpts -> PrettyOpt -> Diagram SVG V2 n -> IO ()
 chooseRender opts pretty d =
   case splitOn "." (opts^.output) of
     [""] -> putStrLn "No output file given."
     ps | last ps `elem` ["svg"] -> do
-           let sizeSpec = case (opts^.width, opts^.height) of
-                            (Nothing, Nothing) -> Absolute
-                            (Just w, Nothing)  -> Width (fromIntegral w)
-                            (Nothing, Just h)  -> Height (fromIntegral h)
-                            (Just w, Just h)   -> Dims (fromIntegral w)
+           let szSpec = case (opts^.width, opts^.height) of
+                          (Nothing, Nothing) -> Absolute
+                          (Just w, Nothing)  -> Width (fromIntegral w)
+                          (Nothing, Just h)  -> Height (fromIntegral h)
+                          (Just w, Just h)   -> Dims (fromIntegral w)
                                                        (fromIntegral h)
 
-               build = renderDia SVG (SVGOptions sizeSpec Nothing) d
+               build = renderDia SVG (SVGOptions szSpec Nothing) d
            if isPretty pretty
              then writeFile (opts^.output) (Pretty.renderSvg build)
              else BS.writeFile (opts^.output) (renderSvg build)
@@ -238,12 +239,12 @@ chooseRender opts pretty d =
 -- $ ./MultiTest --selection bar -o Bar.eps -w 200
 -- @
 
-multiMain :: [(String, Diagram SVG V2 Double)] -> IO ()
+multiMain :: SVGFloat n => [(String, Diagram SVG V2 n)] -> IO ()
 multiMain = mainWith
 
-instance Mainable [(String,Diagram SVG V2 Double)] where
-    type MainOpts [(String,Diagram SVG V2 Double)]
-        = (MainOpts (Diagram SVG V2 Double), DiagramMultiOpts)
+instance SVGFloat n => Mainable [(String,Diagram SVG V2 n)] where
+    type MainOpts [(String,Diagram SVG V2 n)]
+        = (MainOpts (Diagram SVG V2 n), DiagramMultiOpts)
 
     mainRender = defaultMultiMainRender
 
@@ -296,3 +297,4 @@ recompile lastAttempt prog mSrc = do
  where getModTime f = Exc.catch (Just <$> getModificationTime f)
                             (\(SomeException _) -> return Nothing)
 #endif
+
