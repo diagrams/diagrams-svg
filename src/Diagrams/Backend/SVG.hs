@@ -248,8 +248,7 @@ toRender = fromRTree
 
             -- check if this style speficies a font size in Local units
             F.mapM_ (assign isLocalText)
-                    -- getNumAttr getFontSizeIsLocal sty
-                    ((getFontSizeIsLocal :: FontSize n -> Bool) <$> getAttr sty)    
+                ((getFontSizeIsLocal :: FontSize n -> Bool) <$> getAttr sty)
 
             -- render subtrees
             svg <- r
@@ -402,4 +401,3 @@ instance SVGFloat n => Renderable (DImage n (Native Img)) SVG where
           'P' -> return "image/png"
           _   -> fail "Unknown mime type while rendering image"
     return $ R.renderDImage di $ R.dataUri mime d
-

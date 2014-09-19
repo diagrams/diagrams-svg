@@ -59,11 +59,11 @@ import qualified Data.ByteString.Lazy.Char8  as BS8
 
 import           Codec.Picture
 
--- | Constaint on number type that diagrams-svg can use to render an SVG. This 
+-- | Constaint on number type that diagrams-svg can use to render an SVG. This
 --   includes the common number types: 'Double', 'Float'
 type SVGFloat n = (Show n, DataFloat n, S.ToValue n)
 -- Could we change Text.Blaze.SVG to use
---   showFFloat :: RealFloat a => Maybe Int -> a -> ShowS 
+--   showFFloat :: RealFloat a => Maybe Int -> a -> ShowS
 -- or something similar for all numbers so we need DataFloat constraint.
 
 getNumAttr :: AttributeClass (a n) => (a n -> t) -> Style v n -> Maybe t
@@ -236,7 +236,7 @@ renderDImage (DImage _ w h tr) uridata =
     ! A.height (S.toValue h)
     ! A.xlinkHref (S.preEscapedToValue uridata)
   where
-    [[a,b],[c,d],[e,f]] = matrixHomRep (tr `mappend` reflectionY 
+    [[a,b],[c,d],[e,f]] = matrixHomRep (tr `mappend` reflectionY
                                            `mappend` tX `mappend` tY)
     transformMatrix = S.matrix a b c d e f
     tX = translationX $ fromIntegral (-w)/2
@@ -381,4 +381,3 @@ colorToRgbString c = concat
 colorToOpacity :: forall c . Color c => c -> Double
 colorToOpacity c = a
  where (_,_,_,a) = colorToSRGBA c
-
