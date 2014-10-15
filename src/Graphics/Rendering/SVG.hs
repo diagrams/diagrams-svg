@@ -61,16 +61,13 @@ import           Codec.Picture
 
 -- | Constaint on number type that diagrams-svg can use to render an SVG. This
 --   includes the common number types: 'Double', 'Float'
-type SVGFloat n = (Show n, DataFloat n, S.ToValue n)
+type SVGFloat n = (Show n, TypeableFloat n, S.ToValue n)
 -- Could we change Text.Blaze.SVG to use
 --   showFFloat :: RealFloat a => Maybe Int -> a -> ShowS
--- or something similar for all numbers so we need DataFloat constraint.
+-- or something similar for all numbers so we need TypeableFloat constraint.
 
 getNumAttr :: AttributeClass (a n) => (a n -> t) -> Style v n -> Maybe t
 getNumAttr f = (f <$>) . getAttr
-
-getMeasuredAttr :: AttributeClass (a n) => (a n -> Measure t) -> Style v n -> Maybe t
-getMeasuredAttr f = (fromOutput . f <$>) . getAttr
 
 -- | @svgHeader w h defs s@: @w@ width, @h@ height,
 --   @defs@ global definitions for defs sections, @s@ actual SVG content.
@@ -242,8 +239,8 @@ renderDImage (DImage _ w h tr) uridata =
     tX = translationX $ fromIntegral (-w)/2
     tY = translationY $ fromIntegral (-h)/2
 
-renderText :: SVGFloat n => Bool -> Text n -> S.Svg
-renderText isLocal (Text tt tn tAlign str) =
+renderText :: SVGFloat n => Text n -> S.Svg
+renderText (Text tt tAlign str) =
   S.text_
     ! A.transform transformMatrix
     ! A.dominantBaseline vAlign
@@ -263,7 +260,7 @@ renderText isLocal (Text tt tn tAlign str) =
                w' | w' <= 0.25 -> "start"
                w' | w' >= 0.75 -> "end"
                _ -> "middle"
-  t                   = (if isLocal then tt else tn) `mappend` reflectionY
+  t                   = tt `mappend` reflectionY
   [[a,b],[c,d],[e,f]] = matrixHomRep t
   transformMatrix     = S.matrix a b c d e f
 
@@ -301,7 +298,7 @@ renderFillRule s = renderAttr A.fillRule fillRule_
 
 renderLineWidth :: SVGFloat n => Style v n -> S.Attribute
 renderLineWidth s = renderAttr A.strokeWidth lineWidth'
-  where lineWidth' = getMeasuredAttr getLineWidth s
+  where lineWidth' = getNumAttr getLineWidth s
 
 
 renderLineCap :: SVGFloat n => Style v n -> S.Attribute
@@ -324,8 +321,8 @@ renderDashing :: SVGFloat n => Style v n -> S.Attribute
 renderDashing s = renderAttr A.strokeDasharray arr `mappend`
                   renderAttr A.strokeDashoffset dOffset
  where
-  getDasharray  (Dashing a _) = map fromOutput a
-  getDashoffset (Dashing _ o) = fromOutput o
+  getDasharray  (Dashing a _) = a
+  getDashoffset (Dashing _ o) = o
   dashArrayToStr              = intercalate "," . map show
   dashing_                    = getNumAttr getDashing s
   arr                         = (dashArrayToStr . getDasharray) <$> dashing_
@@ -334,8 +331,7 @@ renderDashing s = renderAttr A.strokeDasharray arr `mappend`
 renderFontSize :: SVGFloat n => Style v n -> S.Attribute
 renderFontSize s = renderAttr A.fontSize fontSize_
  where
-  fontSize_ = getNumAttr ((++ "em") . str . getFontSize) s
-  str o = show $ fromOutput o
+  fontSize_ = getNumAttr ((++ "px") . show . getFontSize) s
 
 renderFontSlant :: SVGFloat n => Style v n -> S.Attribute
 renderFontSlant s = renderAttr A.fontStyle fontSlant_

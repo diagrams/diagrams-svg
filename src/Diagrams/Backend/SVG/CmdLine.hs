@@ -73,7 +73,7 @@ module Diagrams.Backend.SVG.CmdLine
 
 import           Diagrams.Backend.CmdLine
 import           Diagrams.Backend.SVG
-import           Diagrams.Prelude               hiding (height, interval, width)
+import           Diagrams.Prelude               hiding (height, interval, width, output)
 
 import           Control.Lens                   hiding (argument)
 import           Options.Applicative            hiding ((<>))
@@ -207,14 +207,8 @@ chooseRender opts pretty d =
   case splitOn "." (opts^.output) of
     [""] -> putStrLn "No output file given."
     ps | last ps `elem` ["svg"] -> do
-           let szSpec = case (opts^.width, opts^.height) of
-                          (Nothing, Nothing) -> Absolute
-                          (Just w, Nothing)  -> Width (fromIntegral w)
-                          (Nothing, Just h)  -> Height (fromIntegral h)
-                          (Just w, Just h)   -> Dims (fromIntegral w)
-                                                       (fromIntegral h)
-
-               build = renderDia SVG (SVGOptions szSpec Nothing) d
+           let szSpec = fromIntegral <$> mkSpec (V2 (opts^.width) (opts^.height))
+               build  = renderDia SVG (SVGOptions szSpec Nothing) d
            if isPretty pretty
              then writeFile (opts^.output) (Pretty.renderSvg build)
              else BS.writeFile (opts^.output) (renderSvg build)
