@@ -69,7 +69,6 @@ module Diagrams.Backend.SVG.CmdLine
 
        , SVG
        , B
-       , Figure
        ) where
 
 import           Diagrams.Backend.CmdLine
@@ -177,7 +176,7 @@ getModuleTime = getClockTime
 -- $ ./MyDiagram -o image.svg -w 400
 -- @
 
-defaultMain :: SVGFloat n => Diagram SVG V2 n -> IO ()
+defaultMain :: SVGFloat n => QDiagram SVG V2 n Any -> IO ()
 defaultMain = mainWith
 
 newtype PrettyOpt = PrettyOpt {isPretty :: Bool}
@@ -190,20 +189,20 @@ prettyOpt = PrettyOpt <$> switch (long "pretty"
 instance Parseable PrettyOpt where
   parser = prettyOpt
 
-instance SVGFloat n => Mainable (Diagram SVG V2 n) where
+instance SVGFloat n => Mainable (QDiagram SVG V2 n Any) where
 #ifdef CMDLINELOOP
-    type MainOpts (Diagram SVG V2 n) = (DiagramOpts, DiagramLoopOpts, PrettyOpt)
+    type MainOpts (QDiagram SVG V2 n Any) = (DiagramOpts, DiagramLoopOpts, PrettyOpt) 
 
     mainRender (opts, loopOpts, pretty) d = do
         chooseRender opts pretty d
         when (loopOpts^.loop) (waitForChange Nothing loopOpts)
 #else
-    type MainOpts (Diagram SVG R2) = (DiagramOpts, PrettyOpt)
+    type MainOpts (QDiagram SVG V2 n Any) = (DiagramOpts, PrettyOpt)
 
     mainRender (opts, pretty) = chooseRender opts pretty
 #endif
 
-chooseRender :: SVGFloat n => DiagramOpts -> PrettyOpt -> Diagram SVG V2 n -> IO ()
+chooseRender :: SVGFloat n => DiagramOpts -> PrettyOpt -> QDiagram SVG V2 n Any -> IO ()
 chooseRender opts pretty d =
   case splitOn "." (opts^.output) of
     [""] -> putStrLn "No output file given."
@@ -240,12 +239,12 @@ chooseRender opts pretty d =
 -- $ ./MultiTest --selection bar -o Bar.eps -w 200
 -- @
 
-multiMain :: SVGFloat n => [(String, Diagram SVG V2 n)] -> IO ()
+multiMain :: SVGFloat n => [(String, QDiagram SVG V2 n Any)] -> IO ()
 multiMain = mainWith
 
-instance SVGFloat n => Mainable [(String,Diagram SVG V2 n)] where
-    type MainOpts [(String,Diagram SVG V2 n)]
-        = (MainOpts (Diagram SVG V2 n), DiagramMultiOpts)
+instance SVGFloat n => Mainable [(String,QDiagram SVG V2 n Any)] where
+    type MainOpts [(String,QDiagram SVG V2 n Any)]
+        = (MainOpts (QDiagram SVG V2 n Any), DiagramMultiOpts)
 
     mainRender = defaultMultiMainRender
 
