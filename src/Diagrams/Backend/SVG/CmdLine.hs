@@ -69,6 +69,7 @@ module Diagrams.Backend.SVG.CmdLine
 
        , SVG
        , B
+       , Figure
        ) where
 
 import           Diagrams.Backend.CmdLine

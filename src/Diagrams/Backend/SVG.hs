@@ -90,6 +90,7 @@
 module Diagrams.Backend.SVG
   ( SVG(..) -- rendering token
   , B
+  , Figure
   , Options(..), sizeSpec, svgDefinitions -- for rendering options specific to SVG
   , SVGFloat
 
@@ -122,7 +123,7 @@ import           Control.Lens                 hiding (transform, ( # ))
 
 -- from diagrams-core
 import           Diagrams.Core.Compile
-import           Diagrams.Core.Types          (Annotation (..))
+import           Diagrams.Core.Types          (Figure, Annotation (..))
 
 -- from diagrams-lib
 import           Diagrams.Prelude             hiding (view, size)
@@ -151,6 +152,8 @@ data SVG = SVG
   deriving (Show, Typeable)
 
 type B = SVG
+
+type instance Figure SVG = Diagram SVG V2 Double
 
 data SvgRenderState = SvgRenderState { _clipPathId  :: Int
                                      , _fillGradId  :: Int
