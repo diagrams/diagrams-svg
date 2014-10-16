@@ -55,6 +55,7 @@ Available options:
   -l,--loop                Run in a self-recompiling loop
   -s,--src ARG             Source file to watch
   -i,--interval INTERVAL   When running in a loop, check for changes every INTERVAL seconds.
+  -p,--pretty              Pretty print the SVG output
 ```
 
 You _must_ pass an output file name with a `.svg` extension to generate the SVG
