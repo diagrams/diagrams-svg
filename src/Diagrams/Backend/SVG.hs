@@ -152,6 +152,9 @@ data SVG = SVG
 
 type B = SVG
 
+type instance V SVG = V2
+type instance N SVG = Double
+
 data SvgRenderState = SvgRenderState { _clipPathId  :: Int
                                      , _fillGradId  :: Int
                                      , _lineGradId  :: Int
@@ -358,14 +361,14 @@ instance SVGFloat n => Renderable (DImage n Embedded) SVG where
 
 -- | Render a diagram as an SVG, writing to the specified output file
 --   and using the requested size.
-renderSVG :: SVGFloat n => FilePath -> SizeSpec2D n -> Diagram SVG V2 n -> IO ()
+renderSVG :: SVGFloat n => FilePath -> SizeSpec2D n -> QDiagram SVG V2 n Any -> IO ()
 renderSVG outFile szSpec
   = BS.writeFile outFile
   . renderSvg
   . renderDia SVG (SVGOptions szSpec Nothing)
 
 -- | Render a diagram as a pretty printed SVG.
-renderPretty :: SVGFloat n => FilePath -> SizeSpec2D n -> Diagram SVG V2 n -> IO ()
+renderPretty :: SVGFloat n => FilePath -> SizeSpec2D n -> QDiagram SVG V2 n Any -> IO ()
 renderPretty outFile szSpec
   = writeFile outFile
   . Pretty.renderSvg
@@ -376,7 +379,7 @@ renderPretty outFile szSpec
 data Img = Img !Char !BS.ByteString deriving Typeable
 
 -- | Load images (JPG/PNG/...) in a SVG specific way.
-loadImageSVG :: SVGFloat n => FilePath -> IO (Diagram SVG V2 n)
+loadImageSVG :: SVGFloat n => FilePath -> IO (QDiagram SVG V2 n Any)
 loadImageSVG fp = do
     raw <- SBS.readFile fp
     dyn <- eIO $ decodeImage raw
