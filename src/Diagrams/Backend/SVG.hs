@@ -47,41 +47,41 @@
 --   'Diagrams.Core.Types.Backend' instance for @SVG@.  In particular,
 --   'Diagrams.Core.Types.renderDia' has the generic type
 --
--- > renderDia :: b -> Options b v -> QDiagram b v m -> Result b v
+-- > renderDia :: b -> Options b v n -> QDiagram b v n m -> Result b v n
 --
 -- (omitting a few type class constraints).  @b@ represents the
--- backend type, @v@ the vector space, and @m@ the type of monoidal
--- query annotations on the diagram.  'Options' and 'Result' are
--- associated data and type families, respectively, which yield the
+-- backend type, @v@ the vector space, @n@ the numerical field, and @m@ the
+-- type of monoidal query annotations on the diagram.  'Options' and 'Result'
+-- are associated data and type families, respectively, which yield the
 -- type of option records and rendering results specific to any
--- particular backend.  For @b ~ SVG@ and @v ~ R2@, we have
+-- particular backend.  For @b ~ SVG@, @v ~ V2@, and @n ~ Double@, we have
 --
--- > data Options SVG R2 = SVGOptions
--- >                       { size :: SizeSpec2D   -- ^ The requested size.
+-- > data Options SVG R2 Double = SVGOptions
+-- >                       { size :: SizeSpec2D Double  -- ^ The requested size.
 -- >                       , svgDefinitions :: Maybe S.Svg
 -- >                       -- ^ Custom definitions that will be added to the @defs@
 -- >                       --  section of the output.
 -- >                       }
 --
 -- @
--- data family Render SVG R2 = R 'SvgRenderM'
+-- data family Render SVG R2 Double = R 'SvgRenderM'
 -- @
 --
 -- @
--- type family Result SVG R2 = 'Text.Blaze.Svg11.Svg'
+-- type family Result SVG R2 Double = 'Text.Blaze.Svg11.Svg'
 -- @
 --
 -- So the type of 'renderDia' resolves to
 --
 -- @
--- renderDia :: SVG -> Options SVG R2 -> QDiagram SVG R2 m -> 'Text.Blaze.Svg11.Svg'
+-- renderDia :: SVG -> Options SVG V2 Double -> QDiagram SVG V2 Double m -> 'Text.Blaze.Svg11.Svg'
 -- @
 --
--- which you could call like @renderDia SVG (SVGOptions (Width 250))
+-- which you could call like @renderDia SVG (SVGOptions (Width 250) Nothing)
 -- myDiagram@.  (In some situations GHC may not be able to infer the
 -- type @m@, in which case you can use a type annotation to specify
 -- it; it may be useful to simply use the type synonym @Diagram SVG
--- R2 = QDiagram SVG R2 Any@.) This returns an
+-- = QDiagram SVG R2 Double Any@.) This returns an
 -- 'Text.Blaze.Svg11.Svg' value, which you can, /e.g./ render to a
 -- 'ByteString' using 'Text.Blaze.Svg.Renderer.Utf8.renderSvg'.
 --
@@ -181,9 +181,9 @@ instance SVGFloat n => Monoid (Render SVG V2 n) where
 
 -- Handle clip attributes.
 renderSvgWithClipping :: forall n. SVGFloat n
-                      => S.Svg             -- ^ Input SVG
+                      => S.Svg         -- ^ Input SVG
                       -> Style V2 n    -- ^ Styles
-                      -> SvgRenderM        -- ^ Resulting svg
+                      -> SvgRenderM    -- ^ Resulting svg
 renderSvgWithClipping svg s =
   case op Clip <$> getAttr s of
     Nothing -> return svg
