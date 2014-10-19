@@ -222,7 +222,7 @@ instance SVGFloat n => Backend SVG V2 n where
     where
       svgOutput = do
         let R r    = toRender rt
-            V2 w h = specSize 100 (opts^.sizeSpec)
+            V2 w h = specToSize 100 (opts^.sizeSpec)
         svg <- r
         return $ R.svgHeader w h (opts^.svgDefinitions) svg
 

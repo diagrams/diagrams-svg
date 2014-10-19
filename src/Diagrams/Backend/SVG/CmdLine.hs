@@ -207,7 +207,7 @@ chooseRender opts pretty d =
   case splitOn "." (opts^.output) of
     [""] -> putStrLn "No output file given."
     ps | last ps `elem` ["svg"] -> do
-           let szSpec = fromIntegral <$> mkSpec (V2 (opts^.width) (opts^.height))
+           let szSpec = fromIntegral <$> mkSizeSpec2D (opts^.width) (opts^.height)
                build  = renderDia SVG (SVGOptions szSpec Nothing) d
            if isPretty pretty
              then writeFile (opts^.output) (Pretty.renderSvg build)
