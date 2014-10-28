@@ -102,7 +102,7 @@ module Diagrams.Backend.SVG
 import           Codec.Picture
 import           Codec.Picture.Types(dynamicMap)
 -- for testing
-import           Data.Foldable                as F (foldMap, mapM_)
+import           Data.Foldable                as F (foldMap)
 import           Data.Tree
 
 -- from base
@@ -129,7 +129,6 @@ import           Diagrams.Prelude             hiding (view, size)
 import           Diagrams.TwoD.Adjust         (adjustDia2D)
 import           Diagrams.TwoD.Attributes     (splitTextureFills)
 import           Diagrams.TwoD.Path           (Clip (Clip))
-import           Diagrams.TwoD.Size           (sizePair)
 import           Diagrams.TwoD.Text
 
 -- from blaze-svg
@@ -157,14 +156,13 @@ type instance N SVG = Double
 
 data SvgRenderState = SvgRenderState { _clipPathId  :: Int
                                      , _fillGradId  :: Int
-                                     , _lineGradId  :: Int
-                                     , _isLocalText :: Bool }
+                                     , _lineGradId  :: Int }
 
 makeLenses ''SvgRenderState
 
 -- Fill gradients ids are even, line gradient ids are odd.
 initialSvgRenderState :: SvgRenderState
-initialSvgRenderState = SvgRenderState 0 0 1 True
+initialSvgRenderState = SvgRenderState 0 0 1
 
 -- | Monad to keep track of state when rendering an SVG.
 --   Currently just keeps a monotonically increasing counter
@@ -180,10 +178,12 @@ instance SVGFloat n => Monoid (Render SVG V2 n) where
       return (svg1 `mappend` svg2)
 
 -- Handle clip attributes.
+--
 renderSvgWithClipping :: forall n. SVGFloat n
                       => S.Svg         -- ^ Input SVG
                       -> Style V2 n    -- ^ Styles
                       -> SvgRenderM    -- ^ Resulting svg
+
 renderSvgWithClipping svg s =
   case op Clip <$> getAttr s of
     Nothing -> return svg
@@ -214,7 +214,7 @@ instance SVGFloat n => Backend SVG V2 n where
   data Render  SVG V2 n = R SvgRenderM
   type Result  SVG V2 n = S.Svg
   data Options SVG V2 n = SVGOptions
-    { _size :: SizeSpec2D n   -- ^ The requested size.
+    { _size           :: SizeSpec V2 n   -- ^ The requested size.
     , _svgDefinitions :: Maybe S.Svg
                           -- ^ Custom definitions that will be added to the @defs@
                           --   section of the output.
@@ -223,8 +223,8 @@ instance SVGFloat n => Backend SVG V2 n where
   renderRTree _ opts rt = evalState svgOutput initialSvgRenderState
     where
       svgOutput = do
-        let R r   = toRender rt
-            (w,h) = sizePair (opts^.sizeSpec)
+        let R r    = toRender rt
+            V2 w h = specToSize 100 (opts^.sizeSpec)
         svg <- r
         return $ R.svgHeader w h (opts^.svgDefinitions) svg
 
@@ -246,17 +246,8 @@ toRender = fromRTree
         = R $ do
             let R r = foldMap fromRTree ts
 
-            -- save current setting for local text
-            oldIsLocal <- use isLocalText
-
-            -- check if this style speficies a font size in Local units
-            F.mapM_ (assign isLocalText)
-                ((getFontSizeIsLocal :: FontSize n -> Bool) <$> getAttr sty)
-
             -- render subtrees
             svg <- r
-            -- restore the old setting for local text
-            isLocalText .= oldIsLocal
 
             idFill <- use fillGradId
             idLine <- use lineGradId
@@ -268,14 +259,11 @@ toRender = fromRTree
                      (textureDefs `mappend` clippedSvg)
       fromRTree (Node _ rs) = foldMap fromRTree rs
 
-getSize :: SVGFloat n => Options SVG V2 n -> SizeSpec2D n
-getSize (SVGOptions {_size = s}) = s
-
-setSize :: SVGFloat n => Options SVG V2 n -> SizeSpec2D n -> Options SVG V2 n
-setSize o s = o {_size = s}
-
-sizeSpec :: SVGFloat n => Lens' (Options SVG V2 n) (SizeSpec2D n)
-sizeSpec = lens getSize setSize
+sizeSpec :: SVGFloat n => Lens' (Options SVG V2 n) (SizeSpec V2 n)
+sizeSpec = lens getter setter
+  where
+    getter (SVGOptions {_size = s}) = s
+    setter o s = o {_size = s}
 
 getSVGDefs :: SVGFloat n => Options SVG V2 n -> Maybe S.Svg
 getSVGDefs (SVGOptions {_svgDefinitions = d}) = d
@@ -350,9 +338,7 @@ instance SVGFloat n => Renderable (Path V2 n) SVG where
   render _ = R . return . R.renderPath
 
 instance SVGFloat n => Renderable (Text n) SVG where
-  render _ t = R $ do
-    isLocal <- use isLocalText
-    return $ R.renderText isLocal t
+  render _ t = R . return $ R.renderText t
 
 instance SVGFloat n => Renderable (DImage n Embedded) SVG where
   render _ = R . return . R.renderDImageEmb
@@ -361,18 +347,18 @@ instance SVGFloat n => Renderable (DImage n Embedded) SVG where
 
 -- | Render a diagram as an SVG, writing to the specified output file
 --   and using the requested size.
-renderSVG :: SVGFloat n => FilePath -> SizeSpec2D n -> QDiagram SVG V2 n Any -> IO ()
-renderSVG outFile szSpec
+renderSVG :: SVGFloat n => FilePath -> SizeSpec V2 n -> QDiagram SVG V2 n Any -> IO ()
+renderSVG outFile spec
   = BS.writeFile outFile
   . renderSvg
-  . renderDia SVG (SVGOptions szSpec Nothing)
+  . renderDia SVG (SVGOptions spec Nothing)
 
 -- | Render a diagram as a pretty printed SVG.
-renderPretty :: SVGFloat n => FilePath -> SizeSpec2D n -> QDiagram SVG V2 n Any -> IO ()
-renderPretty outFile szSpec
+renderPretty :: SVGFloat n => FilePath -> SizeSpec V2 n -> QDiagram SVG V2 n Any -> IO ()
+renderPretty outFile spec
   = writeFile outFile
   . Pretty.renderSvg
-  . renderDia SVG (SVGOptions szSpec Nothing)
+  . renderDia SVG (SVGOptions spec Nothing)
 
 
 
