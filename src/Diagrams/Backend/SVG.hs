@@ -178,16 +178,12 @@ instance SVGFloat n => Monoid (Render SVG V2 n) where
       return (svg1 `mappend` svg2)
 
 -- Handle clip attributes.
+--
 renderSvgWithClipping :: forall n. SVGFloat n
-<<<<<<< HEAD
-                      => S.Svg      -- ^ Input SVG
-                      -> Style V2 n -- ^ Styles
-                      -> SvgRenderM -- ^ Resulting svg
-=======
                       => S.Svg         -- ^ Input SVG
                       -> Style V2 n    -- ^ Styles
                       -> SvgRenderM    -- ^ Resulting svg
->>>>>>> master
+
 renderSvgWithClipping svg s =
   case op Clip <$> getAttr s of
     Nothing -> return svg
