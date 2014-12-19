@@ -191,7 +191,7 @@ instance Parseable PrettyOpt where
 
 instance SVGFloat n => Mainable (QDiagram SVG V2 n Any) where
 #ifdef CMDLINELOOP
-    type MainOpts (QDiagram SVG V2 n Any) = (DiagramOpts, DiagramLoopOpts, PrettyOpt) 
+    type MainOpts (QDiagram SVG V2 n Any) = (DiagramOpts, DiagramLoopOpts, PrettyOpt)
 
     mainRender (opts, loopOpts, pretty) d = do
         chooseRender opts pretty d

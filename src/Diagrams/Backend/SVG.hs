@@ -130,6 +130,7 @@ import           Diagrams.TwoD.Adjust         (adjustDia2D)
 import           Diagrams.TwoD.Attributes     (splitTextureFills)
 import           Diagrams.TwoD.Path           (Clip (Clip))
 import           Diagrams.TwoD.Text
+import           Diagrams.Backend.Build
 
 -- from blaze-svg
 import           Text.Blaze.Internal          (ChoiceString (..), MarkupM (..),
@@ -229,6 +230,12 @@ instance SVGFloat n => Backend SVG V2 n where
         return $ R.svgHeader w h (opts^.svgDefinitions) svg
 
   adjustDia c opts d = adjustDia2D sizeSpec c opts (d # reflectY)
+
+instance SVGFloat n => BackendBuild SVG V2 n where
+  outputSize = sizeSpec
+  saveDia outFile opts dia = BS.writeFile outFile (renderSvg build)
+    where
+      build = renderDia SVG opts dia
 
 toRender :: forall n. SVGFloat n => RTree SVG V2 n Annotation -> Render SVG V2 n
 toRender = fromRTree
