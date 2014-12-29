@@ -73,7 +73,8 @@ module Diagrams.Backend.SVG.CmdLine
 
 import           Diagrams.Backend.CmdLine
 import           Diagrams.Backend.SVG
-import           Diagrams.Prelude               hiding (height, interval, width, output)
+import           Diagrams.Prelude               hiding (height, interval,
+                                                 output, width)
 
 import           Control.Lens                   hiding (argument)
 import           Options.Applicative            hiding ((<>))
@@ -84,35 +85,6 @@ import qualified Text.Blaze.Svg.Renderer.Pretty as Pretty
 import           Text.Blaze.Svg.Renderer.Utf8   (renderSvg)
 
 import           Data.List.Split
-
-#ifdef CMDLINELOOP
-import           Control.Concurrent             (threadDelay)
-import           Control.Exception              (SomeException (..))
-import qualified Control.Exception              as Exc (bracket, catch)
-import           Control.Monad                  (when)
-import           Data.Maybe                     (fromMaybe)
-import           System.Directory               (getModificationTime)
-import           System.Exit                    (ExitCode (..))
-import           System.IO                      (BufferMode (..), IOMode (..), hClose,
-                                                 hSetBuffering, openFile, stdout)
-import           System.Process                 (runProcess, waitForProcess)
-
-import           System.Environment             (getArgs, getProgName)
-import           System.Posix.Process           (executeFile)
-
-
-# if MIN_VERSION_directory(1,2,0)
-import           Data.Time.Clock                (UTCTime, getCurrentTime)
-type ModuleTime = UTCTime
-getModuleTime :: IO  ModuleTime
-getModuleTime = getCurrentTime
-#else
-import System.Time         (ClockTime, getClockTime)
-type ModuleTime = ClockTime
-getModuleTime :: IO  ModuleTime
-getModuleTime = getClockTime
-#endif
-#endif
 
 -- $mainwith
 -- The 'mainWith' method unifies all of the other forms of @main@ and is
@@ -194,8 +166,8 @@ instance SVGFloat n => Mainable (QDiagram SVG V2 n Any) where
     type MainOpts (QDiagram SVG V2 n Any) = (DiagramOpts, DiagramLoopOpts, PrettyOpt)
 
     mainRender (opts, loopOpts, pretty) d = do
-        chooseRender opts pretty d
-        when (loopOpts^.loop) (waitForChange Nothing loopOpts)
+      chooseRender opts pretty d
+      defaultLoopRender loopOpts
 #else
     type MainOpts (QDiagram SVG V2 n Any) = (DiagramOpts, PrettyOpt)
 
@@ -241,54 +213,4 @@ instance SVGFloat n => Mainable [(String,QDiagram SVG V2 n Any)] where
         = (MainOpts (QDiagram SVG V2 n Any), DiagramMultiOpts)
 
     mainRender = defaultMultiMainRender
-
-
-#ifdef CMDLINELOOP
-waitForChange :: Maybe ModuleTime -> DiagramLoopOpts -> IO ()
-waitForChange lastAttempt opts = do
-    prog <- getProgName
-    args <- getArgs
-    hSetBuffering stdout NoBuffering
-    go prog args lastAttempt
-  where go prog args lastAtt = do
-          threadDelay (1000000 * opts^.interval)
-          -- putStrLn $ "Checking... (last attempt = " ++ show lastAttempt ++ ")"
-          (newBin, newAttempt) <- recompile lastAtt prog (opts^.src)
-          if newBin
-            then executeFile prog False args Nothing
-            else go prog args $ getFirst (First newAttempt <> First lastAtt)
-
--- | @recompile t prog@ attempts to recompile @prog@, assuming the
---   last attempt was made at time @t@.  If @t@ is @Nothing@ assume
---   the last attempt time is the same as the modification time of the
---   binary.  If the source file modification time is later than the
---   last attempt time, then attempt to recompile, and return the time
---   of this attempt.  Otherwise (if nothing has changed since the
---   last attempt), return @Nothing@.  Also return a Bool saying
---   whether a successful recompilation happened.
-recompile :: Maybe ModuleTime -> String -> Maybe String -> IO (Bool, Maybe ModuleTime)
-recompile lastAttempt prog mSrc = do
-  let errFile = prog ++ ".errors"
-      srcFile = fromMaybe (prog ++ ".hs") mSrc
-  binT <- maybe (getModTime prog) (return . Just) lastAttempt
-  srcT <- getModTime srcFile
-  if (srcT > binT)
-    then do
-      putStr "Recompiling..."
-      status <- Exc.bracket (openFile errFile WriteMode) hClose $ \h ->
-        waitForProcess =<< runProcess "ghc" ["--make", srcFile]
-                           Nothing Nothing Nothing Nothing (Just h)
-
-      if (status /= ExitSuccess)
-        then putStrLn "" >> putStrLn (replicate 75 '-') >> readFile errFile >>= putStr
-        else putStrLn "done."
-
-      curTime <- getModuleTime
-      return (status == ExitSuccess, Just curTime)
-
-    else return (False, Nothing)
-
- where getModTime f = Exc.catch (Just <$> getModificationTime f)
-                            (\(SomeException _) -> return Nothing)
-#endif
 
