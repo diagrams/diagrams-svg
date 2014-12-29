@@ -148,7 +148,7 @@ import           Data.List.Split
 -- $ ./MyDiagram -o image.svg -w 400
 -- @
 
-defaultMain :: SVGFloat n => QDiagram SVG V2 n Any -> IO ()
+defaultMain :: Diagram SVG -> IO ()
 defaultMain = mainWith
 
 newtype PrettyOpt = PrettyOpt {isPretty :: Bool}
