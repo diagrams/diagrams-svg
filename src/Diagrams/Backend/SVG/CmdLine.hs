@@ -85,35 +85,6 @@ import           Text.Blaze.Svg.Renderer.Utf8   (renderSvg)
 
 import           Data.List.Split
 
--- #ifdef CMDLINELOOP
--- import           Control.Concurrent             (threadDelay)
--- import           Control.Exception              (SomeException (..))
--- import qualified Control.Exception              as Exc (bracket, catch)
--- import           Control.Monad                  (when)
--- import           Data.Maybe                     (fromMaybe)
--- import           System.Directory               (getModificationTime)
--- import           System.Exit                    (ExitCode (..))
--- import           System.IO                      (BufferMode (..), IOMode (..), hClose,
---                                                  hSetBuffering, openFile, stdout)
--- import           System.Process                 (runProcess, waitForProcess)
-
--- import           System.Environment             (getArgs, getProgName)
--- import           System.Posix.Process           (executeFile)
-
-
--- # if MIN_VERSION_directory(1,2,0)
--- import           Data.Time.Clock                (UTCTime, getCurrentTime)
--- type ModuleTime = UTCTime
--- getModuleTime :: IO  ModuleTime
--- getModuleTime = getCurrentTime
--- #else
--- import System.Time         (ClockTime, getClockTime)
--- type ModuleTime = ClockTime
--- getModuleTime :: IO  ModuleTime
--- getModuleTime = getClockTime
--- #endif
--- #endif
-
 -- $mainwith
 -- The 'mainWith' method unifies all of the other forms of @main@ and is
 -- now the recommended way to build a command-line diagrams program.  It
