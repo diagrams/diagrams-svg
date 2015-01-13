@@ -1,4 +1,11 @@
+1.1.0.4 (13 Jan 2015)
+---------------------
+
+- Allow `vector-space-0.9`
+- Allow `lens-4.7`
+
 1.1.0.3 (07 December 2014)
+--------------------------
 
 - Allow `JuicyPixels-3.2`
 
