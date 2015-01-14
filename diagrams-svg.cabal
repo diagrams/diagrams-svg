@@ -63,9 +63,6 @@ Library
                      , optparse-applicative >= 0.10 && < 0.12
   if impl(ghc < 7.6)
     build-depends:     ghc-prim
-  if !os(windows)
-    cpp-options: -DCMDLINELOOP
-    Build-depends:     unix >= 2.4 && < 2.8
 
   Ghc-options:         -Wall
 
