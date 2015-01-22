@@ -72,22 +72,22 @@ getNumAttr f = (f <$>) . getAttr
 -- | @svgHeader w h defs s@: @w@ width, @h@ height,
 --   @defs@ global definitions for defs sections, @s@ actual SVG content.
 svgHeader :: SVGFloat n => n -> n -> [Attribute] -> Svg () -> Svg ()
-svgHeader w h defines s =  doctype_ <> with (svg11_ (g_ (defs_ defines s)))
-  [ version_ "1.1"
-  , width_    (toText w)
+svgHeader w h defines s =  doctype_ <> with (svg11_ (g_  defines s))
+  [ width_    (toText w)
   , height_   (toText h)
   , fontSize_ "1"
-  , viewBox_ (toText . unwords $ map show ([0, 0, round w, round h] :: [Int]))
+  , viewBox_ (T.pack . unwords $ map show ([0, 0, round w, round h] :: [Int]))
   , stroke_ "rgb(0,0,0)"
   , strokeOpacity_ "1" ]
 
 renderPath :: SVGFloat n => Path V2 n -> Svg ()
-renderPath trs  = path_  [d_ makePath]
+renderPath trs = if makePath == T.empty then mempty else path_ [d_ makePath]
+-- renderPath trs  = path_  [d_ (if makePath == T.empty then toText "" else makePath)]
   where
     makePath = T.concat $ map renderTrail (op Path trs)
 
 renderTrail :: SVGFloat n => Located (Trail V2 n) -> T.Text
-renderTrail (viewLoc -> (P (V2 x y), t)) = mR x y <> withTrail renderLine renderLoop t
+renderTrail (viewLoc -> (P (V2 x y), t)) = mA x y <> withTrail renderLine renderLoop t
   where
     renderLine = T.concat . map renderSeg . lineSegments
     renderLoop lp =
@@ -182,7 +182,7 @@ renderFillTextureDefs i s =
 -- Render the gradient using the id set up in renderFillTextureDefs.
 renderFillTexture :: SVGFloat n => Int -> Style v n -> [Attribute]
 renderFillTexture ident s = case getNumAttr getFillTexture s of
-  Just (SC (SomeColor c)) -> renderAttr fill_ fillColorRgb <>
+  Just (SC (SomeColor c)) -> renderTextAttr fill_ fillColorRgb <>
                              renderAttr fillOpacity_ fillColorOpacity
     where
       fillColorRgb     = Just $ colorToRgbText c
@@ -200,7 +200,7 @@ renderLineTextureDefs i s =
 
 renderLineTexture :: SVGFloat n => Int -> Style v n -> [Attribute]
 renderLineTexture ident s = case getNumAttr getLineTexture s of
-  Just (SC (SomeColor c)) -> renderAttr stroke_ lineColorRgb <>
+  Just (SC (SomeColor c)) -> renderTextAttr stroke_ lineColorRgb <>
                              renderAttr strokeOpacity_ lineColorOpacity
     where
       lineColorRgb     = Just $ colorToRgbText c
@@ -289,7 +289,7 @@ renderOpacity s = renderAttr opacity_ o
  where o = getOpacity <$> getAttr s
 
 renderFillRule :: SVGFloat n => Style v n -> [Attribute]
-renderFillRule s = renderAttr fillRule_ fr
+renderFillRule s = renderTextAttr fillRule_ fr
   where fr = (fillRuleToText . getFillRule) <$> getAttr s
         fillRuleToText :: FillRule -> T.Text
         fillRuleToText Winding = "nonzero"
@@ -300,7 +300,7 @@ renderLineWidth s = renderAttr strokeWidth_ lWidth
   where lWidth = getNumAttr getLineWidth s
 
 renderLineCap :: SVGFloat n => Style v n -> [Attribute]
-renderLineCap s = renderAttr strokeLinecap_ lCap
+renderLineCap s = renderTextAttr strokeLinecap_ lCap
   where lCap = (lineCapToText . getLineCap) <$> getAttr s
         lineCapToText :: LineCap -> T.Text
         lineCapToText LineCapButt   = "butt"
@@ -308,7 +308,7 @@ renderLineCap s = renderAttr strokeLinecap_ lCap
         lineCapToText LineCapSquare = "square"
 
 renderLineJoin :: SVGFloat n => Style v n -> [Attribute]
-renderLineJoin s = renderAttr strokeLinejoin_ lj
+renderLineJoin s = renderTextAttr strokeLinejoin_ lj
   where lj = (lineJoinToText . getLineJoin) <$> getAttr s
         lineJoinToText :: LineJoin -> T.Text
         lineJoinToText LineJoinMiter = "miter"
@@ -316,14 +316,14 @@ renderLineJoin s = renderAttr strokeLinejoin_ lj
         lineJoinToText LineJoinBevel = "bevel"
 
 renderDashing :: SVGFloat n => Style v n -> [Attribute]
-renderDashing s = renderAttr strokeDasharray_ arr <>
-                   renderAttr strokeDashoffset_ dOffset
+renderDashing s = renderTextAttr strokeDasharray_ arr <>
+                  renderAttr strokeDashoffset_ dOffset
  where
   getDasharray  (Dashing a _) = a
   getDashoffset (Dashing _ o) = o
   dashArrayToStr              = intercalate "," . map show
   dashing_                    = getNumAttr getDashing s
-  arr                         = (dashArrayToStr . getDasharray) <$> dashing_
+  arr                         = (T.pack . dashArrayToStr . getDasharray) <$> dashing_
   dOffset                     = getDashoffset <$> dashing_
 
 renderFontSize :: SVGFloat n => Style v n -> [Attribute]
@@ -332,7 +332,7 @@ renderFontSize s = renderAttr fontSize_ fs
   fs = getNumAttr ((++ "px") . show . getFontSize) s
 
 renderFontSlant :: SVGFloat n => Style v n -> [Attribute]
-renderFontSlant s = renderAttr fontStyle_ fs
+renderFontSlant s = renderTextAttr fontStyle_ fs
  where
   fs = (fontSlantAttr . getFontSlant) <$> getAttr s
   fontSlantAttr :: FontSlant -> T.Text
@@ -341,7 +341,7 @@ renderFontSlant s = renderAttr fontStyle_ fs
   fontSlantAttr FontSlantNormal  = "normal"
 
 renderFontWeight :: SVGFloat n => Style v n -> [Attribute]
-renderFontWeight s = renderAttr fontWeight_ fw
+renderFontWeight s = renderTextAttr fontWeight_ fw
  where
   fw = (fontWeightAttr . getFontWeight) <$> getAttr s
   fontWeightAttr :: FontWeight -> T.Text
@@ -349,17 +349,18 @@ renderFontWeight s = renderAttr fontWeight_ fw
   fontWeightAttr FontWeightBold   = "bold"
 
 renderFontFamily :: SVGFloat n => Style v n -> [Attribute]
-renderFontFamily s = renderAttr fontFamily_ ff
+renderFontFamily s = renderTextAttr  fontFamily_ ff
  where
-  ff = getFont <$> getAttr s
+  ff = (T.pack . getFont) <$> getAttr s
 
 -- | Render a style attribute if available, empty otherwise.
 renderAttr :: Show s => (T.Text -> Attribute)
            -> Maybe s
            -> [Attribute]
-renderAttr attr valM = case valM of
-  Just val -> [attr (toText val)]
-  Nothing  -> []
+renderAttr attr valM = maybe [] (\v -> [attr (toText v)]) valM
+
+renderTextAttr :: (T.Text -> Attribute) -> Maybe T.Text -> [Attribute]
+renderTextAttr attr valM = maybe [] (\v -> [attr v]) valM
 
 colorToRgbText :: forall c . Color c => c -> T.Text
 colorToRgbText c = T.concat

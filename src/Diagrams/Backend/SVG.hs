@@ -125,12 +125,13 @@ import           Diagrams.Core.Compile
 import           Diagrams.Core.Types          (Annotation (..))
 
 -- from diagrams-lib
-import           Diagrams.Prelude             hiding (view, size)
+import           Diagrams.Prelude             hiding (Attribute, view, size)
 import           Diagrams.TwoD.Adjust         (adjustDia2D)
 import           Diagrams.TwoD.Attributes     (splitTextureFills)
 import           Diagrams.TwoD.Path           (Clip (Clip))
 import           Diagrams.TwoD.Text
 
+import           Lucid.Svg
 -- from blaze-svg
 import           Text.Blaze.Internal          (ChoiceString (..), MarkupM (..),
                                                StaticString (..))
@@ -167,7 +168,7 @@ initialSvgRenderState = SvgRenderState 0 0 1
 -- | Monad to keep track of state when rendering an SVG.
 --   Currently just keeps a monotonically increasing counter
 --   for assiging a unique clip path ID.
-type SvgRenderM = State SvgRenderState S.Svg
+type SvgRenderM = State SvgRenderState (Svg ())
 
 instance SVGFloat n => Monoid (Render SVG V2 n) where
   mempty  = R $ return mempty
@@ -180,7 +181,7 @@ instance SVGFloat n => Monoid (Render SVG V2 n) where
 -- Handle clip attributes.
 --
 renderSvgWithClipping :: forall n. SVGFloat n
-                      => S.Svg         -- ^ Input SVG
+                      => Svg ()        -- ^ Input SVG
                       -> Style V2 n    -- ^ Styles
                       -> SvgRenderM    -- ^ Resulting svg
 
@@ -193,29 +194,29 @@ renderSvgWithClipping svg s =
     renderClips []     = return svg
     renderClips (p:ps) = do
       clipPathId += 1
-      id_ <- use clipPathId
-      R.renderClip p id_ <$> renderClips ps
+      ident <- use clipPathId
+      R.renderClip p ident <$> renderClips ps
 
 -- | Create a new texture defs svg element using the style and the current
 --   id number, then increment the gradient id number.
 fillTextureDefs :: SVGFloat n => Style v n -> SvgRenderM
 fillTextureDefs s = do
-  id_ <- use fillGradId
+  ident <- use fillGradId
   fillGradId += 2 -- always even
-  return $ R.renderFillTextureDefs id_ s
+  return $ R.renderFillTextureDefs ident s
 
 lineTextureDefs :: SVGFloat n => Style v n -> SvgRenderM
 lineTextureDefs s = do
-  id_ <- use lineGradId
+  ident <- use lineGradId
   lineGradId += 2 -- always odd
-  return $ R.renderLineTextureDefs id_ s
+  return $ R.renderLineTextureDefs ident s
 
 instance SVGFloat n => Backend SVG V2 n where
   data Render  SVG V2 n = R SvgRenderM
-  type Result  SVG V2 n = S.Svg
+  type Result  SVG V2 n = Svg ()
   data Options SVG V2 n = SVGOptions
     { _size           :: SizeSpec V2 n   -- ^ The requested size.
-    , _svgDefinitions :: Maybe S.Svg
+    , _svgDefinitions :: [Attribute]
                           -- ^ Custom definitions that will be added to the @defs@
                           --   section of the output.
     }
@@ -240,7 +241,7 @@ toRender = fromRTree
         = R $ do
             let R r =  foldMap fromRTree rs
             svg <- r
-            return $ (S.a ! xlinkHref (S.toValue uri)) svg
+            return $ a_ [xlinkHref_ $ toText uri] svg
       fromRTree (Node (RPrim p) _) = render SVG p
       fromRTree (Node (RStyle sty) ts)
         = R $ do
@@ -255,7 +256,7 @@ toRender = fromRTree
             lineGradDefs <- lineTextureDefs sty
             fillGradDefs <- fillTextureDefs sty
             let textureDefs = fillGradDefs `mappend` lineGradDefs
-            return $ (S.g ! R.renderStyles idFill idLine sty)
+            return $ (g_ $ R.renderStyles idFill idLine sty)
                      (textureDefs `mappend` clippedSvg)
       fromRTree (Node _ rs) = foldMap fromRTree rs
 
@@ -265,18 +266,18 @@ sizeSpec = lens getter setter
     getter (SVGOptions {_size = s}) = s
     setter o s = o {_size = s}
 
-getSVGDefs :: SVGFloat n => Options SVG V2 n -> Maybe S.Svg
+getSVGDefs :: SVGFloat n => Options SVG V2 n -> [Attribute]
 getSVGDefs (SVGOptions {_svgDefinitions = d}) = d
 
-setSVGDefs :: SVGFloat n => Options SVG V2 n -> Maybe S.Svg -> Options SVG V2 n
+setSVGDefs :: SVGFloat n => Options SVG V2 n -> [Attribute] -> Options SVG V2 n
 setSVGDefs o d = o {_svgDefinitions = d}
 
-svgDefinitions :: SVGFloat n => Lens' (Options SVG V2 n) (Maybe S.Svg)
+svgDefinitions :: SVGFloat n => Lens' (Options SVG V2 n) [Attribute]
 svgDefinitions = lens getSVGDefs setSVGDefs
 
-instance (Hashable n, SVGFloat n) => Hashable (Options SVG V2 n) where
-  hashWithSalt s (SVGOptions sz defs) =
-    s `hashWithSalt` sz `hashWithSalt` defs
+-- instance (Hashable n, SVGFloat n) => Hashable (Options SVG V2 n) where
+--   hashWithSalt s (SVGOptions sz defs) =
+--     s `hashWithSalt` sz `hashWithSalt` defs
 
 instance Hashable StaticString where
   hashWithSalt s (StaticString dl bs txt)
@@ -337,8 +338,8 @@ instance Hashable (MarkupM a) where
 instance SVGFloat n => Renderable (Path V2 n) SVG where
   render _ = R . return . R.renderPath
 
-instance SVGFloat n => Renderable (Text n) SVG where
-  render _ t = R . return $ R.renderText t
+-- instance SVGFloat n => Renderable (Text n) SVG where
+--   render _ = R . return . R.renderText
 
 instance SVGFloat n => Renderable (DImage n Embedded) SVG where
   render _ = R . return . R.renderDImageEmb
@@ -350,15 +351,16 @@ instance SVGFloat n => Renderable (DImage n Embedded) SVG where
 renderSVG :: SVGFloat n => FilePath -> SizeSpec V2 n -> QDiagram SVG V2 n Any -> IO ()
 renderSVG outFile spec
   = BS.writeFile outFile
-  . renderSvg
-  . renderDia SVG (SVGOptions spec Nothing)
+  . renderBS
+  . renderDia SVG (SVGOptions spec [])
 
 -- | Render a diagram as a pretty printed SVG.
 renderPretty :: SVGFloat n => FilePath -> SizeSpec V2 n -> QDiagram SVG V2 n Any -> IO ()
 renderPretty outFile spec
-  = writeFile outFile
-  . Pretty.renderSvg
-  . renderDia SVG (SVGOptions spec Nothing)
+  = undefined
+  -- = writeFile outFile
+  -- . Pretty.renderSvg
+  -- . renderDia SVG (SVGOptions spec Nothing)
 
 
 

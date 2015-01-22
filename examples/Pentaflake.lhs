@@ -22,7 +22,7 @@ pentaflakes around the central one.
 > pentaflake n = appends (p' # fc (colors !! (n-1)))
 >                        (zip vs (repeat (rotateBy (1/2) p')))
 >   where vs = take 5 . iterate (rotateBy (1/5))
->                     . (if odd n then negateV else id) $ unitY
+>                     . (if odd n then negated else id) $ unitY
 >         p' = pentaflake (n-1)
 > 
 > pentaflake' n = pentaflake n # fc (colors !! n)
@@ -31,5 +31,6 @@ An order-4 pentaflake looks nice.  Of course there's an exponential
 blowup in the number of primitives, so generating higher-order
 pentaflakes can take a long time!
 
+> example :: Diagram B
 > example = pad 1.1 $ pentaflake' 4
 > main = defaultMain (pad 1.1 example)
