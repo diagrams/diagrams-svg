@@ -338,8 +338,8 @@ instance Hashable (MarkupM a) where
 instance SVGFloat n => Renderable (Path V2 n) SVG where
   render _ = R . return . R.renderPath
 
--- instance SVGFloat n => Renderable (Text n) SVG where
---   render _ = R . return . R.renderText
+instance SVGFloat n => Renderable (Text n) SVG where
+  render _ = R . return . R.renderText 
 
 instance SVGFloat n => Renderable (DImage n Embedded) SVG where
   render _ = R . return . R.renderDImageEmb

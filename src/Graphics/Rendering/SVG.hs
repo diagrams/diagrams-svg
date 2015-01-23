@@ -234,18 +234,14 @@ renderDImage (DImage _ w h tr) uridata =
     tX = translationX $ fromIntegral (-w)/2
     tY = translationY $ fromIntegral (-h)/2
 
--- XXX Why cant ghc infer this type? and why does it even work.
--- In fact both `Svg ()`s can be replaced with an arbitrary type variable say `s`
--- and it still works.
--- https://github.com/chrisdone/lucid/blob/master/src/Lucid/Base.hs#L181
-renderText :: (SVGFloat n, Term [Attribute] (T.Text -> Svg ())) => Text n -> Svg ()
+renderText :: SVGFloat n => Text n -> Svg ()
 renderText (Text tt tAlign str) =
   text_
     [ transform_ transformMatrix
     , dominantBaseline_ vAlign
     , textAnchor_ hAlign
     , stroke_ "none" ]
-    (T.pack str)
+    (toHtml str)
  where
   vAlign = case tAlign of
              BaselineText -> "alphabetic"
@@ -327,9 +323,9 @@ renderDashing s = renderTextAttr strokeDasharray_ arr <>
   dOffset                     = getDashoffset <$> dashing_
 
 renderFontSize :: SVGFloat n => Style v n -> [Attribute]
-renderFontSize s = renderAttr fontSize_ fs
+renderFontSize s = renderTextAttr fontSize_ fs
  where
-  fs = getNumAttr ((++ "px") . show . getFontSize) s
+  fs = T.pack <$> getNumAttr ((++ "px") . show . getFontSize) s
 
 renderFontSlant :: SVGFloat n => Style v n -> [Attribute]
 renderFontSlant s = renderTextAttr fontStyle_ fs
