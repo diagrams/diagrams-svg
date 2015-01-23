@@ -80,7 +80,6 @@ import           Options.Applicative            hiding ((<>))
 import qualified Options.Applicative            as O ((<>))
 
 import qualified Data.ByteString.Lazy           as BS
-import qualified Text.Blaze.Svg.Renderer.Pretty as Pretty
 
 import           Lucid.Svg                      (renderBS)
 

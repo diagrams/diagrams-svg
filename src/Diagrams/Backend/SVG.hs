@@ -132,14 +132,6 @@ import           Diagrams.TwoD.Path           (Clip (Clip))
 import           Diagrams.TwoD.Text
 
 import           Lucid.Svg
--- from blaze-svg
-import           Text.Blaze.Internal          (ChoiceString (..), MarkupM (..),
-                                               StaticString (..))
-import           Text.Blaze.Svg.Renderer.Utf8 (renderSvg)
-import           Text.Blaze.Svg11             ((!))
-import qualified Text.Blaze.Svg11             as S
-import           Text.Blaze.Svg11.Attributes  (xlinkHref)
-import qualified Text.Blaze.Svg.Renderer.Pretty as Pretty
 
 -- from this package
 import qualified Graphics.Rendering.SVG       as R
@@ -274,66 +266,6 @@ setSVGDefs o d = o {_svgDefinitions = d}
 
 svgDefinitions :: SVGFloat n => Lens' (Options SVG V2 n) [Attribute]
 svgDefinitions = lens getSVGDefs setSVGDefs
-
--- instance (Hashable n, SVGFloat n) => Hashable (Options SVG V2 n) where
---   hashWithSalt s (SVGOptions sz defs) =
---     s `hashWithSalt` sz `hashWithSalt` defs
-
-instance Hashable StaticString where
-  hashWithSalt s (StaticString dl bs txt)
-    = s `hashWithSalt` dl [] `hashWithSalt` bs `hashWithSalt` txt
-
-deriving instance Generic ChoiceString
-
-instance Hashable ChoiceString
-
-instance Hashable (MarkupM a) where
-  hashWithSalt s (Parent w x y z) =
-    s          `hashWithSalt`
-    (0 :: Int) `hashWithSalt`
-    w          `hashWithSalt`
-    x          `hashWithSalt`
-    y          `hashWithSalt`
-    z
-  hashWithSalt s (CustomParent cs m) =
-    s          `hashWithSalt`
-    (1 :: Int) `hashWithSalt`
-    cs         `hashWithSalt`
-    m
-  hashWithSalt s (Leaf s1 s2 s3) =
-    s          `hashWithSalt`
-    (2 :: Int) `hashWithSalt`
-    s1         `hashWithSalt`
-    s2         `hashWithSalt`
-    s3
-  hashWithSalt s (CustomLeaf cs b) =
-    s          `hashWithSalt`
-    (3 :: Int) `hashWithSalt`
-    cs         `hashWithSalt`
-    b
-  hashWithSalt s (Content cs) =
-    s          `hashWithSalt`
-    (4 :: Int) `hashWithSalt`
-    cs
-  hashWithSalt s (Append m1 m2) =
-    s          `hashWithSalt`
-    (5 :: Int) `hashWithSalt`
-    m1         `hashWithSalt`
-    m2
-  hashWithSalt s (AddAttribute s1 s2 s3 m) =
-    s          `hashWithSalt`
-    (6 :: Int) `hashWithSalt`
-    s1         `hashWithSalt`
-    s2         `hashWithSalt`
-    s3         `hashWithSalt`
-    m
-  hashWithSalt s (AddCustomAttribute s1 s2 m) =
-    s          `hashWithSalt`
-    (7 :: Int) `hashWithSalt`
-    s1         `hashWithSalt`
-    s2         `hashWithSalt`
-    m
-  hashWithSalt s Empty = s `hashWithSalt` (8 :: Int)
 
 instance SVGFloat n => Renderable (Path V2 n) SVG where
   render _ = R . return . R.renderPath
