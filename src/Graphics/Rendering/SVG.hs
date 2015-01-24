@@ -18,6 +18,8 @@
 
 module Graphics.Rendering.SVG
     ( SVGFloat
+    , SvgM
+    , AttributeValue
     , svgHeader
     , renderPath
     , renderClip
@@ -36,7 +38,8 @@ module Graphics.Rendering.SVG
 
 -- from base
 import           Data.List                   (intercalate)
-import           Data.Foldable (foldMap)
+import           Data.Foldable               (foldMap)
+import           Data.Monoid
 
 -- from lens
 import           Control.Lens                hiding (transform)
@@ -49,14 +52,18 @@ import           Diagrams.Prelude            hiding (Attribute, Render, with, (<
 import           Diagrams.TwoD.Path          (getFillRule)
 import           Diagrams.TwoD.Text
 
+-- from text
+import           Data.Text                   (pack)
 import qualified Data.Text                   as T
-import           Data.Monoid
+
+-- from lucid-svg
 import           Lucid.Svg                   hiding (renderText)
 
--- from blaze-svg
+-- from base64-bytestring, bytestring
 import qualified Data.ByteString.Base64.Lazy as BS64
 import qualified Data.ByteString.Lazy.Char8  as BS8
 
+-- from JuicyPixels
 import           Codec.Picture
 
 -- | Constaint on number type that diagrams-svg can use to render an SVG. This
@@ -66,27 +73,32 @@ type SVGFloat n = (Show n, TypeableFloat n)
 --   showFFloat :: RealFloat a => Maybe Int -> a -> ShowS
 -- or something similar for all numbers so we need TypeableFloat constraint.
 
+-- | The Svg monad, synonym for @HtmlT m ()@ Lucid.Base.
+type SvgM = Svg ()
+
+type AttributeValue = T.Text
+
 getNumAttr :: AttributeClass (a n) => (a n -> t) -> Style v n -> Maybe t
 getNumAttr f = (f <$>) . getAttr
 
 -- | @svgHeader w h defs s@: @w@ width, @h@ height,
 --   @defs@ global definitions for defs sections, @s@ actual SVG content.
-svgHeader :: SVGFloat n => n -> n -> [Attribute] -> Svg () -> Svg ()
+svgHeader :: SVGFloat n => n -> n -> [Attribute] -> SvgM -> SvgM
 svgHeader w h defines s =  doctype_ <> with (svg11_ (g_  defines s))
-  [ width_    (toText w)
-  , height_   (toText h)
+  [ width_  (toText w)
+  , height_ (toText h)
   , fontSize_ "1"
-  , viewBox_ (T.pack . unwords $ map show ([0, 0, round w, round h] :: [Int]))
+  , viewBox_ (pack . unwords $ map show ([0, 0, round w, round h] :: [Int]))
   , stroke_ "rgb(0,0,0)"
   , strokeOpacity_ "1" ]
 
-renderPath :: SVGFloat n => Path V2 n -> Svg ()
+renderPath :: SVGFloat n => Path V2 n -> SvgM
 renderPath trs = if makePath == T.empty then mempty else path_ [d_ makePath]
 -- renderPath trs  = path_  [d_ (if makePath == T.empty then toText "" else makePath)]
   where
     makePath = T.concat $ map renderTrail (op Path trs)
 
-renderTrail :: SVGFloat n => Located (Trail V2 n) -> T.Text
+renderTrail :: SVGFloat n => Located (Trail V2 n) -> AttributeValue
 renderTrail (viewLoc -> (P (V2 x y), t)) = mA x y <> withTrail renderLine renderLoop t
   where
     renderLine = T.concat . map renderSeg . lineSegments
@@ -99,7 +111,7 @@ renderTrail (viewLoc -> (P (V2 x y), t)) = mA x y <> withTrail renderLine render
         _ -> T.concat $ map renderSeg (lineSegments . cutLoop $ lp)
       <> z
 
-renderSeg :: SVGFloat n => Segment Closed V2 n -> T.Text
+renderSeg :: SVGFloat n => Segment Closed V2 n -> AttributeValue
 renderSeg (Linear (OffsetClosed (V2 x 0))) = hR x
 renderSeg (Linear (OffsetClosed (V2 0 y))) = vR y
 renderSeg (Linear (OffsetClosed (V2 x y))) = lR x y
@@ -107,72 +119,72 @@ renderSeg (Cubic  (V2 x0 y0)
                   (V2 x1 y1)
                   (OffsetClosed (V2 x2 y2))) = cR x0 y0 x1 y1 x2 y2
 
-renderClip :: SVGFloat n => Path V2 n -> Int -> Svg () -> Svg ()
+renderClip :: SVGFloat n => Path V2 n -> Int -> SvgM -> SvgM
 renderClip p ident svg =
   g_  [clipPath_ $ ("url(#" <> clipPathId ident <> ")")] $ do
     clipPath_ [id_ (clipPathId ident)] (renderPath p)
     svg
   where clipPathId i = "myClip" <> (toText i)
 
-renderStop :: SVGFloat n => GradientStop n -> Svg ()
+renderStop :: SVGFloat n => GradientStop n -> SvgM
 renderStop (GradientStop c v)
-  = stop_ [ stopColor_ (colorToRgbText c)
-          , offset_ (toText v)
+  = stop_ [ stopColor_   (colorToRgbText c)
+          , offset_      (toText v)
           , stopOpacity_ (toText $ colorToOpacity c) ]
 
-spreadMethodText :: SpreadMethod -> T.Text
+spreadMethodText :: SpreadMethod -> AttributeValue
 spreadMethodText GradPad      = "pad"
 spreadMethodText GradReflect  = "reflect"
 spreadMethodText GradRepeat   = "repeat"
 
-renderLinearGradient :: SVGFloat n => LGradient n -> Int -> Svg ()
+renderLinearGradient :: SVGFloat n => LGradient n -> Int -> SvgM
 renderLinearGradient g i = linearGradient_
-    [ id_ (T.pack $ "gradient" ++ show i)
-    , x1_  (toText x1)
-    , y1_  (toText y1)
-    , x2_  (toText x2)
-    , y2_  (toText y2)
+    [ id_ (pack $ "gradient" ++ show i)
+    , x1_ (toText x1)
+    , y1_ (toText y1)
+    , x2_ (toText x2)
+    , y2_ (toText y2)
     , gradientTransform_ mx
     , gradientUnits_ "userSpaceOnUse"
-    , spreadMethod_ (spreadMethodText (g^.lGradSpreadMethod)) ]
-    ( foldMap renderStop (g^.lGradStops) )
+    , spreadMethod_ (spreadMethodText (g ^. lGradSpreadMethod)) ]
+    $ foldMap renderStop (g^.lGradStops)
   where
     mx = matrix a1 a2 b1 b2 c1 c2
-    [[a1, a2], [b1, b2], [c1, c2]] = matrixHomRep (g^.lGradTrans)
+    [[a1, a2], [b1, b2], [c1, c2]] = matrixHomRep (g ^. lGradTrans)
     P (V2 x1 y1) = g ^. lGradStart
     P (V2 x2 y2) = g ^. lGradEnd
 
-renderRadialGradient :: SVGFloat n => RGradient n -> Int -> Svg ()
+renderRadialGradient :: SVGFloat n => RGradient n -> Int -> SvgM
 renderRadialGradient g i = radialGradient_
-    [ id_ (T.pack $ "gradient" ++ show i)
-    , r_ (toText (g^.rGradRadius1))
+    [ id_ (pack $ "gradient" ++ show i)
+    , r_ (toText (g ^. rGradRadius1))
     , cx_ (toText cx)
     , cy_ (toText cy)
     , fx_ (toText fx)
     , fy_ (toText fy)
     , gradientTransform_ mx
     , gradientUnits_ "userSpaceOnUse"
-    , spreadMethod_ (spreadMethodText (g^.rGradSpreadMethod)) ]
+    , spreadMethod_ (spreadMethodText (g ^. rGradSpreadMethod)) ]
     ( foldMap renderStop ss )
   where
     mx = matrix a1 a2 b1 b2 c1 c2
-    [[a1, a2], [b1, b2], [c1, c2]] = matrixHomRep (g^.rGradTrans)
+    [[a1, a2], [b1, b2], [c1, c2]] = matrixHomRep (g ^.rGradTrans)
     P (V2 cx cy) = g ^. rGradCenter1
     P (V2 fx fy) = g ^. rGradCenter0 -- SVGs focal point is our inner center.
 
     -- Adjust the stops so that the gradient begins at the perimeter of
     -- the inner circle (center0, radius0) and ends at the outer circle.
-    r0 = g^.rGradRadius0
-    r1 = g^.rGradRadius1
-    stopFracs = r0 / r1 : map (\s -> (r0 + (s^.stopFraction) * (r1 - r0)) / r1)
-                (g^.rGradStops)
-    gradStops = case g^.rGradStops of
+    r0 = g ^. rGradRadius0
+    r1 = g ^. rGradRadius1
+    stopFracs = r0 / r1 : map (\s -> (r0 + (s ^. stopFraction) * (r1 - r0)) / r1)
+                (g ^. rGradStops)
+    gradStops = case g ^. rGradStops of
       []       -> []
       xs@(x:_) -> x : xs
     ss = zipWith (\gs sf -> gs & stopFraction .~ sf ) gradStops stopFracs
 
 -- Create a gradient element so that it can be used as an attribute value for fill.
-renderFillTextureDefs :: SVGFloat n => Int -> Style v n -> Svg ()
+renderFillTextureDefs :: SVGFloat n => Int -> Style v n -> SvgM
 renderFillTextureDefs i s =
   case getNumAttr getFillTexture s of
     Just (LG g) -> renderLinearGradient g i
@@ -191,7 +203,7 @@ renderFillTexture ident s = case getNumAttr getFillTexture s of
   Just (RG _) -> [fill_ ("url(#gradient" <> toText ident <> ")"), fillOpacity_ "1"]
   Nothing     -> []
 
-renderLineTextureDefs :: SVGFloat n => Int -> Style v n -> Svg ()
+renderLineTextureDefs :: SVGFloat n => Int -> Style v n -> SvgM
 renderLineTextureDefs i s =
   case getNumAttr getLineTexture s of
     Just (LG g) -> renderLinearGradient g i
@@ -209,10 +221,10 @@ renderLineTexture ident s = case getNumAttr getLineTexture s of
   Just (RG _) -> [stroke_ ("url(#gradient" <> toText ident <> ")"), strokeOpacity_ "1"]
   Nothing     -> []
 
-dataUri :: String -> BS8.ByteString -> T.Text
-dataUri mime dat = T.pack $ "data:"++mime++";base64," ++ BS8.unpack (BS64.encode dat)
+dataUri :: String -> BS8.ByteString -> AttributeValue
+dataUri mime dat = pack $ "data:"++mime++";base64," ++ BS8.unpack (BS64.encode dat)
 
-renderDImageEmb :: SVGFloat n => DImage n Embedded -> Svg ()
+renderDImageEmb :: SVGFloat n => DImage n Embedded -> SvgM
 renderDImageEmb di@(DImage (ImageRaster dImg) _ _ _) =
   renderDImage di $ dataUri "image/png" img
   where
@@ -220,11 +232,11 @@ renderDImageEmb di@(DImage (ImageRaster dImg) _ _ _) =
             Left str   -> error str
             Right img' -> img'
 
-renderDImage :: SVGFloat n => DImage n any -> T.Text -> Svg ()
+renderDImage :: SVGFloat n => DImage n any -> AttributeValue -> SvgM
 renderDImage (DImage _ w h tr) uridata =
   image_
     [ transform_ transformMatrix
-    , width_ (toText w)
+    , width_  (toText w)
     , height_ (toText h)
     , xlinkHref_ uridata ]
   where
@@ -234,14 +246,14 @@ renderDImage (DImage _ w h tr) uridata =
     tX = translationX $ fromIntegral (-w)/2
     tY = translationY $ fromIntegral (-h)/2
 
-renderText :: SVGFloat n => Text n -> Svg ()
+renderText :: SVGFloat n => Text n -> SvgM
 renderText (Text tt tAlign str) =
   text_
     [ transform_ transformMatrix
     , dominantBaseline_ vAlign
     , textAnchor_ hAlign
     , stroke_ "none" ]
-    (toHtml str)
+    $ toHtml str
  where
   vAlign = case tAlign of
              BaselineText -> "alphabetic"
@@ -273,8 +285,7 @@ renderStyles fillId lineId s = concatMap ($ s) $
   , renderFontSlant
   , renderFontWeight
   , renderFontFamily
-  , renderMiterLimit
-  ]
+  , renderMiterLimit ]
 
 renderMiterLimit :: SVGFloat n => Style v n -> [Attribute]
 renderMiterLimit s = renderAttr strokeMiterlimit_ miterLimit
@@ -287,7 +298,7 @@ renderOpacity s = renderAttr opacity_ o
 renderFillRule :: SVGFloat n => Style v n -> [Attribute]
 renderFillRule s = renderTextAttr fillRule_ fr
   where fr = (fillRuleToText . getFillRule) <$> getAttr s
-        fillRuleToText :: FillRule -> T.Text
+        fillRuleToText :: FillRule -> AttributeValue
         fillRuleToText Winding = "nonzero"
         fillRuleToText EvenOdd = "evenodd"
 
@@ -298,7 +309,7 @@ renderLineWidth s = renderAttr strokeWidth_ lWidth
 renderLineCap :: SVGFloat n => Style v n -> [Attribute]
 renderLineCap s = renderTextAttr strokeLinecap_ lCap
   where lCap = (lineCapToText . getLineCap) <$> getAttr s
-        lineCapToText :: LineCap -> T.Text
+        lineCapToText :: LineCap -> AttributeValue
         lineCapToText LineCapButt   = "butt"
         lineCapToText LineCapRound  = "round"
         lineCapToText LineCapSquare = "square"
@@ -306,7 +317,7 @@ renderLineCap s = renderTextAttr strokeLinecap_ lCap
 renderLineJoin :: SVGFloat n => Style v n -> [Attribute]
 renderLineJoin s = renderTextAttr strokeLinejoin_ lj
   where lj = (lineJoinToText . getLineJoin) <$> getAttr s
-        lineJoinToText :: LineJoin -> T.Text
+        lineJoinToText :: LineJoin -> AttributeValue
         lineJoinToText LineJoinMiter = "miter"
         lineJoinToText LineJoinRound = "round"
         lineJoinToText LineJoinBevel = "bevel"
@@ -318,20 +329,20 @@ renderDashing s = renderTextAttr strokeDasharray_ arr <>
   getDasharray  (Dashing a _) = a
   getDashoffset (Dashing _ o) = o
   dashArrayToStr              = intercalate "," . map show
-  dashing_                    = getNumAttr getDashing s
-  arr                         = (T.pack . dashArrayToStr . getDasharray) <$> dashing_
-  dOffset                     = getDashoffset <$> dashing_
+  dashing'                    = getNumAttr getDashing s
+  arr                         = (pack . dashArrayToStr . getDasharray) <$> dashing'
+  dOffset                     = getDashoffset <$> dashing'
 
 renderFontSize :: SVGFloat n => Style v n -> [Attribute]
 renderFontSize s = renderTextAttr fontSize_ fs
  where
-  fs = T.pack <$> getNumAttr ((++ "px") . show . getFontSize) s
+  fs = pack <$> getNumAttr ((++ "px") . show . getFontSize) s
 
 renderFontSlant :: SVGFloat n => Style v n -> [Attribute]
 renderFontSlant s = renderTextAttr fontStyle_ fs
  where
   fs = (fontSlantAttr . getFontSlant) <$> getAttr s
-  fontSlantAttr :: FontSlant -> T.Text
+  fontSlantAttr :: FontSlant -> AttributeValue
   fontSlantAttr FontSlantItalic  = "italic"
   fontSlantAttr FontSlantOblique = "oblique"
   fontSlantAttr FontSlantNormal  = "normal"
@@ -340,34 +351,32 @@ renderFontWeight :: SVGFloat n => Style v n -> [Attribute]
 renderFontWeight s = renderTextAttr fontWeight_ fw
  where
   fw = (fontWeightAttr . getFontWeight) <$> getAttr s
-  fontWeightAttr :: FontWeight -> T.Text
+  fontWeightAttr :: FontWeight -> AttributeValue
   fontWeightAttr FontWeightNormal = "normal"
   fontWeightAttr FontWeightBold   = "bold"
 
 renderFontFamily :: SVGFloat n => Style v n -> [Attribute]
 renderFontFamily s = renderTextAttr  fontFamily_ ff
  where
-  ff = (T.pack . getFont) <$> getAttr s
+  ff = (pack . getFont) <$> getAttr s
 
 -- | Render a style attribute if available, empty otherwise.
-renderAttr :: Show s => (T.Text -> Attribute)
-           -> Maybe s
-           -> [Attribute]
+renderAttr :: Show s => (AttributeValue -> Attribute) -> Maybe s -> [Attribute]
 renderAttr attr valM = maybe [] (\v -> [attr (toText v)]) valM
 
-renderTextAttr :: (T.Text -> Attribute) -> Maybe T.Text -> [Attribute]
+renderTextAttr :: (AttributeValue -> Attribute) -> Maybe AttributeValue -> [Attribute]
 renderTextAttr attr valM = maybe [] (\v -> [attr v]) valM
 
-colorToRgbText :: forall c . Color c => c -> T.Text
+colorToRgbText :: forall c . Color c => c -> AttributeValue
 colorToRgbText c = T.concat
   [ "rgb("
   , int r, ","
   , int g, ","
   , int b
-  , ")"
-  ]
- where int d = toText (round (d * 255) :: Int)
-       (r,g,b,_) = colorToSRGBA c
+  , ")" ]
+ where
+   int d     = toText (round (d * 255) :: Int)
+   (r,g,b,_) = colorToSRGBA c
 
 colorToOpacity :: forall c . Color c => c -> Double
 colorToOpacity c = a

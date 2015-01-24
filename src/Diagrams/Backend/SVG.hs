@@ -131,11 +131,12 @@ import           Diagrams.TwoD.Attributes     (splitTextureFills)
 import           Diagrams.TwoD.Path           (Clip (Clip))
 import           Diagrams.TwoD.Text
 
+-- from lucid-svg
 import           Lucid.Svg
 
 -- from this package
 import qualified Graphics.Rendering.SVG       as R
-import           Graphics.Rendering.SVG       (SVGFloat)
+import           Graphics.Rendering.SVG       (SVGFloat, SvgM)
 
 -- | @SVG@ is simply a token used to identify this rendering backend
 --   (to aid type inference).
@@ -160,7 +161,7 @@ initialSvgRenderState = SvgRenderState 0 0 1
 -- | Monad to keep track of state when rendering an SVG.
 --   Currently just keeps a monotonically increasing counter
 --   for assiging a unique clip path ID.
-type SvgRenderM = State SvgRenderState (Svg ())
+type SvgRenderM = State SvgRenderState (SvgM)
 
 instance SVGFloat n => Monoid (Render SVG V2 n) where
   mempty  = R $ return mempty
@@ -173,7 +174,7 @@ instance SVGFloat n => Monoid (Render SVG V2 n) where
 -- Handle clip attributes.
 --
 renderSvgWithClipping :: forall n. SVGFloat n
-                      => Svg ()        -- ^ Input SVG
+                      => SvgM          -- ^ Input SVG
                       -> Style V2 n    -- ^ Styles
                       -> SvgRenderM    -- ^ Resulting svg
 
@@ -205,7 +206,7 @@ lineTextureDefs s = do
 
 instance SVGFloat n => Backend SVG V2 n where
   data Render  SVG V2 n = R SvgRenderM
-  type Result  SVG V2 n = Svg ()
+  type Result  SVG V2 n = SvgM
   data Options SVG V2 n = SVGOptions
     { _size           :: SizeSpec V2 n   -- ^ The requested size.
     , _svgDefinitions :: [Attribute]
@@ -294,8 +295,6 @@ renderPretty outFile spec
   -- . Pretty.renderSvg
   -- . renderDia SVG (SVGOptions spec Nothing)
 
-
-
 data Img = Img !Char !BS.ByteString deriving Typeable
 
 -- | Load images (JPG/PNG/...) in a SVG specific way.
@@ -304,7 +303,9 @@ loadImageSVG fp = do
     raw <- SBS.readFile fp
     dyn <- eIO $ decodeImage raw
     let dat = BS.fromChunks [raw]
-    let pic t d = return $ image (DImage (ImageNative (Img t d)) (dynamicMap imageWidth dyn) (dynamicMap imageHeight dyn) mempty)
+    let pic t d = return $ image (DImage (ImageNative (Img t d))
+                                   (dynamicMap imageWidth dyn)
+                                   (dynamicMap imageHeight dyn) mempty)
     if pngHeader `SBS.isPrefixOf` raw then pic 'P' dat else do
     if jpgHeader `SBS.isPrefixOf` raw then pic 'J' dat else do
     case dyn of
@@ -322,5 +323,5 @@ instance SVGFloat n => Renderable (DImage n (Native Img)) SVG where
     mime <- case t of
           'J' -> return "image/jpeg"
           'P' -> return "image/png"
-          _   -> fail "Unknown mime type while rendering image"
+          _   -> fail   "Unknown mime type while rendering image"
     return $ R.renderDImage di $ R.dataUri mime d
