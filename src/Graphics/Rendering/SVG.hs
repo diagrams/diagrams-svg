@@ -96,19 +96,19 @@ renderPath :: SVGFloat n => Path V2 n -> SvgM
 renderPath trs = if makePath == T.empty then mempty else path_ [d_ makePath]
 -- renderPath trs  = path_  [d_ (if makePath == T.empty then toText "" else makePath)]
   where
-    makePath = T.concat $ map renderTrail (op Path trs)
+    makePath = foldMap renderTrail (op Path trs)
 
 renderTrail :: SVGFloat n => Located (Trail V2 n) -> AttributeValue
 renderTrail (viewLoc -> (P (V2 x y), t)) = mA x y <> withTrail renderLine renderLoop t
   where
-    renderLine = T.concat . map renderSeg . lineSegments
+    renderLine = foldMap renderSeg . lineSegments
     renderLoop lp =
       case loopSegments lp of
         -- let z handle the last segment if it is linear
-        (segs, Linear _) -> T.concat $ map renderSeg segs
+        (segs, Linear _) -> foldMap renderSeg segs
 
         -- otherwise we have to emit it explicitly
-        _ -> T.concat $ map renderSeg (lineSegments . cutLoop $ lp)
+        _ -> foldMap renderSeg (lineSegments . cutLoop $ lp)
       <> z
 
 renderSeg :: SVGFloat n => Segment Closed V2 n -> AttributeValue

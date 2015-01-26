@@ -235,6 +235,11 @@ toRender = fromRTree
             let R r =  foldMap fromRTree rs
             svg <- r
             return $ a_ [xlinkHref_ $ toText uri] svg
+      fromRTree (Node (RAnnot (OpacityGroup o)) rs)
+        = R $ do
+            let R r =  foldMap fromRTree rs
+            svg <- r
+            return $ g_ [opacity_ $ toText o] svg
       fromRTree (Node (RPrim p) _) = render SVG p
       fromRTree (Node (RStyle sty) ts)
         = R $ do
