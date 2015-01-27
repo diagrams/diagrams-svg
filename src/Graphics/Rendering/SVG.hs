@@ -121,7 +121,7 @@ renderSeg (Cubic  (V2 x0 y0)
 
 renderClip :: SVGFloat n => Path V2 n -> Int -> SvgM -> SvgM
 renderClip p ident svg =
-  g_  [clipPath_ $ ("url(#" <> clipPathId ident <> ")")] $ do
+  g_  [clip_path_ $ ("url(#" <> clipPathId ident <> ")")] $ do
     clipPath_ [id_ (clipPathId ident)] (renderPath p)
     svg
   where clipPathId i = "myClip" <> (toText i)
