@@ -40,27 +40,27 @@ Library
                        Diagrams.Backend.SVG.CmdLine
   Other-modules:       Graphics.Rendering.SVG
   Hs-source-dirs:      src
-  Build-depends:       base          >= 4.3   && < 4.8
+  Build-depends:       base                 >= 4.3   && < 4.8
                      , old-time
                      , process
                      , directory
                      , filepath
-                     , mtl           >= 1     && < 2.3
-                     , bytestring    >= 0.9   && < 1.0
-                     , base64-bytestring >= 1 && < 1.1
+                     , mtl                  >= 1     && < 2.3
+                     , bytestring           >= 0.9   && < 1.0
+                     , base64-bytestring    >= 1     && < 1.1
                      , colour
-                     , diagrams-core >= 1.2   && < 1.3
-                     , diagrams-lib  >= 1.2   && < 1.3
-                     , monoid-extras >= 0.3   && < 0.4
-                     , lucid-svg     >= 0.2   && < 0.3
-                     , text          >= 1.2   && < 1.3
-                     , JuicyPixels   >= 3.1.5 && < 3.3
-                     , split         >= 0.1.2 && < 0.3
+                     , diagrams-core        >= 1.2   && < 1.3
+                     , diagrams-lib         >= 1.2   && < 1.3
+                     , monoid-extras        >= 0.3   && < 0.4
+                     , lucid-svg            >= 0.2.1 && < 0.3
+                     , text                 >= 1.2   && < 1.3
+                     , JuicyPixels          >= 3.1.5 && < 3.3
+                     , split                >= 0.1.2 && < 0.3
                      , time
-                     , containers >= 0.3 && < 0.6
-                     , lens >= 4.0 && < 4.8
-                     , hashable >= 1.1 && < 1.3
-                     , optparse-applicative >= 0.10 && < 0.12
+                     , containers           >= 0.3   && < 0.6
+                     , lens                 >= 4.0   && < 4.8
+                     , hashable             >= 1.1   && < 1.3
+                     , optparse-applicative >= 0.10  && < 0.12
   if impl(ghc < 7.6)
     build-depends:     ghc-prim
 

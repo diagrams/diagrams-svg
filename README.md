@@ -1,4 +1,7 @@
+diagrams-svg [![Hackage](https://img.shields.io/hackage/v/diagrams-svg.svg?style=flat)](https://hackage.haskell.org/package/diagrams-svg)
+------------
 [![Build Status](https://travis-ci.org/diagrams/diagrams-svg.png?branch=master)](http://travis-ci.org/diagrams/diagrams-svg)
+
 
 _diagrams-svg_ is a an SVG backend for [diagrams]. Diagrams is a powerful,
 flexible, declarative domain-specific language for creating vector graphics,

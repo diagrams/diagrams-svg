@@ -1,21 +1,20 @@
-{-# LANGUAGE ConstraintKinds       #-}
-{-# LANGUAGE DeriveDataTypeable    #-}
-{-# LANGUAGE DeriveGeneric         #-}
-{-# LANGUAGE FlexibleContexts      #-}
-{-# LANGUAGE FlexibleInstances     #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE ScopedTypeVariables   #-}
-{-# LANGUAGE StandaloneDeriving    #-}
-{-# LANGUAGE TemplateHaskell       #-}
-{-# LANGUAGE TypeFamilies          #-}
-{-# LANGUAGE TypeSynonymInstances  #-}
-{-# LANGUAGE NondecreasingIndentation #-}
-{-# LANGUAGE UndecidableInstances #-}
--- UndecidableInstances needed for ghc < 707
+{-# LANGUAGE ConstraintKinds            #-}
+{-# LANGUAGE DeriveDataTypeable         #-}
+{-# LANGUAGE DeriveGeneric              #-}
+{-# LANGUAGE FlexibleContexts           #-}
+{-# LANGUAGE FlexibleInstances          #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE MultiParamTypeClasses      #-}
+{-# LANGUAGE ScopedTypeVariables        #-}
+{-# LANGUAGE StandaloneDeriving         #-}
+{-# LANGUAGE TemplateHaskell            #-}
+{-# LANGUAGE TypeFamilies               #-}
+{-# LANGUAGE TypeSynonymInstances       #-}
+{-# LANGUAGE NondecreasingIndentation   #-}
+{-# LANGUAGE UndecidableInstances       #-} -- UndecidableInstances needed for ghc < 707
+{-# LANGUAGE GADTs                      #-}
 
-{-# LANGUAGE GADTs #-}
-
-{-# OPTIONS_GHC -fno-warn-orphans  #-}
+{-# OPTIONS_GHC -fno-warn-orphans       #-}
 
 ----------------------------------------------------------------------------
 -- |
@@ -330,3 +329,8 @@ instance SVGFloat n => Renderable (DImage n (Native Img)) SVG where
           'P' -> return "image/png"
           _   -> fail   "Unknown mime type while rendering image"
     return $ R.renderDImage di $ R.dataUri mime d
+
+deriving instance Hashable Attribute
+
+instance (Hashable n, SVGFloat n) => Hashable (Options SVG V2 n) where
+  hashWithSalt s  (SVGOptions sz defs) = s `hashWithSalt` sz `hashWithSalt` defs
