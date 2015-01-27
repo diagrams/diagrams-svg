@@ -100,8 +100,9 @@ module Diagrams.Backend.SVG
 -- from JuicyPixels
 import           Codec.Picture
 import           Codec.Picture.Types(dynamicMap)
--- for testing
+
 import           Data.Foldable                as F (foldMap)
+import           Data.Text.Lazy.IO            as LT
 import           Data.Tree
 
 -- from base
@@ -294,10 +295,9 @@ renderSVG outFile spec
 -- | Render a diagram as a pretty printed SVG.
 renderPretty :: SVGFloat n => FilePath -> SizeSpec V2 n -> QDiagram SVG V2 n Any -> IO ()
 renderPretty outFile spec
-  = undefined
-  -- = writeFile outFile
-  -- . Pretty.renderSvg
-  -- . renderDia SVG (SVGOptions spec Nothing)
+  = LT.writeFile outFile
+  . prettyText
+  . renderDia SVG (SVGOptions spec [])
 
 data Img = Img !Char !BS.ByteString deriving Typeable
 
