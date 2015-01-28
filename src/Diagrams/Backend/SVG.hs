@@ -108,7 +108,6 @@ import           Data.Tree
 -- from base
 import           Control.Monad.State
 import           Data.Typeable
-import           GHC.Generics                 (Generic)
 
 -- from hashable
 import           Data.Hashable                (Hashable (..))
@@ -161,7 +160,7 @@ initialSvgRenderState = SvgRenderState 0 0 1
 -- | Monad to keep track of state when rendering an SVG.
 --   Currently just keeps a monotonically increasing counter
 --   for assiging a unique clip path ID.
-type SvgRenderM = State SvgRenderState (SvgM)
+type SvgRenderM = State SvgRenderState SvgM
 
 instance SVGFloat n => Monoid (Render SVG V2 n) where
   mempty  = R $ return mempty
@@ -277,7 +276,7 @@ instance SVGFloat n => Renderable (Path V2 n) SVG where
   render _ = R . return . R.renderPath
 
 instance SVGFloat n => Renderable (Text n) SVG where
-  render _ = R . return . R.renderText 
+  render _ = R . return . R.renderText
 
 instance SVGFloat n => Renderable (DImage n Embedded) SVG where
   render _ = R . return . R.renderDImageEmb
