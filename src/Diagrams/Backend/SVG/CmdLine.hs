@@ -80,8 +80,9 @@ import           Options.Applicative            hiding ((<>))
 import qualified Options.Applicative            as O ((<>))
 
 import qualified Data.ByteString.Lazy           as BS
-import qualified Text.Blaze.Svg.Renderer.Pretty as Pretty
-import           Text.Blaze.Svg.Renderer.Utf8   (renderSvg)
+import qualified Data.Text.Lazy.IO              as LT
+
+import           Lucid.Svg                      (renderBS, prettyText)
 
 import           Data.List.Split
 
@@ -172,10 +173,10 @@ chooseRender opts pretty d =
     [""] -> putStrLn "No output file given."
     ps | last ps `elem` ["svg"] -> do
            let szSpec = fromIntegral <$> mkSizeSpec2D (opts^.width) (opts^.height)
-               build  = renderDia SVG (SVGOptions szSpec Nothing) d
+               build  = renderDia SVG (SVGOptions szSpec []) d
            if isPretty pretty
-             then writeFile (opts^.output) (Pretty.renderSvg build)
-             else BS.writeFile (opts^.output) (renderSvg build)
+             then LT.writeFile (opts^.output) (prettyText build)
+             else BS.writeFile (opts^.output) (renderBS build)
        | otherwise -> putStrLn $ "Unknown file type: " ++ last ps
 
 -- | @multiMain@ is like 'defaultMain', except instead of a single
