@@ -73,7 +73,8 @@ module Diagrams.Backend.SVG.CmdLine
 
 import           Diagrams.Backend.CmdLine
 import           Diagrams.Backend.SVG
-import           Diagrams.Prelude               hiding (height, interval, width, output)
+import           Diagrams.Prelude               hiding (height, interval,
+                                                 output, width)
 
 import           Control.Lens                   hiding (argument)
 import           Options.Applicative            hiding ((<>))
@@ -148,7 +149,7 @@ import           Data.List.Split
 -- $ ./MyDiagram -o image.svg -w 400
 -- @
 
-defaultMain :: SVGFloat n => QDiagram SVG V2 n Any -> IO ()
+defaultMain :: Diagram SVG -> IO ()
 defaultMain = mainWith
 
 newtype PrettyOpt = PrettyOpt {isPretty :: Bool}
@@ -162,10 +163,11 @@ instance Parseable PrettyOpt where
   parser = prettyOpt
 
 instance SVGFloat n => Mainable (QDiagram SVG V2 n Any) where
-    type MainOpts (QDiagram SVG V2 n Any) = (DiagramOpts, DiagramLoopOpts, PrettyOpt)
-    mainRender (opts, loopOpts, pretty) d = do
-        chooseRender opts pretty d
-        defaultLoopRender loopOpts
+
+  type MainOpts (QDiagram SVG V2 n Any) = (DiagramOpts, DiagramLoopOpts, PrettyOpt)
+  mainRender (opts, loopOpts, pretty) d = do
+      chooseRender opts pretty d
+      defaultLoopRender loopOpts
 
 chooseRender :: SVGFloat n => DiagramOpts -> PrettyOpt -> QDiagram SVG V2 n Any -> IO ()
 chooseRender opts pretty d =
@@ -206,3 +208,4 @@ instance SVGFloat n => Mainable [(String,QDiagram SVG V2 n Any)] where
         = (MainOpts (QDiagram SVG V2 n Any), DiagramMultiOpts)
 
     mainRender = defaultMultiMainRender
+
