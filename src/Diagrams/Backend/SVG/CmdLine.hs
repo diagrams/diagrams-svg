@@ -81,8 +81,9 @@ import           Options.Applicative            hiding ((<>))
 import qualified Options.Applicative            as O ((<>))
 
 import qualified Data.ByteString.Lazy           as BS
-import qualified Text.Blaze.Svg.Renderer.Pretty as Pretty
-import           Text.Blaze.Svg.Renderer.Utf8   (renderSvg)
+import qualified Data.Text.Lazy.IO              as LT
+
+import           Lucid.Svg                      (renderBS, prettyText)
 
 import           Data.List.Split
 
@@ -162,17 +163,11 @@ instance Parseable PrettyOpt where
   parser = prettyOpt
 
 instance SVGFloat n => Mainable (QDiagram SVG V2 n Any) where
-#ifdef CMDLINELOOP
-    type MainOpts (QDiagram SVG V2 n Any) = (DiagramOpts, DiagramLoopOpts, PrettyOpt)
 
-    mainRender (opts, loopOpts, pretty) d = do
+  type MainOpts (QDiagram SVG V2 n Any) = (DiagramOpts, DiagramLoopOpts, PrettyOpt)
+  mainRender (opts, loopOpts, pretty) d = do
       chooseRender opts pretty d
       defaultLoopRender loopOpts
-#else
-    type MainOpts (QDiagram SVG V2 n Any) = (DiagramOpts, PrettyOpt)
-
-    mainRender (opts, pretty) = chooseRender opts pretty
-#endif
 
 chooseRender :: SVGFloat n => DiagramOpts -> PrettyOpt -> QDiagram SVG V2 n Any -> IO ()
 chooseRender opts pretty d =
@@ -180,10 +175,10 @@ chooseRender opts pretty d =
     [""] -> putStrLn "No output file given."
     ps | last ps `elem` ["svg"] -> do
            let szSpec = fromIntegral <$> mkSizeSpec2D (opts^.width) (opts^.height)
-               build  = renderDia SVG (SVGOptions szSpec Nothing) d
+               build  = renderDia SVG (SVGOptions szSpec []) d
            if isPretty pretty
-             then writeFile (opts^.output) (Pretty.renderSvg build)
-             else BS.writeFile (opts^.output) (renderSvg build)
+             then LT.writeFile (opts^.output) (prettyText build)
+             else BS.writeFile (opts^.output) (renderBS build)
        | otherwise -> putStrLn $ "Unknown file type: " ++ last ps
 
 -- | @multiMain@ is like 'defaultMain', except instead of a single

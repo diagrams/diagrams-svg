@@ -21,7 +21,7 @@ central one.
 >   where vs = take 5 . iterate (rotateBy (1/5))
 >                     . (if odd n then negated else id) $ unitY
 >         p' = pentaflake' (n-1)
-> 
+>
 > pentaflake n = pentaflake' n # fc (colors !! n)
 
 An order-4 pentaflake looks nice. Of course there's an exponential
