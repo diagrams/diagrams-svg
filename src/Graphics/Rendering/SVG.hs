@@ -119,12 +119,12 @@ renderSeg (Cubic  (V2 x0 y0)
                   (V2 x1 y1)
                   (OffsetClosed (V2 x2 y2))) = cR x0 y0 x1 y1 x2 y2
 
-renderClip :: SVGFloat n => Path V2 n -> Int -> SvgM -> SvgM
-renderClip p ident svg =
+renderClip :: SVGFloat n => Path V2 n -> T.Text -> Int -> SvgM -> SvgM
+renderClip p prefix ident svg =
   g_  [clip_path_ $ ("url(#" <> clipPathId ident <> ")")] $ do
     clipPath_ [id_ (clipPathId ident)] (renderPath p)
     svg
-  where clipPathId i = "myClip" <> (toText i)
+  where clipPathId i = prefix <> "myClip" <> (toText i)
 
 renderStop :: SVGFloat n => GradientStop n -> SvgM
 renderStop (GradientStop c v)
