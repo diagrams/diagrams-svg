@@ -2,6 +2,7 @@
 {-# LANGUAGE ConstraintKinds      #-}
 {-# LANGUAGE FlexibleContexts     #-}
 {-# LANGUAGE FlexibleInstances    #-}
+{-# LANGUAGE OverloadedStrings    #-}
 {-# LANGUAGE TypeFamilies         #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE UndecidableInstances #-}
@@ -173,7 +174,7 @@ chooseRender opts pretty d =
     [""] -> putStrLn "No output file given."
     ps | last ps `elem` ["svg"] -> do
            let szSpec = fromIntegral <$> mkSizeSpec2D (opts^.width) (opts^.height)
-               build  = renderDia SVG (SVGOptions szSpec []) d
+               build  = renderDia SVG (SVGOptions szSpec [] "") d
            if isPretty pretty
              then LT.writeFile (opts^.output) (prettyText build)
              else BS.writeFile (opts^.output) (renderBS build)

@@ -5,6 +5,7 @@
 {-# LANGUAGE FlexibleInstances          #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE MultiParamTypeClasses      #-}
+{-# LANGUAGE OverloadedStrings          #-}
 {-# LANGUAGE ScopedTypeVariables        #-}
 {-# LANGUAGE StandaloneDeriving         #-}
 {-# LANGUAGE TemplateHaskell            #-}
@@ -102,6 +103,7 @@ import           Codec.Picture
 import           Codec.Picture.Types(dynamicMap)
 
 import           Data.Foldable                as F (foldMap)
+import qualified Data.Text                    as T
 import           Data.Text.Lazy.IO            as LT
 import           Data.Tree
 
@@ -173,11 +175,12 @@ instance SVGFloat n => Monoid (Render SVG V2 n) where
 -- Handle clip attributes.
 --
 renderSvgWithClipping :: forall n. SVGFloat n
-                      => SvgM          -- ^ Input SVG
+                      => T.Text
+                      -> SvgM          -- ^ Input SVG
                       -> Style V2 n    -- ^ Styles
                       -> SvgRenderM    -- ^ Resulting svg
 
-renderSvgWithClipping svg s =
+renderSvgWithClipping prefix svg s =
   case op Clip <$> getAttr s of
     Nothing -> return svg
     Just paths -> renderClips paths
@@ -187,7 +190,7 @@ renderSvgWithClipping svg s =
     renderClips (p:ps) = do
       clipPathId += 1
       ident <- use clipPathId
-      R.renderClip p ident <$> renderClips ps
+      R.renderClip p prefix ident <$> renderClips ps
 
 -- | Create a new texture defs svg element using the style and the current
 --   id number, then increment the gradient id number.
@@ -211,20 +214,21 @@ instance SVGFloat n => Backend SVG V2 n where
     , _svgDefinitions :: [Attribute]
                           -- ^ Custom definitions that will be added to the @defs@
                           --   section of the output.
+    , _idPrefix       :: T.Text
     }
 
   renderRTree _ opts rt = evalState svgOutput initialSvgRenderState
     where
       svgOutput = do
-        let R r    = toRender rt
+        let R r    = toRender (_idPrefix opts) rt
             V2 w h = specToSize 100 (opts^.sizeSpec)
         svg <- r
         return $ R.svgHeader w h (opts^.svgDefinitions) svg
 
   adjustDia c opts d = adjustDia2D sizeSpec c opts (d # reflectY)
 
-toRender :: forall n. SVGFloat n => RTree SVG V2 n Annotation -> Render SVG V2 n
-toRender = fromRTree
+toRender :: forall n. SVGFloat n => T.Text -> RTree SVG V2 n Annotation -> Render SVG V2 n
+toRender prefix = fromRTree
   . Node (RStyle (mempty # recommendFillColor (transparent :: AlphaColour Double)))
   . (:[])
   . splitTextureFills
@@ -249,7 +253,7 @@ toRender = fromRTree
 
             idFill <- use fillGradId
             idLine <- use lineGradId
-            clippedSvg <- renderSvgWithClipping svg sty
+            clippedSvg <- renderSvgWithClipping prefix svg sty
             lineGradDefs <- lineTextureDefs sty
             fillGradDefs <- fillTextureDefs sty
             let textureDefs = fillGradDefs `mappend` lineGradDefs
@@ -285,18 +289,18 @@ instance SVGFloat n => Renderable (DImage n Embedded) SVG where
 
 -- | Render a diagram as an SVG, writing to the specified output file
 --   and using the requested size.
-renderSVG :: SVGFloat n => FilePath -> SizeSpec V2 n -> QDiagram SVG V2 n Any -> IO ()
-renderSVG outFile spec
+renderSVG :: SVGFloat n => FilePath -> T.Text -> SizeSpec V2 n -> QDiagram SVG V2 n Any -> IO ()
+renderSVG outFile prefix spec
   = BS.writeFile outFile
   . renderBS
-  . renderDia SVG (SVGOptions spec [])
+  . renderDia SVG (SVGOptions spec [] prefix)
 
 -- | Render a diagram as a pretty printed SVG.
-renderPretty :: SVGFloat n => FilePath -> SizeSpec V2 n -> QDiagram SVG V2 n Any -> IO ()
-renderPretty outFile spec
+renderPretty :: SVGFloat n => FilePath -> T.Text -> SizeSpec V2 n -> QDiagram SVG V2 n Any -> IO ()
+renderPretty outFile prefix spec
   = LT.writeFile outFile
   . prettyText
-  . renderDia SVG (SVGOptions spec [])
+  . renderDia SVG (SVGOptions spec [] prefix)
 
 data Img = Img !Char !BS.ByteString deriving Typeable
 
@@ -332,4 +336,4 @@ instance SVGFloat n => Renderable (DImage n (Native Img)) SVG where
 deriving instance Hashable Attribute
 
 instance (Hashable n, SVGFloat n) => Hashable (Options SVG V2 n) where
-  hashWithSalt s  (SVGOptions sz defs) = s `hashWithSalt` sz `hashWithSalt` defs
+  hashWithSalt s  (SVGOptions sz defs _) = s `hashWithSalt` sz `hashWithSalt` defs
