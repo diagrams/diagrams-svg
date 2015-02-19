@@ -333,7 +333,8 @@ instance SVGFloat n => Renderable (DImage n (Native Img)) SVG where
           _   -> fail   "Unknown mime type while rendering image"
     return $ R.renderDImage di $ R.dataUri mime d
 
-deriving instance Hashable Attribute
+instance Hashable Attribute where
+  hashWithSalt s (Attribute a b) = s `hashWithSalt` a `hashWithSalt` b
 
 instance (Hashable n, SVGFloat n) => Hashable (Options SVG V2 n) where
   hashWithSalt s  (SVGOptions sz defs _) = s `hashWithSalt` sz `hashWithSalt` defs
