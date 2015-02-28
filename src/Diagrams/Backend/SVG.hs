@@ -90,7 +90,7 @@
 module Diagrams.Backend.SVG
   ( SVG(..) -- rendering token
   , B
-  , Options(..), sizeSpec, svgDefinitions -- for rendering options specific to SVG
+  , Options(..), sizeSpec, svgDefinitions, idPrefix -- for rendering options specific to SVG
   , SVGFloat
 
   , renderSVG
@@ -222,7 +222,7 @@ instance SVGFloat n => Backend SVG V2 n where
   renderRTree _ opts rt = evalState svgOutput initialSvgRenderState
     where
       svgOutput = do
-        let R r    = toRender (_idPrefix opts) rt
+        let R r    = toRender (opts^.idPrefix) rt
             V2 w h = specToSize 100 (opts^.sizeSpec)
         svg <- r
         return $ R.svgHeader w h (opts^.svgDefinitions) svg
@@ -263,20 +263,20 @@ toRender prefix = fromRTree
                      (textureDefs `mappend` clippedSvg)
       fromRTree (Node _ rs) = foldMap fromRTree rs
 
+-- | Lens onto the size of the svg options.
 sizeSpec :: SVGFloat n => Lens' (Options SVG V2 n) (SizeSpec V2 n)
-sizeSpec = lens getter setter
-  where
-    getter (SVGOptions {_size = s}) = s
-    setter o s = o {_size = s}
+sizeSpec f opts = f (_size opts) <&> \s -> opts { _size = s }
 
-getSVGDefs :: SVGFloat n => Options SVG V2 n -> [Attribute]
-getSVGDefs (SVGOptions {_svgDefinitions = d}) = d
-
-setSVGDefs :: SVGFloat n => Options SVG V2 n -> [Attribute] -> Options SVG V2 n
-setSVGDefs o d = o {_svgDefinitions = d}
-
+-- | Lens onto the svg definitions of the svg options.
 svgDefinitions :: SVGFloat n => Lens' (Options SVG V2 n) [Attribute]
-svgDefinitions = lens getSVGDefs setSVGDefs
+svgDefinitions f opts =
+  f (_svgDefinitions opts) <&> \ds -> opts { _svgDefinitions = ds }
+
+-- | Lens onto the idPrefix of the svg options. This is the prefix given
+--   to clipping paths to distinguish them from other svg files in the
+--   same web page.
+idPrefix :: SVGFloat n => Lens' (Options SVG V2 n) T.Text
+idPrefix f opts = f (_idPrefix opts) <&> \i -> opts { _idPrefix = i }
 
 instance SVGFloat n => Renderable (Path V2 n) SVG where
   render _ = R . return . R.renderPath
