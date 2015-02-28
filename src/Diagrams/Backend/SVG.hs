@@ -20,7 +20,7 @@
 ----------------------------------------------------------------------------
 -- |
 -- Module      :  Diagrams.Backend.SVG
--- Copyright   :  (c) 2011-2012 diagrams-svg team (see LICENSE)
+-- Copyright   :  (c) 2011-2015 diagrams-svg team (see LICENSE)
 -- License     :  BSD-style (see LICENSE)
 -- Maintainer  :  diagrams-discuss@googlegroups.com
 --
@@ -106,10 +106,12 @@ import           Data.Foldable                as F (foldMap)
 import qualified Data.Text                    as T
 import           Data.Text.Lazy.IO            as LT
 import           Data.Tree
+import           System.FilePath
 
 -- from base
 import           Control.Monad.State
 import           Data.Typeable
+import           Data.Char
 
 -- from hashable
 import           Data.Hashable                (Hashable (..))
@@ -289,18 +291,35 @@ instance SVGFloat n => Renderable (DImage n Embedded) SVG where
 
 -- | Render a diagram as an SVG, writing to the specified output file
 --   and using the requested size.
-renderSVG :: SVGFloat n => FilePath -> T.Text -> SizeSpec V2 n -> QDiagram SVG V2 n Any -> IO ()
-renderSVG outFile prefix spec
-  = BS.writeFile outFile
-  . renderBS
-  . renderDia SVG (SVGOptions spec [] prefix)
+renderSVG :: SVGFloat n => FilePath -> SizeSpec V2 n -> QDiagram SVG V2 n Any -> IO ()
+renderSVG outFile spec = renderSVG' outFile (SVGOptions spec [] (mkPrefix outFile))
 
 -- | Render a diagram as a pretty printed SVG.
-renderPretty :: SVGFloat n => FilePath -> T.Text -> SizeSpec V2 n -> QDiagram SVG V2 n Any -> IO ()
-renderPretty outFile prefix spec
+renderPretty :: SVGFloat n => FilePath -> SizeSpec V2 n -> QDiagram SVG V2 n Any -> IO ()
+renderPretty outFile spec = renderPretty' outFile (SVGOptions spec [] (mkPrefix outFile))
+
+-- Create a prefile using the basename of the output file. Only standard
+-- letters are considered.
+mkPrefix :: FilePath -> T.Text
+mkPrefix = T.filter isAlpha . T.pack . takeBaseName
+
+-- | Render a diagram as an SVG, writing to the specified output file
+--   and using the backend options. The id prefix is derived from the
+--   basename of the output file.
+renderSVG' :: SVGFloat n => FilePath -> Options SVG V2 n -> QDiagram SVG V2 n Any -> IO ()
+renderSVG' outFile opts
+  = BS.writeFile outFile
+  . renderBS
+  . renderDia SVG opts
+
+-- | Render a diagram as a pretty printed SVG to the specified output
+--   file and using the backend options. The id prefix is derived from the
+--   basename of the output file.
+renderPretty' :: SVGFloat n => FilePath -> Options SVG V2 n -> QDiagram SVG V2 n Any -> IO ()
+renderPretty' outFile opts
   = LT.writeFile outFile
   . prettyText
-  . renderDia SVG (SVGOptions spec [] prefix)
+  . renderDia SVG opts
 
 data Img = Img !Char !BS.ByteString deriving Typeable
 

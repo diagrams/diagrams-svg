@@ -80,11 +80,6 @@ import           Control.Lens                   hiding (argument)
 import           Options.Applicative            hiding ((<>))
 import qualified Options.Applicative            as O ((<>))
 
-import qualified Data.ByteString.Lazy           as BS
-import qualified Data.Text.Lazy.IO              as LT
-
-import           Lucid.Svg                      (renderBS, prettyText)
-
 import           Data.List.Split
 
 -- $mainwith
@@ -174,10 +169,9 @@ chooseRender opts pretty d =
     [""] -> putStrLn "No output file given."
     ps | last ps `elem` ["svg"] -> do
            let szSpec = fromIntegral <$> mkSizeSpec2D (opts^.width) (opts^.height)
-               build  = renderDia SVG (SVGOptions szSpec [] "") d
            if isPretty pretty
-             then LT.writeFile (opts^.output) (prettyText build)
-             else BS.writeFile (opts^.output) (renderBS build)
+             then renderSVG (opts^.output) szSpec d
+             else renderPretty (opts^.output) szSpec d
        | otherwise -> putStrLn $ "Unknown file type: " ++ last ps
 
 -- | @multiMain@ is like 'defaultMain', except instead of a single
