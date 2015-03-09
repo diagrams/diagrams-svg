@@ -54,36 +54,39 @@
 -- type of monoidal query annotations on the diagram.  'Options' and 'Result'
 -- are associated data and type families, respectively, which yield the
 -- type of option records and rendering results specific to any
--- particular backend.  For @b ~ SVG@, @v ~ V2@, and @n ~ Double@, we have
+-- particular backend.  For @b ~ SVG@, @v ~ V2@, we have
 --
--- > data Options SVG R2 Double = SVGOptions
--- >                       { size :: SizeSpec2D Double  -- ^ The requested size.
--- >                       , svgDefinitions :: Maybe S.Svg
--- >                       -- ^ Custom definitions that will be added to the @defs@
--- >                       --  section of the output.
--- >                       }
---
--- @
--- data family Render SVG R2 Double = R 'SvgRenderM'
--- @
+-- > data Options SVG V2 n = SVGOptions
+-- >     { _size           :: SizeSpec V2 n   -- ^ The requested size.
+-- >     , _svgDefinitions :: [Attribute]
+-- >                           -- ^ Custom definitions that will be added to the @defs@
+-- >                           --   section of the output.
+-- >     , _idPrefix       :: T.Text
+-- >     }
 --
 -- @
--- type family Result SVG R2 Double = 'Text.Blaze.Svg11.Svg'
+-- data family Render SVG V2 n = R 'SvgRenderM'
+-- @
+--
+-- @
+-- type family Result SVG V2 n = 'Graphics.Rendering.SVG.SvgM'
 -- @
 --
 -- So the type of 'renderDia' resolves to
 --
 -- @
--- renderDia :: SVG -> Options SVG V2 Double -> QDiagram SVG V2 Double m -> 'Text.Blaze.Svg11.Svg'
+-- renderDia :: SVG -> Options SVG V2 n -> QDiagram SVG V2 n m -> 'Graphics.Rendering.SVG.SvgM'
 -- @
 --
--- which you could call like @renderDia SVG (SVGOptions (Width 250) Nothing)
--- myDiagram@.  (In some situations GHC may not be able to infer the
--- type @m@, in which case you can use a type annotation to specify
--- it; it may be useful to simply use the type synonym @Diagram SVG
--- = QDiagram SVG R2 Double Any@.) This returns an
--- 'Text.Blaze.Svg11.Svg' value, which you can, /e.g./ render to a
--- 'ByteString' using 'Text.Blaze.Svg.Renderer.Utf8.renderSvg'.
+-- which you could call like @renderDia SVG (SVGOptions (mkWidth 250)
+-- [] "") myDiagram@ (if you have the 'OverloadedStrings' extension
+-- enabled; otherwise you can use 'Text.pack ""').  (In some
+-- situations GHC may not be able to infer the type @m@, in which case
+-- you can use a type annotation to specify it; it may be useful to
+-- simply use the type synonym @Diagram SVG = QDiagram SVG V2 Double
+-- Any@.) This returns an 'Graphics.Rendering.SVG.SvgM' value, which
+-- you can, /e.g./ render to a 'ByteString' using 'Lucid.Svg.renderBS'
+-- from the 'lucid' package.
 --
 -----------------------------------------------------------------------------
 
