@@ -3,17 +3,18 @@
 {-# LANGUAGE DeriveGeneric              #-}
 {-# LANGUAGE FlexibleContexts           #-}
 {-# LANGUAGE FlexibleInstances          #-}
+{-# LANGUAGE GADTs                      #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE MultiParamTypeClasses      #-}
+{-# LANGUAGE NondecreasingIndentation   #-}
 {-# LANGUAGE OverloadedStrings          #-}
 {-# LANGUAGE ScopedTypeVariables        #-}
 {-# LANGUAGE StandaloneDeriving         #-}
 {-# LANGUAGE TemplateHaskell            #-}
 {-# LANGUAGE TypeFamilies               #-}
 {-# LANGUAGE TypeSynonymInstances       #-}
-{-# LANGUAGE NondecreasingIndentation   #-}
-{-# LANGUAGE UndecidableInstances       #-} -- UndecidableInstances needed for ghc < 707
-{-# LANGUAGE GADTs                      #-}
+{-# LANGUAGE UndecidableInstances       #-}
+  -- UndecidableInstances needed for ghc < 707
 
 {-# OPTIONS_GHC -fno-warn-orphans       #-}
 
@@ -103,46 +104,46 @@ module Diagrams.Backend.SVG
 
 -- from JuicyPixels
 import           Codec.Picture
-import           Codec.Picture.Types(dynamicMap)
+import           Codec.Picture.Types      (dynamicMap)
 
-import           Data.Foldable                as F (foldMap)
-import qualified Data.Text                    as T
-import           Data.Text.Lazy.IO            as LT
+import           Data.Foldable            as F (foldMap)
+import qualified Data.Text                as T
+import           Data.Text.Lazy.IO        as LT
 import           Data.Tree
 import           System.FilePath
 
 -- from base
 import           Control.Monad.State
-import           Data.Typeable
 import           Data.Char
+import           Data.Typeable
 
 -- from hashable
-import           Data.Hashable                (Hashable (..))
+import           Data.Hashable            (Hashable (..))
 
 -- from bytestring
-import qualified Data.ByteString              as SBS
-import qualified Data.ByteString.Lazy         as BS
+import qualified Data.ByteString          as SBS
+import qualified Data.ByteString.Lazy     as BS
 
 -- from lens
-import           Control.Lens                 hiding (transform, ( # ))
+import           Control.Lens             hiding (transform, ( # ))
 
 -- from diagrams-core
 import           Diagrams.Core.Compile
-import           Diagrams.Core.Types          (Annotation (..))
+import           Diagrams.Core.Types      (Annotation (..))
 
 -- from diagrams-lib
-import           Diagrams.Prelude             hiding (Attribute, view, size)
-import           Diagrams.TwoD.Adjust         (adjustDia2D)
-import           Diagrams.TwoD.Attributes     (splitTextureFills)
-import           Diagrams.TwoD.Path           (Clip (Clip))
+import           Diagrams.Prelude         hiding (Attribute, size, view)
+import           Diagrams.TwoD.Adjust     (adjustDia2D)
+import           Diagrams.TwoD.Attributes (splitTextureFills)
+import           Diagrams.TwoD.Path       (Clip (Clip))
 import           Diagrams.TwoD.Text
 
 -- from lucid-svg
 import           Lucid.Svg
 
 -- from this package
-import qualified Graphics.Rendering.SVG       as R
-import           Graphics.Rendering.SVG       (SVGFloat, SvgM)
+import           Graphics.Rendering.SVG   (SVGFloat, SvgM)
+import qualified Graphics.Rendering.SVG   as R
 
 -- | @SVG@ is simply a token used to identify this rendering backend
 --   (to aid type inference).
@@ -154,9 +155,9 @@ type B = SVG
 type instance V SVG = V2
 type instance N SVG = Double
 
-data SvgRenderState = SvgRenderState { _clipPathId  :: Int
-                                     , _fillGradId  :: Int
-                                     , _lineGradId  :: Int }
+data SvgRenderState = SvgRenderState { _clipPathId :: Int
+                                     , _fillGradId :: Int
+                                     , _lineGradId :: Int }
 
 makeLenses ''SvgRenderState
 
