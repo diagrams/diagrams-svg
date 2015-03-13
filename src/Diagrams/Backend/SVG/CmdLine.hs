@@ -74,11 +74,12 @@ module Diagrams.Backend.SVG.CmdLine
 
 import           Diagrams.Backend.CmdLine
 import           Diagrams.Backend.SVG
-import           Diagrams.Prelude               hiding (height, interval, width, output)
+import           Diagrams.Prelude         hiding (height, interval, output,
+                                           width)
 
-import           Control.Lens                   hiding (argument)
-import           Options.Applicative            hiding ((<>))
-import qualified Options.Applicative            as O ((<>))
+import           Control.Lens             hiding (argument)
+import           Options.Applicative      hiding ((<>))
+import qualified Options.Applicative      as O ((<>))
 
 import           Data.List.Split
 
