@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP                        #-}
 {-# LANGUAGE ConstraintKinds            #-}
 {-# LANGUAGE DeriveDataTypeable         #-}
 {-# LANGUAGE DeriveGeneric              #-}
@@ -106,7 +107,9 @@ module Diagrams.Backend.SVG
 import           Codec.Picture
 import           Codec.Picture.Types      (dynamicMap)
 
+#if __GLASGOW_HASKELL__ < 710
 import           Data.Foldable            as F (foldMap)
+#endif
 import qualified Data.Text                as T
 import           Data.Text.Lazy.IO        as LT
 import           Data.Tree

@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP               #-}
 {-# LANGUAGE ConstraintKinds   #-}
 {-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE GADTs             #-}
@@ -38,17 +39,17 @@ module Graphics.Rendering.SVG
 
 -- from base
 import           Data.List                   (intercalate)
+#if __GLASGOW_HASKELL__ < 710
 import           Data.Foldable               (foldMap)
+#endif
 import           Data.Monoid
-
--- from lens
-import           Control.Lens                hiding (transform)
 
 -- from diagrams-core
 import           Diagrams.Core.Transform     (matrixHomRep)
 
 -- from diagrams-lib
-import           Diagrams.Prelude            hiding (Attribute, Render, with, (<>))
+import           Diagrams.Prelude            hiding (Attribute, Render, with,
+                                              (<>))
 import           Diagrams.TwoD.Path          (getFillRule)
 import           Diagrams.TwoD.Text
 
