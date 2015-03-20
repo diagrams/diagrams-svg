@@ -99,7 +99,9 @@ module Diagrams.Backend.SVG
   , SVGFloat
 
   , renderSVG
+  , renderSVG'
   , renderPretty
+  , renderPretty'
   , loadImageSVG
   ) where
 
