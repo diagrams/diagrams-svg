@@ -95,7 +95,6 @@ svgHeader w h defines s =  doctype_ <> with (svg11_ (g_  defines s))
 
 renderPath :: SVGFloat n => Path V2 n -> SvgM
 renderPath trs = if makePath == T.empty then mempty else path_ [d_ makePath]
--- renderPath trs  = path_  [d_ (if makePath == T.empty then toText "" else makePath)]
   where
     makePath = foldMap renderTrail (op Path trs)
 
