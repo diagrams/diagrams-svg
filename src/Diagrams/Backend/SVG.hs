@@ -17,8 +17,6 @@
 {-# LANGUAGE UndecidableInstances       #-}
   -- UndecidableInstances needed for ghc < 707
 
-{-# OPTIONS_GHC -fno-warn-orphans       #-}
-
 ----------------------------------------------------------------------------
 -- |
 -- Module      :  Diagrams.Backend.SVG
@@ -180,7 +178,7 @@ initialSvgRenderState = SvgRenderState 0 0 1 (mempty # recommendFillColor transp
 type SvgRenderM n = State (SvgRenderState n) SvgM
 
 instance SVGFloat n => Monoid (Render SVG V2 n) where
-  mempty  = R $ return mempty
+  mempty = R $ return mempty
   R r1 `mappend` R r2_ = R $ do
     svg1 <- r1
     svg2 <- r2_
@@ -275,7 +273,7 @@ idPrefix f opts = f (_idPrefix opts) <&> \i -> opts { _idPrefix = i }
 attributedRender :: SVGFloat n => SvgM -> SvgRenderM n
 attributedRender svg = do
   SvgRenderState _idClip idFill idLine sty preT <- get
-  clippedSvg <- renderSvgWithClipping preT svg sty
+  clippedSvg   <- renderSvgWithClipping preT svg sty
   lineGradDefs <- lineTextureDefs sty
   fillGradDefs <- fillTextureDefs sty
   let textureDefs = fillGradDefs `mappend` lineGradDefs
