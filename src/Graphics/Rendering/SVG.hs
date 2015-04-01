@@ -121,7 +121,7 @@ renderSeg (Cubic  (V2 x0 y0)
 
 renderClip :: SVGFloat n => Path V2 n -> T.Text -> Int -> SvgM -> SvgM
 renderClip p prefix ident svg = do
-  clipPath_ [id_ (clipPathId ident)] (renderPath p)
+  defs_ $ clipPath_ [id_ (clipPathId ident)] (renderPath p)
   g_  [clip_path_ $ ("url(#" <> clipPathId ident <> ")")] svg
     where
       clipPathId i = prefix <> "myClip" <> (toText i)

@@ -10,7 +10,7 @@ env:
     - GHCVER=7.10.1 CABALVER=1.22
     - GHCVER=head CABALVER=head
   global:
-    - HEAD_DEPS="diagrams-core diagrams-lib diagrams-solve"
+    - HEAD_DEPS="diagrams-core diagrams-lib diagrams-solve active"
 
 matrix:
   allow_failures:

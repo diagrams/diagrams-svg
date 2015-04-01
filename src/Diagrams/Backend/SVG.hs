@@ -17,8 +17,6 @@
 {-# LANGUAGE UndecidableInstances       #-}
   -- UndecidableInstances needed for ghc < 707
 
-{-# OPTIONS_GHC -fno-warn-orphans       #-}
-
 ----------------------------------------------------------------------------
 -- |
 -- Module      :  Diagrams.Backend.SVG
@@ -67,7 +65,7 @@
 -- >     }
 --
 -- @
--- data family Render SVG V2 n = R 'SvgRenderM'
+-- data family Render SVG V2 n = R 'SvgRenderM n'
 -- @
 --
 -- @
@@ -160,28 +158,31 @@ type B = SVG
 type instance V SVG = V2
 type instance N SVG = Double
 
-data SvgRenderState = SvgRenderState { _clipPathId :: Int
-                                     , _fillGradId :: Int
-                                     , _lineGradId :: Int }
+data SvgRenderState n = SvgRenderState
+  { _clipPathId :: Int
+  , _fillGradId :: Int
+  , _lineGradId :: Int
+  , _style      :: Style V2 n
+  , __pre       :: T.Text
+  }
 
 makeLenses ''SvgRenderState
 
 -- Fill gradients ids are even, line gradient ids are odd.
-initialSvgRenderState :: SvgRenderState
-initialSvgRenderState = SvgRenderState 0 0 1
+initialSvgRenderState :: SVGFloat n => T.Text -> SvgRenderState n
+initialSvgRenderState = SvgRenderState 0 0 1 (mempty # recommendFillColor transparent)
 
 -- | Monad to keep track of state when rendering an SVG.
 --   Currently just keeps a monotonically increasing counter
 --   for assiging a unique clip path ID.
-type SvgRenderM = State SvgRenderState SvgM
+type SvgRenderM n = State (SvgRenderState n) SvgM
 
 instance SVGFloat n => Monoid (Render SVG V2 n) where
-  mempty  = R $ return mempty
-  (R r1) `mappend` (R r2_) =
-    R $ do
-      svg1 <- r1
-      svg2 <- r2_
-      return (svg1 `mappend` svg2)
+  mempty = R $ return mempty
+  R r1 `mappend` R r2_ = R $ do
+    svg1 <- r1
+    svg2 <- r2_
+    return (svg1 `mappend` svg2)
 
 -- Handle clip attributes.
 --
@@ -189,14 +190,14 @@ renderSvgWithClipping :: forall n. SVGFloat n
                       => T.Text
                       -> SvgM          -- ^ Input SVG
                       -> Style V2 n    -- ^ Styles
-                      -> SvgRenderM    -- ^ Resulting svg
+                      -> SvgRenderM n    -- ^ Resulting svg
 
 renderSvgWithClipping prefix svg s =
   case op Clip <$> getAttr s of
-    Nothing -> return svg
+    Nothing    -> return svg
     Just paths -> renderClips paths
   where
-    renderClips :: SVGFloat n => [Path V2 n] -> SvgRenderM
+    renderClips :: SVGFloat n => [Path V2 n] -> SvgRenderM n
     renderClips []     = return svg
     renderClips (p:ps) = do
       clipPathId += 1
@@ -205,20 +206,20 @@ renderSvgWithClipping prefix svg s =
 
 -- | Create a new texture defs svg element using the style and the current
 --   id number, then increment the gradient id number.
-fillTextureDefs :: SVGFloat n => Style v n -> SvgRenderM
+fillTextureDefs :: SVGFloat n => Style v n -> SvgRenderM n
 fillTextureDefs s = do
   ident <- use fillGradId
   fillGradId += 2 -- always even
   return $ R.renderFillTextureDefs ident s
 
-lineTextureDefs :: SVGFloat n => Style v n -> SvgRenderM
+lineTextureDefs :: SVGFloat n => Style v n -> SvgRenderM n
 lineTextureDefs s = do
   ident <- use lineGradId
   lineGradId += 2 -- always odd
   return $ R.renderLineTextureDefs ident s
 
 instance SVGFloat n => Backend SVG V2 n where
-  data Render  SVG V2 n = R SvgRenderM
+  data Render  SVG V2 n = R (SvgRenderM n)
   type Result  SVG V2 n = SvgM
   data Options SVG V2 n = SVGOptions
     { _size           :: SizeSpec V2 n   -- ^ The requested size.
@@ -228,49 +229,29 @@ instance SVGFloat n => Backend SVG V2 n where
     , _idPrefix       :: T.Text
     }
 
-  renderRTree _ opts rt = evalState svgOutput initialSvgRenderState
+  renderRTree _ opts rt = evalState svgOutput (initialSvgRenderState $ opts ^.idPrefix)
     where
       svgOutput = do
-        let R r    = toRender (opts^.idPrefix) rt
+        let R r    = rtree (splitTextureFills rt)
             V2 w h = specToSize 100 (opts^.sizeSpec)
         svg <- r
         return $ R.svgHeader w h (opts^.svgDefinitions) svg
 
   adjustDia c opts d = adjustDia2D sizeSpec c opts (d # reflectY)
 
-toRender :: forall n. SVGFloat n => T.Text -> RTree SVG V2 n Annotation -> Render SVG V2 n
-toRender prefix = fromRTree
-  . Node (RStyle (mempty # recommendFillColor (transparent :: AlphaColour Double)))
-  . (:[])
-  . splitTextureFills
-    where
-      fromRTree (Node (RAnnot (Href uri)) rs)
-        = R $ do
-            let R r =  foldMap fromRTree rs
-            svg <- r
-            return $ a_ [xlinkHref_ $ toText uri] svg
-      fromRTree (Node (RAnnot (OpacityGroup o)) rs)
-        = R $ do
-            let R r =  foldMap fromRTree rs
-            svg <- r
-            return $ g_ [opacity_ $ toText o] svg
-      fromRTree (Node (RPrim p) _) = render SVG p
-      fromRTree (Node (RStyle sty) ts)
-        = R $ do
-            let R r = foldMap fromRTree ts
-
-            -- render subtrees
-            svg <- r
-
-            idFill <- use fillGradId
-            idLine <- use lineGradId
-            clippedSvg <- renderSvgWithClipping prefix svg sty
-            lineGradDefs <- lineTextureDefs sty
-            fillGradDefs <- fillTextureDefs sty
-            let textureDefs = fillGradDefs `mappend` lineGradDefs
-            return $ (g_ $ R.renderStyles idFill idLine sty)
-                     (textureDefs `mappend` clippedSvg)
-      fromRTree (Node _ rs) = foldMap fromRTree rs
+rtree :: SVGFloat n => RTree SVG V2 n Annotation -> Render SVG V2 n
+rtree (Node n rs) = case n of
+  RPrim p                 -> render SVG p
+  RStyle sty'             -> R $ do
+    -- mappend new state and retrieve old state
+    sty <- style <<<>= sty'
+    -- render contents and return state to old state
+    r <* (style .= sty)
+  RAnnot (OpacityGroup o) -> R $ g_ [opacity_ $ toText o] <$> r
+  RAnnot (Href uri)       -> R $ a_ [xlinkHref_ $ toText uri] <$> r
+  _                       -> R r
+  where
+    R r = foldMap rtree rs
 
 -- | Lens onto the size of the svg options.
 sizeSpec :: SVGFloat n => Lens' (Options SVG V2 n) (SizeSpec V2 n)
@@ -287,11 +268,23 @@ svgDefinitions f opts =
 idPrefix :: SVGFloat n => Lens' (Options SVG V2 n) T.Text
 idPrefix f opts = f (_idPrefix opts) <&> \i -> opts { _idPrefix = i }
 
+-- paths ---------------------------------------------------------------
+
+attributedRender :: SVGFloat n => SvgM -> SvgRenderM n
+attributedRender svg = do
+  SvgRenderState _idClip idFill idLine sty preT <- get
+  clippedSvg   <- renderSvgWithClipping preT svg sty
+  lineGradDefs <- lineTextureDefs sty
+  fillGradDefs <- fillTextureDefs sty
+  return $ do
+    defs_ $ fillGradDefs >> lineGradDefs
+    g_ (R.renderStyles idFill idLine sty) clippedSvg
+
 instance SVGFloat n => Renderable (Path V2 n) SVG where
-  render _ = R . return . R.renderPath
+  render _ = R . attributedRender . R.renderPath
 
 instance SVGFloat n => Renderable (Text n) SVG where
-  render _ = R . return . R.renderText
+  render _ = R . attributedRender . R.renderText
 
 instance SVGFloat n => Renderable (DImage n Embedded) SVG where
   render _ = R . return . R.renderDImageEmb
@@ -316,19 +309,13 @@ mkPrefix = T.filter isAlpha . T.pack . takeBaseName
 --   and using the backend options. The id prefix is derived from the
 --   basename of the output file.
 renderSVG' :: SVGFloat n => FilePath -> Options SVG V2 n -> QDiagram SVG V2 n Any -> IO ()
-renderSVG' outFile opts
-  = BS.writeFile outFile
-  . renderBS
-  . renderDia SVG opts
+renderSVG' outFile opts = BS.writeFile outFile . renderBS . renderDia SVG opts
 
 -- | Render a diagram as a pretty printed SVG to the specified output
 --   file and using the backend options. The id prefix is derived from the
 --   basename of the output file.
 renderPretty' :: SVGFloat n => FilePath -> Options SVG V2 n -> QDiagram SVG V2 n Any -> IO ()
-renderPretty' outFile opts
-  = LT.writeFile outFile
-  . prettyText
-  . renderDia SVG opts
+renderPretty' outFile opts = LT.writeFile outFile . prettyText . renderDia SVG opts
 
 data Img = Img !Char !BS.ByteString deriving Typeable
 
