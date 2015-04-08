@@ -116,6 +116,7 @@ import           Data.Tree
 import           System.FilePath
 
 -- from base
+import           Control.Monad.Reader
 import           Control.Monad.State
 import           Data.Char
 import           Data.Typeable
@@ -135,7 +136,7 @@ import           Diagrams.Core.Compile
 import           Diagrams.Core.Types      (Annotation (..))
 
 -- from diagrams-lib
-import           Diagrams.Prelude         hiding (Attribute, size, view)
+import           Diagrams.Prelude         hiding (Attribute, size, view, local)
 import           Diagrams.TwoD.Adjust     (adjustDia2D)
 import           Diagrams.TwoD.Attributes (splitTextureFills)
 import           Diagrams.TwoD.Path       (Clip (Clip))
@@ -158,24 +159,34 @@ type B = SVG
 type instance V SVG = V2
 type instance N SVG = Double
 
-data SvgRenderState n = SvgRenderState
+data Environment n = Environment
+  { _style :: Style V2 n
+  , __pre :: T.Text
+  }
+
+makeLenses ''Environment
+
+data SvgRenderState = SvgRenderState
   { _clipPathId :: Int
   , _fillGradId :: Int
   , _lineGradId :: Int
-  , _style      :: Style V2 n
-  , __pre       :: T.Text
   }
 
 makeLenses ''SvgRenderState
 
--- Fill gradients ids are even, line gradient ids are odd.
-initialSvgRenderState :: SVGFloat n => T.Text -> SvgRenderState n
-initialSvgRenderState = SvgRenderState 0 0 1 (mempty # recommendFillColor transparent)
+initialEnvironment :: SVGFloat n => T.Text -> Environment n
+initialEnvironment = Environment (mempty # recommendFillColor transparent)
 
--- | Monad to keep track of state when rendering an SVG.
---   Currently just keeps a monotonically increasing counter
---   for assiging a unique clip path ID.
-type SvgRenderM n = State (SvgRenderState n) SvgM
+-- Fill gradients ids are even, line gradient ids are odd.
+initialSvgRenderState :: SvgRenderState
+initialSvgRenderState = SvgRenderState 0 0 1
+
+-- | Monad to keep track of environment and state when rendering an SVG.
+type SvgRenderM n = ReaderT (Environment n) (State SvgRenderState) SvgM
+
+runRenderM :: SVGFloat n => T.Text -> SvgRenderM n -> SvgM
+runRenderM o s = flip evalState initialSvgRenderState
+               $ flip runReaderT (initialEnvironment o) s
 
 instance SVGFloat n => Monoid (Render SVG V2 n) where
   mempty = R $ return mempty
@@ -190,7 +201,7 @@ renderSvgWithClipping :: forall n. SVGFloat n
                       => T.Text
                       -> SvgM          -- ^ Input SVG
                       -> Style V2 n    -- ^ Styles
-                      -> SvgRenderM n    -- ^ Resulting svg
+                      -> SvgRenderM n  -- ^ Resulting svg
 
 renderSvgWithClipping prefix svg s =
   case op Clip <$> getAttr s of
@@ -219,9 +230,9 @@ lineTextureDefs s = do
   return $ R.renderLineTextureDefs ident s
 
 instance SVGFloat n => Backend SVG V2 n where
-  data Render  SVG V2 n = R (SvgRenderM n)
-  type Result  SVG V2 n = SvgM
-  data Options SVG V2 n = SVGOptions
+  newtype Render  SVG V2 n = R (SvgRenderM n)
+  type    Result  SVG V2 n = SvgM
+  data    Options SVG V2 n = SVGOptions
     { _size           :: SizeSpec V2 n   -- ^ The requested size.
     , _svgDefinitions :: [Attribute]
                           -- ^ Custom definitions that will be added to the @defs@
@@ -229,7 +240,7 @@ instance SVGFloat n => Backend SVG V2 n where
     , _idPrefix       :: T.Text
     }
 
-  renderRTree _ opts rt = evalState svgOutput (initialSvgRenderState $ opts ^.idPrefix)
+  renderRTree _ opts rt = runRenderM (opts ^.idPrefix) svgOutput
     where
       svgOutput = do
         let R r    = rtree (splitTextureFills rt)
@@ -242,11 +253,7 @@ instance SVGFloat n => Backend SVG V2 n where
 rtree :: SVGFloat n => RTree SVG V2 n Annotation -> Render SVG V2 n
 rtree (Node n rs) = case n of
   RPrim p                 -> render SVG p
-  RStyle sty'             -> R $ do
-    -- mappend new state and retrieve old state
-    sty <- style <<<>= sty'
-    -- render contents and return state to old state
-    r <* (style .= sty)
+  RStyle sty              -> R $ local (over style (<> sty)) r
   RAnnot (OpacityGroup o) -> R $ g_ [opacity_ $ toText o] <$> r
   RAnnot (Href uri)       -> R $ a_ [xlinkHref_ $ toText uri] <$> r
   _                       -> R r
@@ -272,7 +279,8 @@ idPrefix f opts = f (_idPrefix opts) <&> \i -> opts { _idPrefix = i }
 
 attributedRender :: SVGFloat n => SvgM -> SvgRenderM n
 attributedRender svg = do
-  SvgRenderState _idClip idFill idLine sty preT <- get
+  SvgRenderState _idClip idFill idLine <- get
+  Environment sty preT <- ask
   clippedSvg   <- renderSvgWithClipping preT svg sty
   lineGradDefs <- lineTextureDefs sty
   fillGradDefs <- fillTextureDefs sty
