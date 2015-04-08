@@ -1,3 +1,12 @@
+1.3 (8 April 2015)
+-----------------
+
+- Switch rendering engine from `blaze-svg` to `lucid-svg`
+- User settable ID prefixes
+- Support opacity group
+- Fix clipping bug (Issue #70)
+- Use `fsnotify` for looping
+
 1.1.0.5 (2 April 2015)
 ----------------------
 
