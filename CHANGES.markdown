@@ -1,11 +1,20 @@
 1.3 (8 April 2015)
 -----------------
 
-- Switch rendering engine from `blaze-svg` to `lucid-svg`
+* **New features**
+
 - User settable ID prefixes
 - Support opacity group
 - Fix clipping bug (Issue #70)
+
+* **Internal Changes*
+- Switch rendering engine from `blaze-svg` to `lucid-svg`
 - Use `fsnotify` for looping
+- Add defs tags for clips and gradients
+- 
+* **Bug Fixes**
+- Clipping bug #70
+- Font size not applied properly in composite diagram #66
 
 1.1.0.5 (2 April 2015)
 ----------------------
