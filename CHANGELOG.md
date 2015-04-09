@@ -12,7 +12,7 @@
 
 - Fix clipping bug (Issue #70)
 
-**Internal Changes*
+**Internal Changes**
 
 - Switch rendering engine from `blaze-svg` to `lucid-svg`
 
@@ -106,26 +106,28 @@
 
 **New features**
 
-    - Support for radial and linear gradients.
+- Support for radial and linear gradients.
 
-    - Support for embedded images in `.png` format.
+- Support for embedded images in `.png` format.
 
 **New instances**
 
-    - `Renderable` instances for `DImage Embedded`.
+- `Renderable` instances for `DImage Embedded`.
 
 **API changes**
 
-    - Updates to work with `Measure` units.
+- Updates to work with `Measure` units.
 
-    - Substantial refactoring of `Backend` instance to support changes in
-      `Diagrams.Core`.
+- Substantial refactoring of `Backend` instance to support changes in
+  `Diagrams.Core`.
 
 **Dependency/version changes**
 
-    - New dependencies: `base64-bytestring` and `JuicyPixels`.
-    - Allow `lens-4.2`
-    - Allow `mtl-2.2`
+- New dependencies: `base64-bytestring` and `JuicyPixels`.
+
+- Allow `lens-4.2`
+
+- Allow `mtl-2.2`
 
 **Closed issues:**
 
@@ -159,25 +161,26 @@
 
 **New features**
 
-    - Support for including hyperlinks.
+- Support for including hyperlinks.
 
 **Dependency/version changes**
 
-    - Allow `diagrams-core-1.1` and `diagrams-lib-1.1`
-    - Allow `lens-4.0`
+- Allow `diagrams-core-1.1` and `diagrams-lib-1.1`
+
+- Allow `lens-4.0`
 
 **Bug fixes**
 
 
-    - Use `splitFills` to properly render certain diagrams with mixed
-      lines and filled loops.  Previously, in certain situations loops that should
-      have been filled were not.  ([#43](https://github.com/diagrams/diagrams-svg/issues/43))
+- Use `splitFills` to properly render certain diagrams with mixed
+  lines and filled loops.  Previously, in certain situations loops that should
+  have been filled were not.  ([#43](https://github.com/diagrams/diagrams-svg/issues/43))
 
-    - Don't emit last segment of a loop if it is linear.
+- Don't emit last segment of a loop if it is linear.
 
-      See [diagrams-cairo#38](http://github.com/diagrams/diagrams-cairo/issues/38).  This wasn't actually causing any
-      observable problems in the SVG backend output, but this seems a
-      better/more robust way to do things in any case.
+  See [diagrams-cairo#38](http://github.com/diagrams/diagrams-cairo/issues/38).  This wasn't actually causing any
+  observable problems in the SVG backend output, but this seems a
+  better/more robust way to do things in any case.
 
 **Closed issues:**
 
