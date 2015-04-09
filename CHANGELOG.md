@@ -4,21 +4,28 @@
 
 [Full Changelog](https://github.com/diagrams/diagrams-svg/compare/v1.1.0.4...v1.1.0.5)
 
-* **New features**
+**New features**
 
-  - User settable ID prefixes
-  - Support opacity group
-  - Fix clipping bug (Issue #70)
+- User settable ID prefixes
 
-* **Internal Changes*
-  - Switch rendering engine from `blaze-svg` to `lucid-svg`
-  - Use `fsnotify` for looping
-  - Add defs tags for clips and gradients
- 
-* **Bug Fixes**
-  - Clipping bug #70
-  - Font size not applied properly in composite diagram #66
-  
+- Support opacity group
+
+- Fix clipping bug (Issue #70)
+
+**Internal Changes*
+
+- Switch rendering engine from `blaze-svg` to `lucid-svg`
+
+- Use `fsnotify` for looping
+
+- Add defs tags for clips and gradients
+
+**Bug Fixes**
+
+- Clipping bug #70
+
+- Font size not applied properly in composite diagram #66
+
 **Implemented enhancements:**
 
 - Put `clip path`, `gradients`, etc in defs tag. [\#73](https://github.com/diagrams/diagrams-svg/issues/73)
@@ -46,9 +53,11 @@
 ## [v1.1.0.5](https://github.com/diagrams/diagrams-svg/tree/v1.1.0.5) (2015-04-03)
 
 - allow `lens-4.9`
+
 - allow `vector-space-0.10`
+
 - allow `blaze-markup-0.7`
- 
+
 ## [v1.1.0.4](https://github.com/diagrams/diagrams-svg/tree/v1.1.0.4) (2015-01-13)
 
 [Full Changelog](https://github.com/diagrams/diagrams-svg/compare/v1.1.0.3...v1.1.0.4)
@@ -75,10 +84,6 @@
 
 - Linear [\#61](https://github.com/diagrams/diagrams-svg/pull/61) ([cchalmers](https://github.com/cchalmers))
 
-- Generalize double [\#59](https://github.com/diagrams/diagrams-svg/pull/59) ([bergey](https://github.com/bergey))
-
-- dynamic typing [\#52](https://github.com/diagrams/diagrams-svg/pull/52) ([jeffreyrosenbluth](https://github.com/jeffreyrosenbluth))
-
 ## [v1.1.0.1](https://github.com/diagrams/diagrams-svg/tree/v1.1.0.1) (2014-08-22)
 
 [Full Changelog](https://github.com/diagrams/diagrams-svg/compare/v1.1...v1.1.0.1)
@@ -95,35 +100,33 @@
 
 - Allow svg output file to be pretty printed [\#56](https://github.com/diagrams/diagrams-svg/pull/56) ([jeffreyrosenbluth](https://github.com/jeffreyrosenbluth))
 
-- Backend changes for generalize-double [\#55](https://github.com/diagrams/diagrams-svg/pull/55) ([Mathnerd314](https://github.com/Mathnerd314))
-
 ## [v1.1](https://github.com/diagrams/diagrams-svg/tree/v1.1) (2014-06-02)
 
 [Full Changelog](https://github.com/diagrams/diagrams-svg/compare/v1.0.2.1...v1.1)
 
-* **New features**
+**New features**
 
     - Support for radial and linear gradients.
 
     - Support for embedded images in `.png` format.
 
-* **New instances**
+**New instances**
 
     - `Renderable` instances for `DImage Embedded`.
 
-* **API changes**
+**API changes**
 
     - Updates to work with `Measure` units.
 
     - Substantial refactoring of `Backend` instance to support changes in
       `Diagrams.Core`.
 
-* **Dependency/version changes**
+**Dependency/version changes**
 
     - New dependencies: `base64-bytestring` and `JuicyPixels`.
     - Allow `lens-4.2`
     - Allow `mtl-2.2`
-    
+
 **Closed issues:**
 
 - Support hyperlinks [\#48](https://github.com/diagrams/diagrams-svg/issues/48)
@@ -154,16 +157,16 @@
 
 [Full Changelog](https://github.com/diagrams/diagrams-svg/compare/v1.0.1.3...v1.0.2)
 
-* **New features**
+**New features**
 
     - Support for including hyperlinks.
 
-* **Dependency/version changes**
+**Dependency/version changes**
 
     - Allow `diagrams-core-1.1` and `diagrams-lib-1.1`
     - Allow `lens-4.0`
 
-* **Bug fixes**
+**Bug fixes**
 
 
     - Use `splitFills` to properly render certain diagrams with mixed
@@ -185,8 +188,6 @@
 - Hyperlinks [\#49](https://github.com/diagrams/diagrams-svg/pull/49) ([tdox](https://github.com/tdox))
 
 - stop using ignoreFill; use splitFills instead.  Fixes \#43. [\#47](https://github.com/diagrams/diagrams-svg/pull/47) ([byorgey](https://github.com/byorgey))
-
-- Should fix issue 43 SVG backend doesn't fill loops if they occur in the same subtree as a line, along with fill/lib [\#44](https://github.com/diagrams/diagrams-svg/pull/44) ([jeffreyrosenbluth](https://github.com/jeffreyrosenbluth))
 
 ## [v1.0.1.3](https://github.com/diagrams/diagrams-svg/tree/v1.0.1.3) (2014-02-06)
 
@@ -246,16 +247,18 @@ you.
 
 [Full Changelog](https://github.com/diagrams/diagrams-svg/compare/v0.7...v0.8)
 
-* **New features**
+**New features**
 
-    - Extra SVG definitions, to be inserted in the output, may be
-      passed as an argument
-    - Support for new miter limit attribute
-    - Approximate text alignment
+- Extra SVG definitions, to be inserted in the output, may be
+  passed as an argument
 
-* **Bug fixes**
+- Support for new miter limit attribute
 
-    - Stacking multiple clip regions now works properly
+- Approximate text alignment
+
+**Bug fixes**
+
+- Stacking multiple clip regions now works properly
 
 **Merged pull requests:**
 
@@ -263,25 +266,26 @@ you.
 
 - Added approximation of text alignment. Better then nothing... [\#36](https://github.com/diagrams/diagrams-svg/pull/36) ([jbracker](https://github.com/jbracker))
 
-- Fixed bug that miter line joins are cut of early and one with stacked clippings. [\#37](https://github.com/diagrams/diagrams-svg/pull/37) ([jbracker](https://github.com/jbracker))
-
 ## [v0.7](https://github.com/diagrams/diagrams-svg/tree/v0.7) (2013-08-09)
 
 [Full Changelog](https://github.com/diagrams/diagrams-svg/compare/v0.6.0.1...v0.7)
 
-* **New features**
+**New features**
 
-    - New `renderToSVG` convenience function
-    - Vastly improved Haddock documentation
+- New `renderToSVG` convenience function
 
-* **New instances**
+- Vastly improved Haddock documentation
 
-    - `Show` instance for `Options SVG R2`
+**New instances**
 
-* **Dependency/version changes**
-    - allow `base-4.7` and `unix-2.7`
-    - Upgrade to `monoid-extras-0.3`
-    
+- `Show` instance for `Options SVG R2`
+
+**Dependency/version changes**
+
+- allow `base-4.7` and `unix-2.7`
+
+- Upgrade to `monoid-extras-0.3`
+
 **Implemented enhancements:**
 
 - Improve Haddock documentation [\#27](https://github.com/diagrams/diagrams-svg/issues/27)
@@ -311,9 +315,11 @@ First "officially supported" release.
 Features still not implemented:
 
 - text alignment
+
 - inline images
 
 As of this release everything else Should Work (tm).
+
 **Closed issues:**
 
 - Line width does not follow specification? [\#24](https://github.com/diagrams/diagrams-svg/issues/24)
@@ -359,11 +365,6 @@ As of this release everything else Should Work (tm).
 - Increase cmdargs upper bound to < 0.10 [\#16](https://github.com/diagrams/diagrams-svg/pull/16) ([byorgey](https://github.com/byorgey))
 
 - Line join + cap [\#12](https://github.com/diagrams/diagrams-svg/pull/12) ([byorgey](https://github.com/byorgey))
-
-- 7.4 v. 7.6 [\#22](https://github.com/diagrams/diagrams-svg/pull/22) ([michaelt](https://github.com/michaelt))
-
-- ghc-7.6  [\#21](https://github.com/diagrams/diagrams-svg/pull/21) ([michaelt](https://github.com/michaelt))
-
 
 
 \* *This Change Log was automatically generated by (and hand edited) [github_changelog_generator](https://github.com/skywinder/Github-Changelog-Generator)*
