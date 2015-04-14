@@ -15,7 +15,7 @@ Cabal-version:       >=1.10
 Tested-with:         GHC == 7.4.2, GHC == 7.6.3, GHC == 7.8.4, GHC == 7.10.1
 Description:         This package provides a modular backend for rendering
                      diagrams created with the diagrams EDSL to SVG
-                     files.  It uses @blaze-svg@ to be a fast, native
+                     files.  It uses @lucid-svg@ to be a native
                      Haskell backend, making it suitable for use on
                      any platform.
                      .
