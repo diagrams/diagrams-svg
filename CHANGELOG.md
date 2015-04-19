@@ -1,6 +1,6 @@
 # Change Log
 
-## [v1.3]() (2015-04-03)
+## [v1.3](https://github.com/diagrams/diagrams-svg/tree/v1.3) (2015-04-19)
 
 [Full Changelog](https://github.com/diagrams/diagrams-svg/compare/v1.1.0.4...v1.1.0.5)
 
