@@ -20,12 +20,6 @@
 
 - Add defs tags for clips and gradients
 
-**Bug Fixes**
-
-- Clipping bug #70
-
-- Font size not applied properly in composite diagram #66
-
 **Implemented enhancements:**
 
 - Put `clip path`, `gradients`, etc in defs tag. [\#73](https://github.com/diagrams/diagrams-svg/issues/73)
@@ -33,8 +27,6 @@
 **Fixed bugs:**
 
 - Font size not applied properly in composite diagram [\#66](https://github.com/diagrams/diagrams-svg/issues/66)
-
-**Closed issues:**
 
 - clipping broken [\#70](https://github.com/diagrams/diagrams-svg/issues/70)
 
