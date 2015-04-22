@@ -186,7 +186,7 @@ type SvgRenderM n = ReaderT (Environment n) (State SvgRenderState) SvgM
 
 runRenderM :: SVGFloat n => T.Text -> SvgRenderM n -> SvgM
 runRenderM o s = flip evalState initialSvgRenderState
-               $ flip runReaderT (initialEnvironment o) s
+               $ runReaderT  s (initialEnvironment o)
 
 instance SVGFloat n => Monoid (Render SVG V2 n) where
   mempty = R $ return mempty
