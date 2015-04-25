@@ -289,8 +289,6 @@ instance SVGFloat n => Renderable (Text n) SVG where
 instance SVGFloat n => Renderable (DImage n Embedded) SVG where
   render _ = R . return . R.renderDImageEmb
 
--- TODO: instance Renderable Image SVG where
-
 -- | Render a diagram as an SVG, writing to the specified output file
 --   and using the requested size.
 renderSVG :: SVGFloat n => FilePath -> SizeSpec V2 n -> QDiagram SVG V2 n Any -> IO ()
