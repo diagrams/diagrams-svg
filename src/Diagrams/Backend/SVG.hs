@@ -122,7 +122,7 @@ import           Data.Char
 import           Data.Typeable
 
 -- from hashable
-import           Data.Hashable            (Hashable (..))
+import           Data.Hashable            (Hashable (), hashWithSalt)
 
 -- from bytestring
 import qualified Data.ByteString          as SBS
