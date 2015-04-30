@@ -354,5 +354,6 @@ instance SVGFloat n => Renderable (DImage n (Native Img)) SVG where
           _   -> fail   "Unknown mime type while rendering image"
     return $ R.renderDImage di $ R.dataUri mime d
 
--- instance (Hashable n, SVGFloat n) => Hashable (Options SVG V2 n) where
---   hashWithSalt s  (SVGOptions sz defs _) = s `hashWithSalt` sz `hashWithSalt` defs
+instance (Hashable n, SVGFloat n) => Hashable (Options SVG V2 n) where
+  hashWithSalt s  (SVGOptions sz defs _) = s `hashWithSalt` sz `hashWithSalt` ds
+    where ds = fmap renderBS defs
