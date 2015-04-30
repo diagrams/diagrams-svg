@@ -234,7 +234,7 @@ instance SVGFloat n => Backend SVG V2 n where
   type    Result  SVG V2 n = SvgM
   data    Options SVG V2 n = SVGOptions
     { _size           :: SizeSpec V2 n   -- ^ The requested size.
-    , _svgDefinitions :: [Attribute]
+    , _svgDefinitions :: Maybe SvgM
                           -- ^ Custom definitions that will be added to the @defs@
                           --   section of the output.
     , _idPrefix       :: T.Text
@@ -265,7 +265,7 @@ sizeSpec :: SVGFloat n => Lens' (Options SVG V2 n) (SizeSpec V2 n)
 sizeSpec f opts = f (_size opts) <&> \s -> opts { _size = s }
 
 -- | Lens onto the svg definitions of the svg options.
-svgDefinitions :: SVGFloat n => Lens' (Options SVG V2 n) [Attribute]
+svgDefinitions :: SVGFloat n => Lens' (Options SVG V2 n) (Maybe SvgM)
 svgDefinitions f opts =
   f (_svgDefinitions opts) <&> \ds -> opts { _svgDefinitions = ds }
 
@@ -300,11 +300,11 @@ instance SVGFloat n => Renderable (DImage n Embedded) SVG where
 -- | Render a diagram as an SVG, writing to the specified output file
 --   and using the requested size.
 renderSVG :: SVGFloat n => FilePath -> SizeSpec V2 n -> QDiagram SVG V2 n Any -> IO ()
-renderSVG outFile spec = renderSVG' outFile (SVGOptions spec [] (mkPrefix outFile))
+renderSVG outFile spec = renderSVG' outFile (SVGOptions spec Nothing (mkPrefix outFile))
 
 -- | Render a diagram as a pretty printed SVG.
 renderPretty :: SVGFloat n => FilePath -> SizeSpec V2 n -> QDiagram SVG V2 n Any -> IO ()
-renderPretty outFile spec = renderPretty' outFile (SVGOptions spec [] (mkPrefix outFile))
+renderPretty outFile spec = renderPretty' outFile (SVGOptions spec Nothing (mkPrefix outFile))
 
 -- Create a prefile using the basename of the output file. Only standard
 -- letters are considered.
@@ -354,5 +354,5 @@ instance SVGFloat n => Renderable (DImage n (Native Img)) SVG where
           _   -> fail   "Unknown mime type while rendering image"
     return $ R.renderDImage di $ R.dataUri mime d
 
-instance (Hashable n, SVGFloat n) => Hashable (Options SVG V2 n) where
-  hashWithSalt s  (SVGOptions sz defs _) = s `hashWithSalt` sz `hashWithSalt` defs
+-- instance (Hashable n, SVGFloat n) => Hashable (Options SVG V2 n) where
+--   hashWithSalt s  (SVGOptions sz defs _) = s `hashWithSalt` sz `hashWithSalt` defs
