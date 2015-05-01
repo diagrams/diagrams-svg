@@ -58,7 +58,7 @@
 --
 -- > data Options SVG V2 n = SVGOptions
 -- >     { _size           :: SizeSpec V2 n   -- ^ The requested size.
--- >     , _svgDefinitions :: [Attribute]
+-- >     , _svgDefinitions :: Maybe SvgM
 -- >                           -- ^ Custom definitions that will be added to the @defs@
 -- >                           --   section of the output.
 -- >     , _idPrefix       :: T.Text
@@ -79,7 +79,7 @@
 -- @
 --
 -- which you could call like @renderDia SVG (SVGOptions (mkWidth 250)
--- [] "") myDiagram@ (if you have the 'OverloadedStrings' extension
+-- Nothing "") myDiagram@ (if you have the 'OverloadedStrings' extension
 -- enabled; otherwise you can use 'Text.pack ""').  (In some
 -- situations GHC may not be able to infer the type @m@, in which case
 -- you can use a type annotation to specify it; it may be useful to
