@@ -329,7 +329,10 @@ renderDashing s = renderTextAttr stroke_dasharray_ arr <>
   getDasharray  (Dashing a _) = a
   getDashoffset (Dashing _ o) = o
   dashArrayToStr              = intercalate "," . map show
-  dashing'                    = getNumAttr getDashing s
+  -- Ignore dashing if dashing array is empty
+  checkEmpty (Just (Dashing [] _)) = Nothing
+  checkEmpty other                 = other
+  dashing'                    = checkEmpty $ getNumAttr getDashing s
   arr                         = (pack . dashArrayToStr . getDasharray) <$> dashing'
   dOffset                     = getDashoffset <$> dashing'
 
