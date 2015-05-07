@@ -1,6 +1,10 @@
 # Change Log
 
-## [v1.3.1]() (2015-04-30)
+## [v1.3.1.1](https://github.com/diagrams/diagrams-svg/tree/v1.3.1.1) (2015-05-06)
+
+**Bug Fix**: handle empty dashing array properly ([\#80](https://github.com/diagrams/diagrams-svg/pull/80))
+
+## [v1.3.1](https://github.com/diagrams/diagrams-svg/tree/v1.3.1) (2015-04-30)
 
 **API Changes**
 
