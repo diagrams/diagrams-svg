@@ -228,7 +228,7 @@ renderLineTexture ident s = case getNumAttr getLineTexture s of
 dataUri :: String -> BS8.ByteString -> AttributeValue
 dataUri mime dat = pack $ "data:"++mime++";base64," ++ BS8.unpack (BS64.encode dat)
 
-renderDImageEmb :: SVGFloat n => DImage n Embedded -> SvgM
+renderDImageEmb :: SVGFloat n => DImage b n Embedded -> SvgM
 renderDImageEmb di@(DImage (ImageRaster dImg) _ _ _) =
   renderDImage di $ dataUri "image/png" img
   where
@@ -236,7 +236,7 @@ renderDImageEmb di@(DImage (ImageRaster dImg) _ _ _) =
             Left str   -> error str
             Right img' -> img'
 
-renderDImage :: SVGFloat n => DImage n any -> AttributeValue -> SvgM
+renderDImage :: SVGFloat n => DImage b n any -> AttributeValue -> SvgM
 renderDImage (DImage _ w h tr) uridata =
   image_
     [ transform_ transformMatrix
