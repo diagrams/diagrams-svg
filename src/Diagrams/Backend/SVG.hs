@@ -294,7 +294,7 @@ instance SVGFloat n => Renderable (Path V2 n) SVG where
 instance SVGFloat n => Renderable (Text n) SVG where
   render _ = R . attributedRender . R.renderText
 
-instance SVGFloat n => Renderable (DImage n Embedded) SVG where
+instance SVGFloat n => Renderable (DImage b n Embedded) SVG where
   render _ = R . return . R.renderDImageEmb
 
 -- | Render a diagram as an SVG, writing to the specified output file
@@ -326,7 +326,7 @@ renderPretty' outFile opts = LT.writeFile outFile . prettyText . renderDia SVG o
 data Img = Img !Char !BS.ByteString deriving Typeable
 
 -- | Load images (JPG/PNG/...) in a SVG specific way.
-loadImageSVG :: SVGFloat n => FilePath -> IO (QDiagram SVG V2 n Any)
+loadImageSVG :: (SVGFloat n, n ~ Double) => FilePath -> IO (QDiagram SVG V2 n Any)
 loadImageSVG fp = do
     raw <- SBS.readFile fp
     dyn <- eIO $ decodeImage raw
@@ -346,7 +346,7 @@ loadImageSVG fp = do
         eIO :: Either String a -> IO a
         eIO = either fail return
 
-instance SVGFloat n => Renderable (DImage n (Native Img)) SVG where
+instance SVGFloat n => Renderable (DImage b n (Native Img)) SVG where
   render _ di@(DImage (ImageNative (Img t d)) _ _ _) = R $ do
     mime <- case t of
           'J' -> return "image/jpeg"
