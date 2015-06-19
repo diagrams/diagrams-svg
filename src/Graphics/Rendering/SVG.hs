@@ -5,6 +5,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RankNTypes        #-}
 {-# LANGUAGE ViewPatterns      #-}
+{-# LANGUAGE DeriveDataTypeable #-}
 
 -----------------------------------------------------------------------------
 -- |
@@ -45,6 +46,7 @@ import           Data.Foldable               (foldMap)
 
 import           Data.Maybe                  (fromMaybe)
 import           Data.Monoid
+import           Data.Typeable               (Typeable)
 
 -- from diagrams-core
 import           Diagrams.Core.Transform     (matrixHomRep)
@@ -68,6 +70,9 @@ import qualified Data.ByteString.Lazy.Char8  as BS8
 
 -- from JuicyPixels
 import           Codec.Picture
+
+-- from semigroups
+import qualified Data.Semigroup              as S 
 
 -- | Constaint on number type that diagrams-svg can use to render an SVG. This
 --   includes the common number types: Double, Float
@@ -289,7 +294,21 @@ renderStyles fillId lineId s = concatMap ($ s) $
   , renderFontSlant
   , renderFontWeight
   , renderFontFamily
+  , renderNodeId
   , renderMiterLimit ]
+
+data NodeId = NodeId {getNodeId :: T.Text}
+  deriving (Typeable)
+instance Semigroup NodeId where 
+  _ <> a = a
+instance AttributeClass NodeId
+
+nodeId :: HasStyle a => T.Text -> a -> a
+nodeId val a = applyAttr (NodeId val) a
+
+renderNodeId :: SVGFloat n => Style v n -> [Attribute]
+renderNodeId s = renderTextAttr id_ nodeIdAttr
+ where nodeIdAttr = getNodeId <$> getAttr s
 
 renderMiterLimit :: SVGFloat n => Style v n -> [Attribute]
 renderMiterLimit s = renderAttr stroke_miterlimit_ miterLimit
