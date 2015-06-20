@@ -38,6 +38,7 @@ Source-repository head
 Library
   Exposed-modules:     Diagrams.Backend.SVG
                        Diagrams.Backend.SVG.CmdLine
+                       Diagrams.Backend.SVG.Attributes
   Other-modules:       Graphics.Rendering.SVG
   Hs-source-dirs:      src
   Build-depends:       base                 >= 4.3   && < 4.9
