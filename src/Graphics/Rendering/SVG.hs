@@ -71,7 +71,7 @@ import qualified Data.ByteString.Lazy.Char8  as BS8
 import           Codec.Picture
 
 -- from same package
-import Diagrams.Backend.SVG.Attributes       (SvgId(..))
+import Diagrams.Backend.SVG.Attributes       (SvgId(..),SvgClass(..))
 
 -- | Constaint on number type that diagrams-svg can use to render an SVG. This
 --   includes the common number types: Double, Float
@@ -294,12 +294,17 @@ renderStyles fillId lineId s = concatMap ($ s) $
   , renderFontWeight
   , renderFontFamily
   , renderSvgId
+  , renderSvgClass
   , renderMiterLimit ]
 
 
 renderSvgId :: SVGFloat n => Style v n -> [Attribute]
 renderSvgId s = renderTextAttr id_ svgIdAttr
  where svgIdAttr = getSvgId <$> getAttr s
+
+renderSvgClass :: SVGFloat n => Style v n -> [Attribute]
+renderSvgClass s = renderTextAttr id_ svgClassAttr
+ where svgClassAttr = getSvgClass <$> getAttr s
 
 renderMiterLimit :: SVGFloat n => Style v n -> [Attribute]
 renderMiterLimit s = renderAttr stroke_miterlimit_ miterLimit

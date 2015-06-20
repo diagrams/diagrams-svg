@@ -22,3 +22,14 @@ instance AttributeClass SvgId
 
 svgId :: HasStyle a => Text -> a -> a
 svgId val a = applyAttr (SvgId val) a
+
+
+data SvgClass = SvgClass {getSvgClass :: Text}
+  deriving (Typeable)
+instance Semigroup SvgClass where 
+  _ <> a = a
+instance AttributeClass SvgClass
+
+svgClass :: HasStyle a => Text -> a -> a
+svgClass val a = applyAttr (SvgClass val) a
+
