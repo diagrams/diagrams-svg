@@ -303,7 +303,7 @@ renderSvgId s = renderTextAttr id_ svgIdAttr
  where svgIdAttr = getSvgId <$> getAttr s
 
 renderSvgClass :: SVGFloat n => Style v n -> [Attribute]
-renderSvgClass s = renderTextAttr id_ svgClassAttr
+renderSvgClass s = renderTextAttr class_ svgClassAttr
  where svgClassAttr = getSvgClass <$> getAttr s
 
 renderMiterLimit :: SVGFloat n => Style v n -> [Attribute]
