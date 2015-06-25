@@ -300,11 +300,11 @@ renderStyles fillId lineId s = concatMap ($ s) $
 
 renderSvgId :: SVGFloat n => Style v n -> [Attribute]
 renderSvgId s = renderTextAttr id_ svgIdAttr
- where svgIdAttr = getSvgId <$> getAttr s
+ where svgIdAttr = pack . getSvgId <$> getAttr s
 
 renderSvgClass :: SVGFloat n => Style v n -> [Attribute]
 renderSvgClass s = renderTextAttr class_ svgClassAttr
- where svgClassAttr = getSvgClass <$> getAttr s
+ where svgClassAttr = pack . getSvgClass <$> getAttr s
 
 renderMiterLimit :: SVGFloat n => Style v n -> [Attribute]
 renderMiterLimit s = renderAttr stroke_miterlimit_ miterLimit

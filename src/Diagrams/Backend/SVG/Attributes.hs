@@ -9,27 +9,26 @@
 
 module Diagrams.Backend.SVG.Attributes where
 
-import Data.Text (Text)
 import Data.Semigroup
 import Diagrams.Core.Style (AttributeClass,HasStyle,applyAttr)
 import Data.Typeable (Typeable)
 
-data SvgId = SvgId {getSvgId :: Text}
+data SvgId = SvgId {getSvgId :: String}
   deriving (Typeable)
 instance Semigroup SvgId where 
   _ <> a = a
 instance AttributeClass SvgId
 
-svgId :: HasStyle a => Text -> a -> a
+svgId :: HasStyle a => String -> a -> a
 svgId val a = applyAttr (SvgId val) a
 
 
-data SvgClass = SvgClass {getSvgClass :: Text}
+data SvgClass = SvgClass {getSvgClass :: String}
   deriving (Typeable)
 instance Semigroup SvgClass where 
   _ <> a = a
 instance AttributeClass SvgClass
 
-svgClass :: HasStyle a => Text -> a -> a
+svgClass :: HasStyle a => String -> a -> a
 svgClass val a = applyAttr (SvgClass val) a
 
