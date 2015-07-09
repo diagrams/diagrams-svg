@@ -255,7 +255,7 @@ rtree (Node n rs) = case n of
   RPrim p                 -> render SVG p
   RStyle sty              -> R $ local (over style (<> sty)) r
   RAnnot (OpacityGroup o) -> R $ g_ [opacity_ $ toText o] <$> r
-  RAnnot (Href uri)       -> R $ a_ [xlinkHref_ $ toText uri] <$> r
+  RAnnot (Href uri)       -> R $ a_ [xlinkHref_ $ T.pack uri] <$> r
   _                       -> R r
   where
     R r = foldMap rtree rs

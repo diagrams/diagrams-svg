@@ -132,7 +132,7 @@ renderClip p prefix ident svg = do
   defs_ $ clipPath_ [id_ (clipPathId ident)] (renderPath p)
   g_  [clip_path_ $ ("url(#" <> clipPathId ident <> ")")] svg
     where
-      clipPathId i = prefix <> "myClip" <> (toText i)
+      clipPathId i = prefix <> "myClip" <> (pack . show $ i)
 
 renderStop :: SVGFloat n => GradientStop n -> SvgM
 renderStop (GradientStop c v)
@@ -207,8 +207,10 @@ renderFillTexture ident s = case getNumAttr getFillTexture s of
     where
       fillColorRgb     = Just $ colorToRgbText c
       fillColorOpacity = Just $ colorToOpacity c
-  Just (LG _) -> [fill_ ("url(#gradient" <> toText ident <> ")"), fill_opacity_ "1"]
-  Just (RG _) -> [fill_ ("url(#gradient" <> toText ident <> ")"), fill_opacity_ "1"]
+  Just (LG _) -> [fill_ ("url(#gradient" <> (pack . show $ ident)
+                                         <> ")"), fill_opacity_ "1"]
+  Just (RG _) -> [fill_ ("url(#gradient" <> (pack . show $ ident)
+                                         <> ")"), fill_opacity_ "1"]
   Nothing     -> []
 
 renderLineTextureDefs :: SVGFloat n => Int -> Style v n -> SvgM
@@ -225,8 +227,10 @@ renderLineTexture ident s = case getNumAttr getLineTexture s of
     where
       lineColorRgb     = Just $ colorToRgbText c
       lineColorOpacity = Just $ colorToOpacity c
-  Just (LG _) -> [stroke_ ("url(#gradient" <> toText ident <> ")"), stroke_opacity_ "1"]
-  Just (RG _) -> [stroke_ ("url(#gradient" <> toText ident <> ")"), stroke_opacity_ "1"]
+  Just (LG _) -> [stroke_ ("url(#gradient" <> (pack . show $ ident)
+                                           <> ")"), stroke_opacity_ "1"]
+  Just (RG _) -> [stroke_ ("url(#gradient" <> (pack . show $ ident)
+                                           <> ")"), stroke_opacity_ "1"]
   Nothing     -> []
 
 dataUri :: String -> BS8.ByteString -> AttributeValue
@@ -244,8 +248,8 @@ renderDImage :: SVGFloat n => DImage n any -> AttributeValue -> SvgM
 renderDImage (DImage _ w h tr) uridata =
   image_
     [ transform_ transformMatrix
-    , width_  (toText w)
-    , height_ (toText h)
+    , width_  (pack . show $ w)
+    , height_ (pack . show $ h)
     , xlinkHref_ uridata ]
   where
     [[a,b],[c,d],[e,f]] = matrixHomRep (tr `mappend` reflectionY
@@ -384,7 +388,7 @@ renderFontFamily s = renderTextAttr  font_family_ ff
 
 -- | Render a style attribute if available, empty otherwise.
 renderAttr :: Show s => (AttributeValue -> Attribute) -> Maybe s -> [Attribute]
-renderAttr attr valM = maybe [] (\v -> [attr (toText v)]) valM
+renderAttr attr valM = maybe [] (\v -> [attr (pack . show $ v)]) valM
 
 renderTextAttr :: (AttributeValue -> Attribute) -> Maybe AttributeValue -> [Attribute]
 renderTextAttr attr valM = maybe [] (\v -> [attr v]) valM
@@ -397,7 +401,7 @@ colorToRgbText c = T.concat
   , int b
   , ")" ]
  where
-   int d     = toText (round (d * 255) :: Int)
+   int d     = pack . show $ (round (d * 255) :: Int)
    (r,g,b,_) = colorToSRGBA c
 
 colorToOpacity :: forall c . Color c => c -> Double

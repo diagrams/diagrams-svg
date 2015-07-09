@@ -1,4 +1,4 @@
-> {-# LANGUAGE NoMonomorphismRestriction #-}
+> {-# LANGUAGE NoMonomorphismRestriction, FlexibleContexts, TypeFamilies #-}
 > import Diagrams.Prelude
 > import qualified Data.Colour as C
 > import Diagrams.Backend.SVG.CmdLine
@@ -12,7 +12,7 @@ successively lighter shades of blue:
 An order-0 pentaflake is just a pentagon:
 
 > p = regPoly 5 1 # lw 0
-> 
+>
 > pentaflake 0 = p
 
 An [order-n pentaflake](http://mathworld.wolfram.com/Pentaflake.html) is an order-(n-1) pentaflake surrounded by five
@@ -24,7 +24,7 @@ pentaflakes around the central one.
 >   where vs = take 5 . iterate (rotateBy (1/5))
 >                     . (if odd n then negated else id) $ unitY
 >         p' = pentaflake (n-1)
-> 
+>
 > pentaflake' n = pentaflake n # fc (colors !! n)
 
 An order-4 pentaflake looks nice.  Of course there's an exponential
