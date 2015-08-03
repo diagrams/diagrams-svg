@@ -285,7 +285,9 @@ attributedRender svg = do
   lineGradDefs <- lineTextureDefs sty
   fillGradDefs <- fillTextureDefs sty
   return $ do
-    defs_ $ fillGradDefs >> lineGradDefs
+    let gDefs = fillGradDefs >> lineGradDefs
+    defs <- gDefs
+    unless (defs == mempty) (defs_ gDefs)
     g_ (R.renderStyles idFill idLine sty) clippedSvg
 
 instance SVGFloat n => Renderable (Path V2 n) SVG where
