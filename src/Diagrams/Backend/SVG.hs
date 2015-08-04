@@ -6,6 +6,7 @@
 {-# LANGUAGE FlexibleInstances          #-}
 {-# LANGUAGE GADTs                      #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE InstanceSigs               #-}
 {-# LANGUAGE MultiParamTypeClasses      #-}
 {-# LANGUAGE NondecreasingIndentation   #-}
 {-# LANGUAGE OverloadedStrings          #-}
@@ -240,6 +241,7 @@ instance SVGFloat n => Backend SVG V2 n where
     , _idPrefix       :: T.Text
     }
 
+  renderRTree :: SVG -> Options SVG V2 n -> RTree SVG V2 n Annotation -> Result SVG V2 n
   renderRTree _ opts rt = runRenderM (opts ^.idPrefix) svgOutput
     where
       svgOutput = do
