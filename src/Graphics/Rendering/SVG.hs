@@ -22,7 +22,6 @@ module Graphics.Rendering.SVG
     ( SVGFloat
     , SvgM
     , AttributeValue
-    , svgHeader
     , renderPath
     , renderClip
     , renderText
@@ -44,15 +43,13 @@ import           Data.List                   (intercalate)
 import           Data.Foldable               (foldMap)
 #endif
 
-import           Data.Maybe                  (fromMaybe)
 import           Data.Monoid
 
 -- from diagrams-core
 import           Diagrams.Core.Transform     (matrixHomRep)
 
 -- from diagrams-lib
-import           Diagrams.Prelude            hiding (Attribute, Render, with,
-                                              (<>))
+import           Diagrams.Prelude            hiding (Attribute, Render, (<>))
 import           Diagrams.TwoD.Path          (getFillRule)
 import           Diagrams.TwoD.Text
 
@@ -87,19 +84,6 @@ type AttributeValue = T.Text
 
 getNumAttr :: AttributeClass (a n) => (a n -> t) -> Style v n -> Maybe t
 getNumAttr f = (f <$>) . getAttr
-
--- | @svgHeader w h defs s@: @w@ width, @h@ height,
---   @defs@ global definitions for defs sections, @s@ actual SVG content.
-svgHeader :: SVGFloat n => n -> n -> Maybe SvgM -> SvgM -> SvgM
-svgHeader w h defines s =  doctype_ <> with (svg11_ (defs_  ds <> s))
-  [ width_  (toText w)
-  , height_ (toText h)
-  , font_size_ "1"
-  , viewBox_ (pack . unwords $ map show ([0, 0, round w, round h] :: [Int]))
-  , stroke_ "rgb(0,0,0)"
-  , stroke_opacity_ "1" ]
-  where
-    ds = fromMaybe mempty defines
 
 renderPath :: SVGFloat n => Path V2 n -> SvgM
 renderPath trs = if makePath == T.empty then mempty else path_ [d_ makePath]
