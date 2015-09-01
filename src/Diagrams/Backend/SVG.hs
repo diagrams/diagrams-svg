@@ -229,7 +229,9 @@ svgHeader w h defines idAttr' style' generateDoctype' s = do
               , viewBox_ (pack . unwords $ map show ([0, 0, round w, round h] :: [Int]))
               , stroke_ "rgb(0,0,0)"
               , stroke_opacity_ "1"
-              ] ++ [id_ idAttr', A.style_ style']
+              ]
+              ++ if (not $ T.null idAttr') then [id_ idAttr']     else []
+              ++ if (not $ T.null style')  then [A.style_ style'] else []
   (`with` attrs) $ svg11_ $ do
     defs_ $ fromMaybe mempty defines
     s
@@ -291,7 +293,7 @@ instance SVGFloat n => Backend SVG V2 n where
   adjustDia c opts d = adjustDia2D sizeSpec c opts (d # reflectY)
 
 defaultSVGOptions :: SVGFloat n => SizeSpec V2 n -> Options SVG V2 n
-defaultSVGOptions spec = SVGOptions spec Nothing "" "" "" True
+defaultSVGOptions spec = SVGOptions spec Nothing "" T.empty T.empty True
 
 rtree :: SVGFloat n => RTree SVG V2 n Annotation -> Render SVG V2 n
 rtree (Node n rs) = case n of
