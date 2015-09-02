@@ -170,8 +170,8 @@ chooseRender opts pretty d =
     ps | last ps `elem` ["svg"] -> do
            let szSpec = fromIntegral <$> mkSizeSpec2D (opts^.width) (opts^.height)
            if isPretty pretty
-             then renderSVG (opts^.output) szSpec d
-             else renderPretty (opts^.output) szSpec d
+             then renderPretty (opts^.output) szSpec d
+             else renderSVG (opts^.output) szSpec d
        | otherwise -> putStrLn $ "Unknown file type: " ++ last ps
 
 -- | @multiMain@ is like 'defaultMain', except instead of a single
