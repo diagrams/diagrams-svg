@@ -3,6 +3,7 @@
 {-# LANGUAGE FlexibleContexts     #-}
 {-# LANGUAGE FlexibleInstances    #-}
 {-# LANGUAGE OverloadedStrings    #-}
+{-# LANGUAGE TemplateHaskell      #-}
 {-# LANGUAGE TypeFamilies         #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE UndecidableInstances #-}
@@ -133,6 +134,7 @@ import           Data.List.Split
 --   -s,--src ARG             Source file to watch
 --   -i,--interval INTERVAL   When running in a loop, check for changes every INTERVAL seconds.
 --   -p,--pretty              Pretty print the SVG output
+--   -r,--inner               Inner SVG only, no header
 -- @
 --
 --   For example, a common scenario is
@@ -147,31 +149,45 @@ import           Data.List.Split
 defaultMain :: SVGFloat n => QDiagram SVG V2 n Any -> IO ()
 defaultMain = mainWith
 
-newtype PrettyOpt = PrettyOpt {isPretty :: Bool}
+data SVGCmdLineOpts = SVGCmdLineOpts
+  { _isPretty :: Bool
+  , _isInner  :: Bool
+  }
 
-prettyOpt :: Parser PrettyOpt
-prettyOpt = PrettyOpt <$> switch (long "pretty"
-                     O.<> short 'p'
-                     O.<> help "Pretty print the SVG output")
+makeLenses ''SVGCmdLineOpts
 
-instance Parseable PrettyOpt where
-  parser = prettyOpt
+svgCmdLineOpts :: Parser SVGCmdLineOpts
+svgCmdLineOpts = SVGCmdLineOpts
+              <$> switch (long "pretty"
+             O.<> short 'p'
+             O.<> help "Pretty print the SVG output"
+                )
+              <*> switch (long "inner"
+             O.<> short 'r'
+             O.<> help "Inner SVG only, no header"
+                )
+
+instance Parseable SVGCmdLineOpts where
+  parser = svgCmdLineOpts
 
 instance SVGFloat n => Mainable (QDiagram SVG V2 n Any) where
-    type MainOpts (QDiagram SVG V2 n Any) = (DiagramOpts, DiagramLoopOpts, PrettyOpt)
-    mainRender (opts, loopOpts, pretty) d = do
-        chooseRender opts pretty d
+    type MainOpts (QDiagram SVG V2 n Any) = (DiagramOpts, DiagramLoopOpts, SVGCmdLineOpts)
+    mainRender (opts, loopOpts, svgopts) d = do
+        chooseRender opts svgopts d
         defaultLoopRender loopOpts
 
-chooseRender :: SVGFloat n => DiagramOpts -> PrettyOpt -> QDiagram SVG V2 n Any -> IO ()
-chooseRender opts pretty d =
+chooseRender :: SVGFloat n => DiagramOpts -> SVGCmdLineOpts -> QDiagram SVG V2 n Any -> IO ()
+chooseRender opts svgopts d =
   case splitOn "." (opts^.output) of
     [""] -> putStrLn "No output file given."
     ps | last ps `elem` ["svg"] -> do
            let szSpec = fromIntegral <$> mkSizeSpec2D (opts^.width) (opts^.height)
-           if isPretty pretty
-             then renderSVG (opts^.output) szSpec d
-             else renderPretty (opts^.output) szSpec d
+           case (svgopts ^. isPretty, svgopts ^. isInner) of
+             (False, False)  -> renderSVG (opts^.output) szSpec d
+             (True, False) -> renderPretty (opts^.output) szSpec d
+             (False, True) -> renderInnerSVG (opts^.output) szSpec d
+             _             -> renderInnerPretty (opts^.output) szSpec d
+
        | otherwise -> putStrLn $ "Unknown file type: " ++ last ps
 
 -- | @multiMain@ is like 'defaultMain', except instead of a single
