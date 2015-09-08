@@ -90,8 +90,8 @@ getNumAttr f = (f <$>) . getAttr
 
 -- | @svgHeader w h defs s@: @w@ width, @h@ height,
 --   @defs@ global definitions for defs sections, @s@ actual SVG content.
-svgHeader :: SVGFloat n => n -> n -> Maybe SvgM -> [Attribute] -> SvgM -> SvgM
-svgHeader w h defines attributes s =  doctype_ <> with (svg11_ (defs_  ds <> s))
+svgHeader :: SVGFloat n => n -> n -> Maybe SvgM -> [Attribute] -> Bool -> SvgM -> SvgM
+svgHeader w h defines attributes genDoctype s =  dt <> with (svg11_ (defs_  ds <> s))
   ([ width_  (toText w)
    , height_ (toText h)
    , font_size_ "1"
@@ -101,6 +101,7 @@ svgHeader w h defines attributes s =  doctype_ <> with (svg11_ (defs_  ds <> s))
    ++ attributes )
   where
     ds = fromMaybe mempty defines
+    dt = if genDoctype then doctype_ else mempty
 
 renderPath :: SVGFloat n => Path V2 n -> SvgM
 renderPath trs = if makePath == T.empty then mempty else path_ [d_ makePath]
