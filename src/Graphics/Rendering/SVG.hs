@@ -90,14 +90,15 @@ getNumAttr f = (f <$>) . getAttr
 
 -- | @svgHeader w h defs s@: @w@ width, @h@ height,
 --   @defs@ global definitions for defs sections, @s@ actual SVG content.
-svgHeader :: SVGFloat n => n -> n -> Maybe SvgM -> SvgM -> SvgM
-svgHeader w h defines s =  doctype_ <> with (svg11_ (defs_  ds <> s))
-  [ width_  (toText w)
-  , height_ (toText h)
-  , font_size_ "1"
-  , viewBox_ (pack . unwords $ map show ([0, 0, round w, round h] :: [Int]))
-  , stroke_ "rgb(0,0,0)"
-  , stroke_opacity_ "1" ]
+svgHeader :: SVGFloat n => n -> n -> Maybe SvgM -> [Attribute] -> SvgM -> SvgM
+svgHeader w h defines attributes s =  doctype_ <> with (svg11_ (defs_  ds <> s))
+  ([ width_  (toText w)
+   , height_ (toText h)
+   , font_size_ "1"
+   , viewBox_ (pack . unwords $ map show ([0, 0, round w, round h] :: [Int]))
+   , stroke_ "rgb(0,0,0)"
+   , stroke_opacity_ "1" ]
+   ++ attributes )
   where
     ds = fromMaybe mempty defines
 

@@ -239,6 +239,7 @@ instance SVGFloat n => Backend SVG V2 n where
                           -- ^ Custom definitions that will be added to the @defs@
                           --   section of the output.
     , _idPrefix       :: T.Text
+    , _moreOptions    :: [Attribute]
     }
 
   renderRTree :: SVG -> Options SVG V2 n -> RTree SVG V2 n Annotation -> Result SVG V2 n
@@ -248,7 +249,7 @@ instance SVGFloat n => Backend SVG V2 n where
         let R r    = rtree (splitTextureFills rt)
             V2 w h = specToSize 100 (opts^.sizeSpec)
         svg <- r
-        return $ R.svgHeader w h (opts^.svgDefinitions) svg
+        return $ R.svgHeader w h (opts^.svgDefinitions) (opts^.moreOptions) svg
 
   adjustDia c opts d = adjustDia2D sizeSpec c opts (d # reflectY)
 
@@ -277,6 +278,11 @@ svgDefinitions f opts =
 idPrefix :: SVGFloat n => Lens' (Options SVG V2 n) T.Text
 idPrefix f opts = f (_idPrefix opts) <&> \i -> opts { _idPrefix = i }
 
+-- | Lens onto the moreOptions field of the svg options.
+moreOptions :: SVGFloat n => Lens' (Options SVG V2 n) [Attribute]
+moreOptions f opts =
+  f (_moreOptions opts) <&> \ds -> opts { _moreOptions = ds }
+
 -- paths ---------------------------------------------------------------
 
 attributedRender :: SVGFloat n => SvgM -> SvgRenderM n
@@ -304,11 +310,11 @@ instance SVGFloat n => Renderable (DImage n Embedded) SVG where
 -- | Render a diagram as an SVG, writing to the specified output file
 --   and using the requested size.
 renderSVG :: SVGFloat n => FilePath -> SizeSpec V2 n -> QDiagram SVG V2 n Any -> IO ()
-renderSVG outFile spec = renderSVG' outFile (SVGOptions spec Nothing (mkPrefix outFile))
+renderSVG outFile spec = renderSVG' outFile (SVGOptions spec Nothing (mkPrefix outFile) [])
 
 -- | Render a diagram as a pretty printed SVG.
 renderPretty :: SVGFloat n => FilePath -> SizeSpec V2 n -> QDiagram SVG V2 n Any -> IO ()
-renderPretty outFile spec = renderPretty' outFile (SVGOptions spec Nothing (mkPrefix outFile))
+renderPretty outFile spec = renderPretty' outFile (SVGOptions spec Nothing (mkPrefix outFile)[])
 
 -- Create a prefile using the basename of the output file. Only standard
 -- letters are considered.
@@ -359,5 +365,5 @@ instance SVGFloat n => Renderable (DImage n (Native Img)) SVG where
     return $ R.renderDImage di $ R.dataUri mime d
 
 instance (Hashable n, SVGFloat n) => Hashable (Options SVG V2 n) where
-  hashWithSalt s  (SVGOptions sz defs _) = s `hashWithSalt` sz `hashWithSalt` ds
+  hashWithSalt s  (SVGOptions sz defs _ _) = s `hashWithSalt` sz `hashWithSalt` ds
     where ds = fmap renderBS defs
