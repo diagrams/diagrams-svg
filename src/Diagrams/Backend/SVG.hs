@@ -8,6 +8,7 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE InstanceSigs               #-}
 {-# LANGUAGE MultiParamTypeClasses      #-}
+{-# LANGUAGE MultiWayIf                 #-}
 {-# LANGUAGE NondecreasingIndentation   #-}
 {-# LANGUAGE OverloadedStrings          #-}
 {-# LANGUAGE ScopedTypeVariables        #-}
@@ -95,7 +96,7 @@ module Diagrams.Backend.SVG
   ( SVG(..) -- rendering token
   , B
     -- for rendering options specific to SVG
-  , Options(..), sizeSpec, svgDefinitions, idPrefix, moreOptions, generateDoctype
+  , Options(..), sizeSpec, svgDefinitions, idPrefix, svgAttributes, generateDoctype
   , SVGFloat
 
   , renderSVG
@@ -240,7 +241,7 @@ instance SVGFloat n => Backend SVG V2 n where
                           -- ^ Custom definitions that will be added to the @defs@
                           --   section of the output.
     , _idPrefix        :: T.Text
-    , _moreOptions     :: [Attribute]
+    , _svgAttributes   :: [Attribute]
                           -- ^ Attriubtes to apply to the entire svg element.
     , _generateDoctype :: Bool
     }
@@ -252,7 +253,9 @@ instance SVGFloat n => Backend SVG V2 n where
         let R r    = rtree (splitTextureFills rt)
             V2 w h = specToSize 100 (opts^.sizeSpec)
         svg <- r
-        return $ R.svgHeader w h (opts^.svgDefinitions) (opts^.moreOptions) (opts^.generateDoctype) svg
+        return $ R.svgHeader w h (opts^.svgDefinitions)
+                                 (opts^.svgAttributes)
+                                 (opts^.generateDoctype) svg
 
   adjustDia c opts d = adjustDia2D sizeSpec c opts (d # reflectY)
 
@@ -281,12 +284,14 @@ svgDefinitions f opts =
 idPrefix :: SVGFloat n => Lens' (Options SVG V2 n) T.Text
 idPrefix f opts = f (_idPrefix opts) <&> \i -> opts { _idPrefix = i }
 
--- | Lens onto the moreOptions field of the svg options.
-moreOptions :: SVGFloat n => Lens' (Options SVG V2 n) [Attribute]
-moreOptions f opts =
-  f (_moreOptions opts) <&> \ds -> opts { _moreOptions = ds }
+-- | Lens onto the svgAttributes field of the svg options. This field
+--   is provided to supply SVG attributes to the entire diagram.
+svgAttributes :: SVGFloat n => Lens' (Options SVG V2 n) [Attribute]
+svgAttributes f opts =
+  f (_svgAttributes opts) <&> \ds -> opts { _svgAttributes = ds }
 
--- | Lens onto the generateDoctype field of the svg options.
+-- | Lens onto the generateDoctype field of the svg options. Set
+--   to False if you don't want a doctype tag included in the output.
 generateDoctype :: SVGFloat n => Lens' (Options SVG V2 n) Bool
 generateDoctype f opts =
   f (_generateDoctype opts) <&> \ds -> opts { _generateDoctype = ds }
@@ -352,11 +357,11 @@ loadImageSVG fp = do
     let pic t d = return $ image (DImage (ImageNative (Img t d))
                                    (dynamicMap imageWidth dyn)
                                    (dynamicMap imageHeight dyn) mempty)
-    if pngHeader `SBS.isPrefixOf` raw then pic 'P' dat else do
-    if jpgHeader `SBS.isPrefixOf` raw then pic 'J' dat else do
-    case dyn of
-      (ImageYCbCr8 _) -> pic 'J' dat
-      _               -> pic 'P' =<< eIO (encodeDynamicPng dyn)
+    if | pngHeader `SBS.isPrefixOf` raw -> pic 'P' dat
+       | jpgHeader `SBS.isPrefixOf` raw -> pic 'J' dat
+       | otherwise -> case dyn of
+           (ImageYCbCr8 _) -> pic 'J' dat
+           _               -> pic 'P' =<< eIO (encodeDynamicPng dyn)
   where pngHeader :: SBS.ByteString
         pngHeader = SBS.pack [137, 80, 78, 71, 13, 10, 26, 10]
         jpgHeader :: SBS.ByteString
@@ -373,5 +378,11 @@ instance SVGFloat n => Renderable (DImage n (Native Img)) SVG where
     return $ R.renderDImage di $ R.dataUri mime d
 
 instance (Hashable n, SVGFloat n) => Hashable (Options SVG V2 n) where
-  hashWithSalt s  (SVGOptions sz defs _ _ _) = s `hashWithSalt` sz `hashWithSalt` ds
-    where ds = fmap renderBS defs
+  hashWithSalt s  (SVGOptions sz defs ia sa gd) =
+    s  `hashWithSalt`
+    sz `hashWithSalt`
+    ds `hashWithSalt`
+    ia `hashWithSalt`
+    sa `hashWithSalt`
+    gd
+      where ds = fmap renderBS defs
