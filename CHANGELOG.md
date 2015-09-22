@@ -1,3 +1,9 @@
+## [v1.3.1.5](https://github.com/diagrams/diagrams-svg/tree/v1.3.1.5) (2015-07-19)
+
+- allow `lens-4.13` and `semigroups-0.17`
+
+[Full Changelog](https://github.com/diagrams/diagrams-svg/compare/v1.3.1.4...v1.3.1.5)
+
 ## [v1.3.1.4](https://github.com/diagrams/diagrams-svg/tree/v1.3.1.4) (2015-07-19)
 
 [Full Changelog](https://github.com/diagrams/diagrams-svg/compare/v1.3.1.3...v1.3.1.4)
