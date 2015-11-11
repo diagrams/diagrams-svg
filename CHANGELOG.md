@@ -1,3 +1,9 @@
+## [v1.3.1.7](https://github.com/diagrams/diagrams-svg/tree/v1.3.1.7) (2015-11-10)
+
+- allow `semigroups-0.18`
+
+[Full Changelog](https://github.com/diagrams/diagrams-svg/compare/v1.3.1.6...v1.3.1.7)
+
 ## [v1.3.1.6](https://github.com/diagrams/diagrams-svg/tree/v1.3.1.6) (2015-09-29)
 
 - allow `optparse-applicative-0.12`
