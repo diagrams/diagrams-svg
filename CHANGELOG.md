@@ -1,3 +1,7 @@
+## [v1.3.1.8](https://github.com/diagrams/diagrams-svg/tree/v1.3.1.8) (2015-11-14)
+
+- allow `lucid-svg-0.6`
+
 ## [v1.3.1.7](https://github.com/diagrams/diagrams-svg/tree/v1.3.1.7) (2015-11-10)
 
 - allow `semigroups-0.18`
