@@ -163,9 +163,7 @@ type instance V SVG = V2
 type instance N SVG = Double
 
 data Environment n = Environment
-  { _style :: Style V2 n
-  , __pre :: T.Text
-  }
+  {  __pre :: T.Text }
 
 makeLenses ''Environment
 
@@ -178,7 +176,7 @@ data SvgRenderState = SvgRenderState
 makeLenses ''SvgRenderState
 
 initialEnvironment :: SVGFloat n => T.Text -> Environment n
-initialEnvironment = Environment (mempty # recommendFillColor transparent)
+initialEnvironment = Environment
 
 -- Fill gradients ids are even, line gradient ids are odd.
 initialSvgRenderState :: SvgRenderState
@@ -262,12 +260,26 @@ instance SVGFloat n => Backend SVG V2 n where
 rtree :: SVGFloat n => RTree SVG V2 n Annotation -> Render SVG V2 n
 rtree (Node n rs) = case n of
   RPrim p                 -> render SVG p
-  RStyle sty              -> R $ local (over style (<> sty)) r
+  RStyle sty              -> R $ stylize (sty # recommendFillColor transparent) r
   RAnnot (OpacityGroup o) -> R $ g_ [opacity_ $ toText o] <$> r
   RAnnot (Href uri)       -> R $ a_ [xlinkHref_ $ T.pack uri] <$> r
   _                       -> R r
   where
     R r = foldMap rtree rs
+
+stylize :: SVGFloat n => Style V2 n -> SvgRenderM n  -> SvgRenderM n
+stylize sty svg = do
+  SvgRenderState _idClip idFill idLine <- get
+  Environment preT <- ask
+  s            <- svg
+  clippedSvg   <- renderSvgWithClipping preT s sty
+  lineGradDefs <- lineTextureDefs sty
+  fillGradDefs <- fillTextureDefs sty
+  return $ do
+    let gDefs = fillGradDefs >> lineGradDefs
+    defs <- gDefs
+    unless (defs == mempty) (defs_ gDefs)
+    g_ (R.renderStyles idFill idLine sty) clippedSvg
 
 -- | Lens onto the size of the svg options.
 sizeSpec :: SVGFloat n => Lens' (Options SVG V2 n) (SizeSpec V2 n)
@@ -298,24 +310,11 @@ generateDoctype f opts =
 
 -- paths ---------------------------------------------------------------
 
-attributedRender :: SVGFloat n => SvgM -> SvgRenderM n
-attributedRender svg = do
-  SvgRenderState _idClip idFill idLine <- get
-  Environment sty preT <- ask
-  clippedSvg   <- renderSvgWithClipping preT svg sty
-  lineGradDefs <- lineTextureDefs sty
-  fillGradDefs <- fillTextureDefs sty
-  return $ do
-    let gDefs = fillGradDefs >> lineGradDefs
-    defs <- gDefs
-    unless (defs == mempty) (defs_ gDefs)
-    g_ (R.renderStyles idFill idLine sty) clippedSvg
-
 instance SVGFloat n => Renderable (Path V2 n) SVG where
-  render _ = R . attributedRender . R.renderPath
+  render _ = R . return . R.renderPath
 
 instance SVGFloat n => Renderable (Text n) SVG where
-  render _ = R . attributedRender . R.renderText
+  render _ = R . return . R.renderText
 
 instance SVGFloat n => Renderable (DImage n Embedded) SVG where
   render _ = R . return . R.renderDImageEmb
