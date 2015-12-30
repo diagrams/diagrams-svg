@@ -122,6 +122,7 @@ import           System.FilePath
 import           Control.Monad.Reader
 import           Control.Monad.State
 import           Data.Char
+import           Data.List                (partition)
 import           Data.Typeable
 
 -- from hashable
@@ -152,6 +153,8 @@ import           Lucid.Svg
 import           Graphics.Rendering.SVG   (SVGFloat, SvgM)
 import qualified Graphics.Rendering.SVG   as R
 
+import Debug.Trace
+
 -- | @SVG@ is simply a token used to identify this rendering backend
 --   (to aid type inference).
 data SVG = SVG
@@ -163,9 +166,8 @@ type instance V SVG = V2
 type instance N SVG = Double
 
 data Environment n = Environment
-  { _style :: Style V2 n
-  , __pre :: T.Text
-  }
+  {  _style :: Style V2 n
+  , __pre :: T.Text }
 
 makeLenses ''Environment
 
@@ -233,7 +235,7 @@ lineTextureDefs s = do
   return $ R.renderLineTextureDefs ident s
 
 instance SVGFloat n => Backend SVG V2 n where
-  newtype Render  SVG V2 n = R (SvgRenderM n)
+  newtype Render  SVG V2 n = R {unR :: SvgRenderM n}
   type    Result  SVG V2 n = SvgM
   data    Options SVG V2 n = SVGOptions
     { _size            :: SizeSpec V2 n   -- ^ The requested size.
@@ -247,8 +249,9 @@ instance SVGFloat n => Backend SVG V2 n where
     }
 
   renderRTree :: SVG -> Options SVG V2 n -> RTree SVG V2 n Annotation -> Result SVG V2 n
-  renderRTree _ opts rt = runRenderM (opts ^.idPrefix) svgOutput
+  renderRTree _ opts rt' = runRenderM (opts ^.idPrefix) svgOutput
     where
+      rt = compressStyles rt'
       svgOutput = do
         let R r    = rtree (splitTextureFills rt)
             V2 w h = specToSize 100 (opts^.sizeSpec)
@@ -259,15 +262,55 @@ instance SVGFloat n => Backend SVG V2 n where
 
   adjustDia c opts d = adjustDia2D sizeSpec c opts (d # reflectY)
 
+compressStyles :: SVGFloat n => RTree SVG V2 n Annotation -> RTree SVG V2 n Annotation
+compressStyles (Node n []) = Node n []
+compressStyles (Node n rs) = Node n (map compressStyles $ xs <> other)
+  where
+    xs = concatMap compress allSty
+    compress (Node (RStyle s) ss) =
+      map (\(Node (RStyle s') xs) -> Node (RStyle (s' <> s)) xs) ss
+    compress _ = error "Style nodes only"
+    (allSty, other) = partition styleChildren rs
+    styleChildren (Node (RStyle _) cs) = all isStyle cs
+    styleChildren _                    = False
+    isStyle (Node m _) = case m of {RStyle _ -> True; _ -> False}
+
 rtree :: SVGFloat n => RTree SVG V2 n Annotation -> Render SVG V2 n
 rtree (Node n rs) = case n of
-  RPrim p                 -> render SVG p
-  RStyle sty              -> R $ local (over style (<> sty)) r
+  RPrim p -> render SVG p
+  RStyle sty              ->
+    let r' = local (over style (<> sty)) r
+    in R $ stylize sty r'
+  -- RStyle sty ->
+  --   let (prims, others) = partition isPrim rs
+  --   in mappend (R $ stylize sty (unR $ foldMap rtree prims))
+  --              (R $ local (over style (<> sty)) (unR $ foldMap rtree others))
   RAnnot (OpacityGroup o) -> R $ g_ [opacity_ $ toText o] <$> r
-  RAnnot (Href uri)       -> R $ a_ [xlinkHref_ $ T.pack uri] <$> r
-  _                       -> R r
+  RAnnot (Href uri) -> R $ a_ [xlinkHref_ $ T.pack uri] <$> r
+  _ -> R r
   where
     R r = foldMap rtree rs
+    isPrim (Node (RPrim _) _) = True
+    isPrim (Node _ _)         = False
+
+stylize :: SVGFloat n => Style V2 n -> SvgRenderM n  -> SvgRenderM n
+stylize sty svg = do
+  SvgRenderState _idClip idFill idLine <- get
+  Environment sty preT <- ask
+  s            <- svg
+  clippedSvg   <- renderSvgWithClipping preT s sty
+  lineGradDefs <- lineTextureDefs sty
+  fillGradDefs <- fillTextureDefs sty
+  return $ do
+    let gDefs = fillGradDefs >> lineGradDefs
+    defs <- gDefs
+    unless (defs == mempty) (defs_ gDefs)
+    g_ (R.renderStyles idFill idLine sty) clippedSvg
+
+opacityRender :: SVGFloat n => SvgM -> SvgRenderM n
+opacityRender svg = do
+  Environment sty _ <- ask
+  return $ g_ (R.renderOpacity sty) svg
 
 -- | Lens onto the size of the svg options.
 sizeSpec :: SVGFloat n => Lens' (Options SVG V2 n) (SizeSpec V2 n)
@@ -298,24 +341,11 @@ generateDoctype f opts =
 
 -- paths ---------------------------------------------------------------
 
-attributedRender :: SVGFloat n => SvgM -> SvgRenderM n
-attributedRender svg = do
-  SvgRenderState _idClip idFill idLine <- get
-  Environment sty preT <- ask
-  clippedSvg   <- renderSvgWithClipping preT svg sty
-  lineGradDefs <- lineTextureDefs sty
-  fillGradDefs <- fillTextureDefs sty
-  return $ do
-    let gDefs = fillGradDefs >> lineGradDefs
-    defs <- gDefs
-    unless (defs == mempty) (defs_ gDefs)
-    g_ (R.renderStyles idFill idLine sty) clippedSvg
-
 instance SVGFloat n => Renderable (Path V2 n) SVG where
-  render _ = R . attributedRender . R.renderPath
+  render _ = R . opacityRender . R.renderPath
 
 instance SVGFloat n => Renderable (Text n) SVG where
-  render _ = R . attributedRender . R.renderText
+  render _ = R . opacityRender . R.renderText
 
 instance SVGFloat n => Renderable (DImage n Embedded) SVG where
   render _ = R . return . R.renderDImageEmb

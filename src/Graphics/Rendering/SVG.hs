@@ -34,6 +34,7 @@ module Graphics.Rendering.SVG
     , renderFillTexture
     , renderLineTextureDefs
     , renderLineTexture
+    , renderOpacity
     , dataUri
     , getNumAttr
     ) where
@@ -294,7 +295,6 @@ renderStyles fillId lineId s = concatMap ($ s) $
   , renderLineJoin
   , renderFillRule
   , renderDashing
-  , renderOpacity
   , renderFontSize
   , renderFontSlant
   , renderFontWeight
