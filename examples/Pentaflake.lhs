@@ -32,5 +32,5 @@ blowup in the number of primitives, so generating higher-order
 pentaflakes can take a long time!
 
 > example :: Diagram B
-> example = pad 1.1 $ pentaflake' 4
+> example = pad 1.1 $ pentaflake' 1
 > main = defaultMain (pad 1.1 example)

@@ -249,11 +249,10 @@ instance SVGFloat n => Backend SVG V2 n where
     }
 
   renderRTree :: SVG -> Options SVG V2 n -> RTree SVG V2 n Annotation -> Result SVG V2 n
-  renderRTree _ opts rt' = runRenderM (opts ^.idPrefix) svgOutput
+  renderRTree _ opts rt = runRenderM (opts ^.idPrefix) svgOutput
     where
-      rt = compressStyles rt'
       svgOutput = do
-        let R r    = rtree (splitTextureFills rt)
+        let R r    = rtree (compressStyles . splitTextureFills $ rt)
             V2 w h = specToSize 100 (opts^.sizeSpec)
         svg <- r
         return $ R.svgHeader w h (opts^.svgDefinitions)
@@ -272,13 +271,14 @@ compressStyles (Node n rs) = Node n (map compressStyles $ xs <> other)
     compress _ = error "Style nodes only"
     (allSty, other) = partition styleChildren rs
     styleChildren (Node (RStyle _) cs) = all isStyle cs
-    styleChildren _                    = False
-    isStyle (Node m _) = case m of {RStyle _ -> True; _ -> False}
+    styleChildren _ = False
+    isStyle (Node (RStyle _) _) = True
+    isStyle _ = False
 
 rtree :: SVGFloat n => RTree SVG V2 n Annotation -> Render SVG V2 n
 rtree (Node n rs) = case n of
   RPrim p -> render SVG p
-  RStyle sty              ->
+  RStyle sty ->
     let r' = local (over style (<> sty)) r
     in R $ stylize sty r'
   -- RStyle sty ->
@@ -290,8 +290,8 @@ rtree (Node n rs) = case n of
   _ -> R r
   where
     R r = foldMap rtree rs
-    isPrim (Node (RPrim _) _) = True
-    isPrim (Node _ _)         = False
+    -- isPrim (Node (RPrim _) _) = True
+    -- isPrim (Node _ _)         = False
 
 stylize :: SVGFloat n => Style V2 n -> SvgRenderM n  -> SvgRenderM n
 stylize sty svg = do
