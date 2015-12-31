@@ -252,7 +252,7 @@ instance SVGFloat n => Backend SVG V2 n where
   renderRTree _ opts rt = runRenderM (opts ^.idPrefix) svgOutput
     where
       svgOutput = do
-        let R r    = rtree (compressStyles . splitTextureFills $ rt)
+        let R r    = rtree (compressStyles . compressEmpties . splitTextureFills $ rt)
             V2 w h = specToSize 100 (opts^.sizeSpec)
         svg <- r
         return $ R.svgHeader w h (opts^.svgDefinitions)
@@ -261,9 +261,17 @@ instance SVGFloat n => Backend SVG V2 n where
 
   adjustDia c opts d = adjustDia2D sizeSpec c opts (d # reflectY)
 
+compressEmpties :: SVGFloat n => RTree SVG V2 n Annotation -> RTree SVG V2 n Annotation
+compressEmpties (Node n []) = Node n []
+compressEmpties (Node r es) = Node r (map compressEmpties ys)
+  where
+    ys = concatMap grandChildren es
+    grandChildren (Node REmpty xs) = xs
+    grandChildren node = [node]
+
 compressStyles :: SVGFloat n => RTree SVG V2 n Annotation -> RTree SVG V2 n Annotation
 compressStyles (Node n []) = Node n []
-compressStyles (Node n rs) = Node n (map compressStyles $ xs <> other)
+compressStyles (Node n rs) = Node n (map compressStyles (xs <> other))
   where
     xs = concatMap compress allSty
     compress (Node (RStyle s) ss) =
@@ -281,17 +289,11 @@ rtree (Node n rs) = case n of
   RStyle sty ->
     let r' = local (over style (<> sty)) r
     in R $ stylize sty r'
-  -- RStyle sty ->
-  --   let (prims, others) = partition isPrim rs
-  --   in mappend (R $ stylize sty (unR $ foldMap rtree prims))
-  --              (R $ local (over style (<> sty)) (unR $ foldMap rtree others))
   RAnnot (OpacityGroup o) -> R $ g_ [opacity_ $ toText o] <$> r
   RAnnot (Href uri) -> R $ a_ [xlinkHref_ $ T.pack uri] <$> r
   _ -> R r
   where
     R r = foldMap rtree rs
-    -- isPrim (Node (RPrim _) _) = True
-    -- isPrim (Node _ _)         = False
 
 stylize :: SVGFloat n => Style V2 n -> SvgRenderM n  -> SvgRenderM n
 stylize sty svg = do
@@ -334,7 +336,7 @@ svgAttributes f opts =
   f (_svgAttributes opts) <&> \ds -> opts { _svgAttributes = ds }
 
 -- | Lens onto the generateDoctype field of the svg options. Set
---   to False if you don't want a doctype tag included in the output.
+--   to Fal`se if you don't want a doctype tag included in the output.
 generateDoctype :: SVGFloat n => Lens' (Options SVG V2 n) Bool
 generateDoctype f opts =
   f (_generateDoctype opts) <&> \ds -> opts { _generateDoctype = ds }
