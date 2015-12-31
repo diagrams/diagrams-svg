@@ -298,7 +298,7 @@ rtree (Node n rs) = case n of
 stylize :: SVGFloat n => Style V2 n -> SvgRenderM n  -> SvgRenderM n
 stylize sty svg = do
   SvgRenderState _idClip idFill idLine <- get
-  Environment sty preT <- ask
+  Environment _ preT <- ask
   s            <- svg
   clippedSvg   <- renderSvgWithClipping preT s sty
   lineGradDefs <- lineTextureDefs sty
