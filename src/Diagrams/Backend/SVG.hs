@@ -307,7 +307,10 @@ stylize sty svg = do
     let gDefs = fillGradDefs >> lineGradDefs
     defs <- gDefs
     unless (defs == mempty) (defs_ gDefs)
-    g_ (R.renderStyles idFill idLine (sty # recommendFillColor transparent)) clippedSvg
+    g_ (R.renderStyles idFill 
+                       idLine
+                       (sty # recommendFillColor transparent))
+       clippedSvg
 
 opacityRender :: SVGFloat n => SvgM -> SvgRenderM n
 opacityRender svg = do
