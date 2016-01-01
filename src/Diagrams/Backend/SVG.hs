@@ -271,7 +271,8 @@ compressEmpties (Node r es) = Node r (map compressEmpties ys)
 
 compressStyles :: SVGFloat n => RTree SVG V2 n Annotation -> RTree SVG V2 n Annotation
 compressStyles (Node n []) = Node n []
-compressStyles (Node n rs) = Node n (map compressStyles (xs <> other))
+-- The order of the lists in the monoid operation is importatnt.
+compressStyles (Node n rs) = Node n (map compressStyles (other <> xs))
   where
     xs = concatMap compress allSty
     compress (Node (RStyle s) ss) =
@@ -307,7 +308,7 @@ stylize sty svg = do
     let gDefs = fillGradDefs >> lineGradDefs
     defs <- gDefs
     unless (defs == mempty) (defs_ gDefs)
-    g_ (R.renderStyles idFill 
+    g_ (R.renderStyles idFill
                        idLine
                        (sty # recommendFillColor transparent))
        clippedSvg
