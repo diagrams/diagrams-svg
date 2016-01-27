@@ -257,7 +257,8 @@ instance SVGFloat n => Backend SVG V2 n where
                                  (opts^.svgAttributes)
                                  (opts^.generateDoctype) svg
 
-  adjustDia c opts d = adjustDia2D sizeSpec c opts (d # reflectY)
+  adjustDia c opts d = ( sz, t <> reflectionY, d' ) where
+    (sz, t, d') = adjustDia2D sizeSpec c opts (d # reflectY)
 
 rtree :: SVGFloat n => RTree SVG V2 n Annotation -> Render SVG V2 n
 rtree (Node n rs) = case n of
