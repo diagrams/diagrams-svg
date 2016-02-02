@@ -41,7 +41,7 @@ Library
                        Diagrams.Backend.SVG.Attributes
   Other-modules:       Graphics.Rendering.SVG
   Hs-source-dirs:      src
-  Build-depends:       base                 >= 4.3   && < 4.9
+  Build-depends:       base                 >= 4.3   && < 4.10
                      , old-time
                      , process
                      , directory
