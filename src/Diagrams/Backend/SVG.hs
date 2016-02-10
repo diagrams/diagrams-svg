@@ -60,7 +60,7 @@
 --
 -- > data Options SVG V2 n = SVGOptions
 -- >     { _size           :: SizeSpec V2 n   -- ^ The requested size.
--- >     , _svgDefinitions :: Maybe SvgM
+-- >     , _svgDefinitions :: Maybe Element
 -- >                           -- ^ Custom definitions that will be added to the @defs@
 -- >                           --   section of the output.
 -- >     , _idPrefix       :: T.Text
@@ -71,13 +71,13 @@
 -- @
 --
 -- @
--- type family Result SVG V2 n = 'Graphics.Rendering.SVG.SvgM'
+-- type family Result SVG V2 n = 'Element'
 -- @
 --
 -- So the type of 'renderDia' resolves to
 --
 -- @
--- renderDia :: SVG -> Options SVG V2 n -> QDiagram SVG V2 n m -> 'Graphics.Rendering.SVG.SvgM'
+-- renderDia :: SVG -> Options SVG V2 n -> QDiagram SVG V2 n m -> 'Graphics.Rendering.SVG.Element'
 -- @
 --
 -- which you could call like @renderDia SVG (SVGOptions (mkWidth 250)
@@ -86,7 +86,7 @@
 -- situations GHC may not be able to infer the type @m@, in which case
 -- you can use a type annotation to specify it; it may be useful to
 -- simply use the type synonym @Diagram SVG = QDiagram SVG V2 Double
--- Any@.) This returns an 'Graphics.Rendering.SVG.SvgM' value, which
+-- Any@.) This returns an 'Graphics.Rendering.SVG.Element' value, which
 -- you can, /e.g./ render to a 'ByteString' using 'Lucid.Svg.renderBS'
 -- from the 'lucid' package.
 --
@@ -146,11 +146,10 @@ import           Diagrams.TwoD.Path       (Clip (Clip))
 import           Diagrams.TwoD.Text
 
 -- from lucid-svg
-import           Lucid.Svg                ( Attribute, AttrTag(..), prettyText
-                                          , g_, a_ , defs_, (<<-), toText, renderBS )
+import           Lucid.Svg                hiding ((<>))
 
 -- from this package
-import           Graphics.Rendering.SVG   (SVGFloat, SvgM)
+import           Graphics.Rendering.SVG   (SVGFloat, Element)
 import qualified Graphics.Rendering.SVG   as R
 
 -- | @SVG@ is simply a token used to identify this rendering backend
@@ -186,9 +185,9 @@ initialSvgRenderState :: SvgRenderState
 initialSvgRenderState = SvgRenderState 0 0 1
 
 -- | Monad to keep track of environment and state when rendering an SVG.
-type SvgRenderM n = ReaderT (Environment n) (State SvgRenderState) SvgM
+type SvgRenderM n = ReaderT (Environment n) (State SvgRenderState) Element
 
-runRenderM :: SVGFloat n => T.Text -> SvgRenderM n -> SvgM
+runRenderM :: SVGFloat n => T.Text -> SvgRenderM n -> Element
 runRenderM o s = flip evalState initialSvgRenderState
                $ runReaderT  s (initialEnvironment o)
 
@@ -203,7 +202,7 @@ instance SVGFloat n => Monoid (Render SVG V2 n) where
 --
 renderSvgWithClipping :: forall n. SVGFloat n
                       => T.Text
-                      -> SvgM          -- ^ Input SVG
+                      -> Element       -- ^ Input SVG
                       -> Style V2 n    -- ^ Styles
                       -> SvgRenderM n  -- ^ Resulting svg
 
@@ -235,10 +234,10 @@ lineTextureDefs s = do
 
 instance SVGFloat n => Backend SVG V2 n where
   newtype Render  SVG V2 n = R (SvgRenderM n)
-  type    Result  SVG V2 n = SvgM
+  type    Result  SVG V2 n = Element
   data    Options SVG V2 n = SVGOptions
     { _size            :: SizeSpec V2 n   -- ^ The requested size.
-    , _svgDefinitions  :: Maybe SvgM
+    , _svgDefinitions  :: Maybe Element
                           -- ^ Custom definitions that will be added to the @defs@
                           --   section of the output.
     , _idPrefix        :: T.Text
@@ -276,7 +275,7 @@ sizeSpec :: SVGFloat n => Lens' (Options SVG V2 n) (SizeSpec V2 n)
 sizeSpec f opts = f (_size opts) <&> \s -> opts { _size = s }
 
 -- | Lens onto the svg definitions of the svg options.
-svgDefinitions :: SVGFloat n => Lens' (Options SVG V2 n) (Maybe SvgM)
+svgDefinitions :: SVGFloat n => Lens' (Options SVG V2 n) (Maybe Element)
 svgDefinitions f opts =
   f (_svgDefinitions opts) <&> \ds -> opts { _svgDefinitions = ds }
 
@@ -300,7 +299,7 @@ generateDoctype f opts =
 
 -- paths ---------------------------------------------------------------
 
-attributedRender :: SVGFloat n => SvgM -> SvgRenderM n
+attributedRender :: SVGFloat n => Element -> SvgRenderM n
 attributedRender svg = do
   SvgRenderState _idClip idFill idLine <- get
   Environment sty preT <- ask
