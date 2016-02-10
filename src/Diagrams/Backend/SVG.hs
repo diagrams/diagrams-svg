@@ -146,7 +146,9 @@ import           Diagrams.TwoD.Path       (Clip (Clip))
 import           Diagrams.TwoD.Text
 
 -- from lucid-svg
-import           Lucid.Svg
+import           Lucid.Svg                ( Attribute, AttrTag(Opacity, XlinkHref)
+                                          , g_, a_ , defs_, (<<-), toText, renderBS
+                                          , prettyText)
 
 -- from this package
 import           Graphics.Rendering.SVG   (SVGFloat, SvgM)
@@ -264,8 +266,8 @@ rtree :: SVGFloat n => RTree SVG V2 n Annotation -> Render SVG V2 n
 rtree (Node n rs) = case n of
   RPrim p                 -> render SVG p
   RStyle sty              -> R $ local (over style (<> sty)) r
-  RAnnot (OpacityGroup o) -> R $ g_ [opacity_ $ toText o] <$> r
-  RAnnot (Href uri)       -> R $ a_ [xlinkHref_ $ T.pack uri] <$> r
+  RAnnot (OpacityGroup o) -> R $ g_ [Opacity <<- toText o] <$> r
+  RAnnot (Href uri)       -> R $ a_ [XlinkHref <<- T.pack uri] <$> r
   _                       -> R r
   where
     R r = foldMap rtree rs
@@ -307,10 +309,8 @@ attributedRender svg = do
   lineGradDefs <- lineTextureDefs sty
   fillGradDefs <- fillTextureDefs sty
   return $ do
-    let gDefs = fillGradDefs >> lineGradDefs
-    defs <- gDefs
-    unless (defs == mempty) (defs_ gDefs)
-    g_ (R.renderStyles idFill idLine sty) clippedSvg
+    let gDefs = mappend fillGradDefs lineGradDefs
+    defs_ [] gDefs `mappend` g_ (R.renderStyles idFill idLine sty) clippedSvg
 
 instance SVGFloat n => Renderable (Path V2 n) SVG where
   render _ = R . attributedRender . R.renderPath
