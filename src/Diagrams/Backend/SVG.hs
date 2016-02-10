@@ -146,9 +146,8 @@ import           Diagrams.TwoD.Path       (Clip (Clip))
 import           Diagrams.TwoD.Text
 
 -- from lucid-svg
-import           Lucid.Svg                ( Attribute, AttrTag(Opacity, XlinkHref)
-                                          , g_, a_ , defs_, (<<-), toText, renderBS
-                                          , prettyText)
+import           Lucid.Svg                ( Attribute, AttrTag(..), prettyText
+                                          , g_, a_ , defs_, (<<-), toText, renderBS )
 
 -- from this package
 import           Graphics.Rendering.SVG   (SVGFloat, SvgM)
@@ -266,8 +265,8 @@ rtree :: SVGFloat n => RTree SVG V2 n Annotation -> Render SVG V2 n
 rtree (Node n rs) = case n of
   RPrim p                 -> render SVG p
   RStyle sty              -> R $ local (over style (<> sty)) r
-  RAnnot (OpacityGroup o) -> R $ g_ [Opacity <<- toText o] <$> r
-  RAnnot (Href uri)       -> R $ a_ [XlinkHref <<- T.pack uri] <$> r
+  RAnnot (OpacityGroup o) -> R $ g_ [Opacity_ <<- toText o] <$> r
+  RAnnot (Href uri)       -> R $ a_ [XlinkHref_ <<- T.pack uri] <$> r
   _                       -> R r
   where
     R r = foldMap rtree rs
