@@ -308,7 +308,7 @@ attributedRender svg = do
   fillGradDefs <- fillTextureDefs sty
   return $ do
     let gDefs = mappend fillGradDefs lineGradDefs
-    defs_ [] gDefs `mappend` g_ (R.renderStyles idFill idLine sty) clippedSvg
+    gDefs `mappend` g_ (R.renderStyles idFill idLine sty) clippedSvg
 
 instance SVGFloat n => Renderable (Path V2 n) SVG where
   render _ = R . attributedRender . R.renderPath

@@ -196,8 +196,8 @@ renderRadialGradient g i = radialGradient_
 renderFillTextureDefs :: SVGFloat n => Int -> Style v n -> Element
 renderFillTextureDefs i s =
   case getNumAttr getFillTexture s of
-    Just (LG g) -> renderLinearGradient g i
-    Just (RG g) -> renderRadialGradient g i
+    Just (LG g) -> defs_ [] $ renderLinearGradient g i
+    Just (RG g) -> defs_ [] $ renderRadialGradient g i
     _           -> mempty
 
 -- Render the gradient using the id set up in renderFillTextureDefs.
@@ -217,8 +217,8 @@ renderFillTexture ident s = case getNumAttr getFillTexture s of
 renderLineTextureDefs :: SVGFloat n => Int -> Style v n -> Element
 renderLineTextureDefs i s =
   case getNumAttr getLineTexture s of
-    Just (LG g) -> renderLinearGradient g i
-    Just (RG g) -> renderRadialGradient g i
+    Just (LG g) -> defs_ [] $ renderLinearGradient g i
+    Just (RG g) -> defs_ [] $ renderRadialGradient g i
     _           -> mempty
 
 renderLineTexture :: SVGFloat n => Int -> Style v n -> [Attribute]
