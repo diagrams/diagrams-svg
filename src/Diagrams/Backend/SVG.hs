@@ -58,13 +58,16 @@
 -- type of option records and rendering results specific to any
 -- particular backend.  For @b ~ SVG@, @v ~ V2@, we have
 --
--- > data Options SVG V2 n = SVGOptions
--- >     { _size           :: SizeSpec V2 n   -- ^ The requested size.
--- >     , _svgDefinitions :: Maybe Element
--- >                           -- ^ Custom definitions that will be added to the @defs@
--- >                           --   section of the output.
--- >     , _idPrefix       :: T.Text
--- >     }
+-- >data    Options SVG V2 n = SVGOptions
+-- >    { _size            :: SizeSpec V2 n   -- ^ The requested size.
+-- >    , _svgDefinitions  :: Maybe Element
+-- >                          -- ^ Custom definitions that will be added to the @defs@
+-- >                          --   section of the output.
+-- >    , _idPrefix        :: T.Text
+-- >    , _svgAttributes   :: [Attribute]
+-- >                          -- ^ Attriubtes to apply to the entire svg element.
+-- >    , _generateDoctype :: Bool
+-- >    }
 --
 -- @
 -- data family Render SVG V2 n = R 'SvgRenderM n'
@@ -81,14 +84,14 @@
 -- @
 --
 -- which you could call like @renderDia SVG (SVGOptions (mkWidth 250)
--- Nothing "") myDiagram@ (if you have the 'OverloadedStrings' extension
+-- Nothing "" [] True) myDiagram@ (if you have the 'OverloadedStrings' extension
 -- enabled; otherwise you can use 'Text.pack ""').  (In some
 -- situations GHC may not be able to infer the type @m@, in which case
 -- you can use a type annotation to specify it; it may be useful to
 -- simply use the type synonym @Diagram SVG = QDiagram SVG V2 Double
 -- Any@.) This returns an 'Graphics.Rendering.SVG.Element' value, which
 -- you can, /e.g./ render to a 'ByteString' using 'Lucid.Svg.renderBS'
--- from the 'lucid' package.
+-- from the 'lucid-svg' package.
 --
 -----------------------------------------------------------------------------
 
