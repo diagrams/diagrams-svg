@@ -69,9 +69,6 @@ import qualified Data.ByteString.Lazy.Char8  as BS8
 -- from JuicyPixels
 import           Codec.Picture
 
--- from same package
-import Diagrams.Backend.SVG.Attributes       (SvgId(..),SvgClass(..))
-
 -- | Constaint on number type that diagrams-svg can use to render an SVG. This
 --   includes the common number types: Double, Float
 type SVGFloat n = (Show n, TypeableFloat n)
@@ -298,17 +295,7 @@ renderStyles fillId lineId s = concatMap ($ s) $
   , renderFontSlant
   , renderFontWeight
   , renderFontFamily
-  , renderSvgId
-  , renderSvgClass
   , renderMiterLimit ]
-
-renderSvgId :: SVGFloat n => Style v n -> [Attribute]
-renderSvgId s = renderTextAttr Id_ svgIdAttr
- where svgIdAttr = pack . getSvgId <$> getAttr s
-
-renderSvgClass :: SVGFloat n => Style v n -> [Attribute]
-renderSvgClass s = renderTextAttr Class_ svgClassAttr
- where svgClassAttr = pack . getSvgClass <$> getAttr s
 
 renderMiterLimit :: SVGFloat n => Style v n -> [Attribute]
 renderMiterLimit s = renderAttr Stroke_miterlimit_ miterLimit
