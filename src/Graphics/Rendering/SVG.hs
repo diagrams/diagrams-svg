@@ -60,7 +60,7 @@ import           Data.Text                   (pack)
 import qualified Data.Text                   as T
 
 -- from lucid-svg
-import           Lucid.Svg                   hiding (renderText)
+import           Graphics.Svg                hiding (renderText)
 
 -- from base64-bytestring, bytestring
 import qualified Data.ByteString.Base64.Lazy as BS64

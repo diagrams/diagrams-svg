@@ -1,6 +1,6 @@
 ## [v1.4](https://github.com/diagrams/diagrams-svg/tree/v1.3.1.8) (2016-02-14)
 
--- Changes for `lucid-svg-0.7`
+-- Changes for `svg-builder`
 -- Deprecate `svgId` and `svgClass`
 
 ## [v1.3.1.8](https://github.com/diagrams/diagrams-svg/tree/v1.3.1.8) (2015-11-14)

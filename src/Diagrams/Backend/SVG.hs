@@ -149,7 +149,7 @@ import           Diagrams.TwoD.Path       (Clip (Clip))
 import           Diagrams.TwoD.Text
 
 -- from lucid-svg
-import           Lucid.Svg                hiding ((<>))
+import           Graphics.Svg             hiding ((<>))
 
 -- from this package
 import           Graphics.Rendering.SVG   (SVGFloat, Element)
