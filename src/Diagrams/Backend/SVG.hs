@@ -148,11 +148,11 @@ import           Diagrams.TwoD.Attributes (splitTextureFills)
 import           Diagrams.TwoD.Path       (Clip (Clip))
 import           Diagrams.TwoD.Text
 
--- from lucid-svg
+-- from svg-builder
 import           Graphics.Svg             hiding ((<>))
 
 -- from this package
-import           Graphics.Rendering.SVG   (SVGFloat, Element)
+import           Graphics.Rendering.SVG   (SVGFloat)
 import qualified Graphics.Rendering.SVG   as R
 
 -- | @SVG@ is simply a token used to identify this rendering backend
