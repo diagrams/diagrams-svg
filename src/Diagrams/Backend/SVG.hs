@@ -89,9 +89,9 @@
 -- situations GHC may not be able to infer the type @m@, in which case
 -- you can use a type annotation to specify it; it may be useful to
 -- simply use the type synonym @Diagram SVG = QDiagram SVG V2 Double
--- Any@.) This returns an 'Graphics.Rendering.SVG.Element' value, which
--- you can, /e.g./ render to a 'ByteString' using 'Lucid.Svg.renderBS'
--- from the 'lucid-svg' package.
+-- Any@.) This returns an 'Graphics.Svg.Core.Element' value, which
+-- you can, /e.g./ render to a 'ByteString' using 'Graphics.Svg.Core.renderBS'
+-- from the 'svg-builder' package.
 --
 -----------------------------------------------------------------------------
 
