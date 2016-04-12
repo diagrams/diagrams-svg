@@ -9,7 +9,7 @@ env:
     - GHCVER=7.10.2 CABALVER=1.22
     - GHCVER=head CABALVER=head
   global:
-    - HEAD_DEPS="diagrams-core diagrams-lib diagrams-solve active monoid-extras dual-tree"
+    - HEAD_DEPS="diagrams-core diagrams-lib diagrams-solve active monoid-extras dual-tree svg-builder"
 
 matrix:
   allow_failures:
