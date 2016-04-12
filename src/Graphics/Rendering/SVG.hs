@@ -369,7 +369,13 @@ renderFontWeight s = renderTextAttr Font_weight_ fw
   fontWeightAttr FontWeightBold   = "bold"
   fontWeightAttr FontWeightLighter = "lighter"
   fontWeightAttr FontWeightBolder  = "bolder"
-  fontWeightAttr (FontWeightInt n) = show n
+  fontWeightAttr FontWeightThin = "100"
+  fontWeightAttr FontWeightUltraLight = "200"
+  fontWeightAttr FontWeightLight = "300"
+  fontWeightAttr FontWeightMedium = "400"
+  fontWeightAttr FontWeightSemiBold = "600"
+  fontWeightAttr FontWeightUltraBold = "800"
+  fontWeightAttr FontWeightHeavy = "900"
 
 renderFontFamily :: SVGFloat n => Style v n -> [Attribute]
 renderFontFamily s = renderTextAttr Font_family_ ff
