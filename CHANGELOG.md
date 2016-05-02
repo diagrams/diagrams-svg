@@ -1,4 +1,8 @@
-## [v1.4](https://github.com/diagrams/diagrams-svg/tree/v1.3.1.8) (2016-02-14)
+## [v1.4.0.1](https://github.com/diagrams/diagrams-svg/tree/v1.4.0.1) (2016-05-01)
+
+- allow `lens-4.14`
+
+## [v1.4](https://github.com/diagrams/diagrams-svg/tree/v1.4) (2016-02-14)
 
 -- Changes for `svg-builder`
 -- Deprecate `svgId` and `svgClass`
