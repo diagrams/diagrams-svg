@@ -1,3 +1,9 @@
+## [v1.4.0.2](https://github.com/diagrams/diagrams-svg/tree/v1.4.0.2) (2016-06-06)
+
+- allow `base-4.9`
+- test with GHC 8.0
+- minor documentation updates
+
 ## [v1.4.0.1](https://github.com/diagrams/diagrams-svg/tree/v1.4.0.1) (2016-05-01)
 
 - allow `lens-4.14`
