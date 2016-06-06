@@ -194,7 +194,7 @@ runRenderM :: SVGFloat n => T.Text -> SvgRenderM n -> Element
 runRenderM o s = flip evalState initialSvgRenderState
                $ runReaderT  s (initialEnvironment o)
 
-instance SVGFloat n => Monoid (Render SVG V2 n) where
+instance Monoid (Render SVG V2 n) where
   mempty = R $ return mempty
   R r1 `mappend` R r2_ = R $ do
     svg1 <- r1
@@ -214,7 +214,7 @@ renderSvgWithClipping prefix svg s =
     Nothing    -> return svg
     Just paths -> renderClips paths
   where
-    renderClips :: SVGFloat n => [Path V2 n] -> SvgRenderM n
+    renderClips :: [Path V2 n] -> SvgRenderM n
     renderClips []     = return svg
     renderClips (p:ps) = do
       clipPathId += 1
@@ -274,29 +274,29 @@ rtree (Node n rs) = case n of
     R r = foldMap rtree rs
 
 -- | Lens onto the size of the svg options.
-sizeSpec :: SVGFloat n => Lens' (Options SVG V2 n) (SizeSpec V2 n)
+sizeSpec :: Lens' (Options SVG V2 n) (SizeSpec V2 n)
 sizeSpec f opts = f (_size opts) <&> \s -> opts { _size = s }
 
 -- | Lens onto the svg definitions of the svg options.
-svgDefinitions :: SVGFloat n => Lens' (Options SVG V2 n) (Maybe Element)
+svgDefinitions :: Lens' (Options SVG V2 n) (Maybe Element)
 svgDefinitions f opts =
   f (_svgDefinitions opts) <&> \ds -> opts { _svgDefinitions = ds }
 
 -- | Lens onto the idPrefix of the svg options. This is the prefix given
 --   to clipping paths to distinguish them from other svg files in the
 --   same web page.
-idPrefix :: SVGFloat n => Lens' (Options SVG V2 n) T.Text
+idPrefix :: Lens' (Options SVG V2 n) T.Text
 idPrefix f opts = f (_idPrefix opts) <&> \i -> opts { _idPrefix = i }
 
 -- | Lens onto the svgAttributes field of the svg options. This field
 --   is provided to supply SVG attributes to the entire diagram.
-svgAttributes :: SVGFloat n => Lens' (Options SVG V2 n) [Attribute]
+svgAttributes :: Lens' (Options SVG V2 n) [Attribute]
 svgAttributes f opts =
   f (_svgAttributes opts) <&> \ds -> opts { _svgAttributes = ds }
 
 -- | Lens onto the generateDoctype field of the svg options. Set
 --   to False if you don't want a doctype tag included in the output.
-generateDoctype :: SVGFloat n => Lens' (Options SVG V2 n) Bool
+generateDoctype :: Lens' (Options SVG V2 n) Bool
 generateDoctype f opts =
   f (_generateDoctype opts) <&> \ds -> opts { _generateDoctype = ds }
 
@@ -379,7 +379,7 @@ instance SVGFloat n => Renderable (DImage n (Native Img)) SVG where
           _   -> fail   "Unknown mime type while rendering image"
     return $ R.renderDImage di $ R.dataUri mime d
 
-instance (Hashable n, SVGFloat n) => Hashable (Options SVG V2 n) where
+instance Hashable n => Hashable (Options SVG V2 n) where
   hashWithSalt s  (SVGOptions sz defs ia sa gd) =
     s  `hashWithSalt`
     sz `hashWithSalt`
