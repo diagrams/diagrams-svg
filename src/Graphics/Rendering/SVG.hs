@@ -297,15 +297,15 @@ renderStyles fillId lineId s = concatMap ($ s) $
   , renderFontFamily
   , renderMiterLimit ]
 
-renderMiterLimit :: SVGFloat n => Style v n -> [Attribute]
+renderMiterLimit :: Style v n -> [Attribute]
 renderMiterLimit s = renderAttr Stroke_miterlimit_ miterLimit
  where miterLimit = getLineMiterLimit <$> getAttr s
 
-renderOpacity :: SVGFloat n => Style v n -> [Attribute]
+renderOpacity :: Style v n -> [Attribute]
 renderOpacity s = renderAttr Opacity_ o
  where o = getOpacity <$> getAttr s
 
-renderFillRule :: SVGFloat n => Style v n -> [Attribute]
+renderFillRule :: Style v n -> [Attribute]
 renderFillRule s = renderTextAttr Fill_rule_ fr
   where fr = (fillRuleToText . getFillRule) <$> getAttr s
         fillRuleToText :: FillRule -> AttributeValue
@@ -316,7 +316,7 @@ renderLineWidth :: SVGFloat n => Style v n -> [Attribute]
 renderLineWidth s = renderAttr Stroke_width_ lWidth
   where lWidth = getNumAttr getLineWidth s
 
-renderLineCap :: SVGFloat n => Style v n -> [Attribute]
+renderLineCap :: Style v n -> [Attribute]
 renderLineCap s = renderTextAttr Stroke_linecap_ lCap
   where lCap = (lineCapToText . getLineCap) <$> getAttr s
         lineCapToText :: LineCap -> AttributeValue
@@ -324,7 +324,7 @@ renderLineCap s = renderTextAttr Stroke_linecap_ lCap
         lineCapToText LineCapRound  = "round"
         lineCapToText LineCapSquare = "square"
 
-renderLineJoin :: SVGFloat n => Style v n -> [Attribute]
+renderLineJoin :: Style v n -> [Attribute]
 renderLineJoin s = renderTextAttr Stroke_linejoin_ lj
   where lj = (lineJoinToText . getLineJoin) <$> getAttr s
         lineJoinToText :: LineJoin -> AttributeValue
@@ -351,7 +351,7 @@ renderFontSize s = renderTextAttr Font_size_ fs
  where
   fs = pack <$> getNumAttr ((++ "px") . show . getFontSize) s
 
-renderFontSlant :: SVGFloat n => Style v n -> [Attribute]
+renderFontSlant :: Style v n -> [Attribute]
 renderFontSlant s = renderTextAttr Font_style_ fs
  where
   fs = (fontSlantAttr . getFontSlant) <$> getAttr s
@@ -360,7 +360,7 @@ renderFontSlant s = renderTextAttr Font_style_ fs
   fontSlantAttr FontSlantOblique = "oblique"
   fontSlantAttr FontSlantNormal  = "normal"
 
-renderFontWeight :: SVGFloat n => Style v n -> [Attribute]
+renderFontWeight :: Style v n -> [Attribute]
 renderFontWeight s = renderTextAttr Font_weight_ fw
  where
   fw = (fontWeightAttr . getFontWeight) <$> getAttr s
@@ -368,7 +368,8 @@ renderFontWeight s = renderTextAttr Font_weight_ fw
   fontWeightAttr FontWeightNormal = "normal"
   fontWeightAttr FontWeightBold   = "bold"
 
-renderFontFamily :: SVGFloat n => Style v n -> [Attribute]
+
+renderFontFamily :: Style v n -> [Attribute]
 renderFontFamily s = renderTextAttr Font_family_ ff
  where
   ff = (pack . getFont) <$> getAttr s
