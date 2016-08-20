@@ -77,8 +77,7 @@ import           Diagrams.Backend.SVG
 import           Diagrams.Prelude         hiding (height, interval, output,
                                            width)
 
-import           Options.Applicative      hiding ((<>))
-import qualified Options.Applicative      as O ((<>))
+import           Options.Applicative
 
 import           Data.List.Split
 
@@ -151,8 +150,8 @@ newtype PrettyOpt = PrettyOpt {isPretty :: Bool}
 
 prettyOpt :: Parser PrettyOpt
 prettyOpt = PrettyOpt <$> switch (long "pretty"
-                     O.<> short 'p'
-                     O.<> help "Pretty print the SVG output")
+                     <> short 'p'
+                     <> help "Pretty print the SVG output")
 
 instance Parseable PrettyOpt where
   parser = prettyOpt
