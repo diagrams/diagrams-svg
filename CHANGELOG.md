@@ -1,4 +1,4 @@
-## [v1.4.1](https://github.com/diagrams/diagrams-svg/tree/v1.4.0.2) (XXX)
+## [v1.4.1](https://github.com/diagrams/diagrams-svg/tree/v1.4.1) (XXX)
 
 - Handle wider range of font weight specifications
 
