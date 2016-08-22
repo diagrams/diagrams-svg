@@ -2,6 +2,10 @@
 
 - Handle wider range of font weight specifications
 
+## [v1.4.0.4](https://github.com/diagrams/diagrams-svg/tree/v1.4.0.4) (2016-08-22)
+
+- Require `optparse-applicative-0.13`, and fix compilation error
+
 ## [v1.4.0.3](https://github.com/diagrams/diagrams-svg/tree/v1.4.0.3) (2016-08-16)
 
 - Allow `optparse-applicative-0.13`
