@@ -1,6 +1,7 @@
 ## [v1.4.1](https://github.com/diagrams/diagrams-svg/tree/v1.4.1) (XXX)
 
 - Handle wider range of font weight specifications
+- allow `lens-4.15`
 
 ## [v1.4.0.4](https://github.com/diagrams/diagrams-svg/tree/v1.4.0.4) (2016-08-22)
 
