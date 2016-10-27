@@ -1,4 +1,4 @@
-## [v1.4.1](https://github.com/diagrams/diagrams-svg/tree/v1.4.1) (XXX)
+## [v1.4.1](https://github.com/diagrams/diagrams-svg/tree/v1.4.1) (2016-10-26)
 
 - Handle wider range of font weight specifications
 - allow `lens-4.15`
