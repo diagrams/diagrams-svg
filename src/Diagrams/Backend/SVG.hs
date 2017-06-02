@@ -144,7 +144,7 @@ import           Diagrams.Core.Types      (Annotation (..))
 -- from diagrams-lib
 import           Diagrams.Prelude         hiding (Attribute, size, view, local)
 import           Diagrams.TwoD.Adjust     (adjustDia2D)
-import           Diagrams.TwoD.Attributes (splitTextureFills)
+import           Diagrams.TwoD.Attributes (FillTexture, splitTextureFills)
 import           Diagrams.TwoD.Path       (Clip (Clip))
 import           Diagrams.TwoD.Text
 
@@ -317,7 +317,23 @@ instance SVGFloat n => Renderable (Path V2 n) SVG where
   render _ = R . attributedRender . R.renderPath
 
 instance SVGFloat n => Renderable (Text n) SVG where
-  render _ = R . attributedRender . R.renderText
+  render _ t@(Text tTxt _ _) = R $ do
+    let svg = R.renderText t
+    SvgRenderState _idClip idFill idLine <- get
+    Environment sty preT <- ask
+    clippedSvg           <- renderSvgWithClipping preT svg sty
+
+    -- SVG applies the text transform to the gradient before rendering.
+    -- This means we need to apply the inverse of the text transform
+    -- first, being careful about how we use reflectionY to handle SVG's
+    -- coordinates.
+    let adjustTrans :: Maybe (FillTexture n) -> Maybe (FillTexture n)
+        adjustTrans = _Just . _FillTexture . committed . _LG . lGradTrans %~
+          \tGrad -> inv (tTxt <> reflectionY) <> tGrad <> reflectionY
+
+    fillGradDefs <- fillTextureDefs (sty & atAttr %~ adjustTrans)
+    return $
+      fillGradDefs `mappend` g_ (R.renderStyles idFill idLine sty) clippedSvg
 
 instance SVGFloat n => Renderable (DImage n Embedded) SVG where
   render _ = R . return . R.renderDImageEmb
