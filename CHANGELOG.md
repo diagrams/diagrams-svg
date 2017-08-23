@@ -1,3 +1,8 @@
+## [v1.4.1.1](https://github.com/diagrams/diagrams-svg/tree/v1.4.1) (2017-08-23)
+
+- Allow base-4.10 and optparse-applicative-0.14
+- Fix gradients applied to text ([#98](https://github.com/diagrams/diagrams-svg/issues/98))
+
 ## [v1.4.1](https://github.com/diagrams/diagrams-svg/tree/v1.4.1) (2016-10-26)
 
 - Handle wider range of font weight specifications
