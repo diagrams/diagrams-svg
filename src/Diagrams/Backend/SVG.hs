@@ -194,12 +194,17 @@ runRenderM :: SVGFloat n => T.Text -> SvgRenderM n -> Element
 runRenderM o s = flip evalState initialSvgRenderState
                $ runReaderT  s (initialEnvironment o)
 
-instance Monoid (Render SVG V2 n) where
-  mempty = R $ return mempty
-  R r1 `mappend` R r2_ = R $ do
+instance Semigroup (Render SVG V2 n) where
+  R r1 <> R r2_ = R $ do
     svg1 <- r1
     svg2 <- r2_
     return (svg1 `mappend` svg2)
+
+instance Monoid (Render SVG V2 n) where
+  mempty = R $ return mempty
+#if !MIN_VERSION_base(4,11,0)
+  mappend = (<>)
+#endif
 
 -- Handle clip attributes.
 --
