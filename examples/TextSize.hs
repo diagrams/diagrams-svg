@@ -1,11 +1,16 @@
-import Diagrams.Prelude
-import Diagrams.Backend.SVG
-import Diagrams.Backend.SVG.CmdLine
 
-text' s t = text t # fontSize s <> strutY (s * 1.3)
-example = centerXY $
+module Main where
+
+import Diagrams.Prelude
+import Diagrams.Backend
+import Diagrams.TwoD.Text
+import Diagrams.Backend.SVG
+
+text' s t = text t # fontSizeL s <> strutY (s * 5.3)
+example :: Diagram V2
+example = center $
       text' 10 "Hello" # fc black # italic
   === text' 5 "there"  # fc black # bold # font "sans-serif"
   === text' 3 "world"  # fc green
 
-main = defaultMain example
+main = mainWith SVG (example <> square 30 # fcA transparent)

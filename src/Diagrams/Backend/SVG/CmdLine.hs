@@ -54,23 +54,23 @@
 --
 -----------------------------------------------------------------------------
 
-module Diagrams.Backend.SVG.CmdLine
-       (
-         -- * General form of @main@
-         -- $mainwith
+module Diagrams.Backend.SVG.CmdLine where
+       -- (
+       --   -- * General form of @main@
+       --   -- $mainwith
 
-         mainWith
+       --   mainWith
 
-         -- * Supported forms of @main@
+       --   -- * Supported forms of @main@
 
-       , defaultMain
-       , multiMain
+       -- , defaultMain
+       -- , multiMain
 
-         -- * Backend tokens
+       --   -- * Backend tokens
 
-       , SVG
-       , B
-       ) where
+       -- , SVG
+       -- , B
+       -- ) where
 
 import           Diagrams.Backend.CmdLine
 import           Diagrams.Backend.SVG
@@ -143,35 +143,35 @@ import           Data.List.Split
 -- $ ./MyDiagram -o image.svg -w 400
 -- @
 
-defaultMain :: SVGFloat n => QDiagram SVG V2 n Any -> IO ()
-defaultMain = mainWith
+-- defaultMain :: Diagram V2 -> IO ()
+-- defaultMain = mainWith SVG
 
-newtype PrettyOpt = PrettyOpt {isPretty :: Bool}
+-- newtype PrettyOpt = PrettyOpt {isPretty :: Bool}
 
-prettyOpt :: Parser PrettyOpt
-prettyOpt = PrettyOpt <$> switch (long "pretty"
-                     <> short 'p'
-                     <> help "Pretty print the SVG output")
+-- prettyOpt :: Parser PrettyOpt
+-- prettyOpt = PrettyOpt <$> switch (long "pretty"
+--                      <> short 'p'
+--                      <> help "Pretty print the SVG output")
 
-instance Parseable PrettyOpt where
-  parser = prettyOpt
+-- instance Parseable PrettyOpt where
+--   parser = prettyOpt
 
-instance SVGFloat n => Mainable (QDiagram SVG V2 n Any) where
-    type MainOpts (QDiagram SVG V2 n Any) = (DiagramOpts, DiagramLoopOpts, PrettyOpt)
-    mainRender (opts, loopOpts, pretty) d = do
-        chooseRender opts pretty d
-        defaultLoopRender loopOpts
+-- instance Mainable (Diagram V2) where
+--     type MainOpts (Diagram V2) = (DiagramOpts, DiagramLoopOpts, PrettyOpt)
+--     mainRender (opts, loopOpts, pretty) d = do
+--         chooseRender opts pretty d
+--         defaultLoopRender loopOpts
 
-chooseRender :: SVGFloat n => DiagramOpts -> PrettyOpt -> QDiagram SVG V2 n Any -> IO ()
-chooseRender opts pretty d =
-  case splitOn "." (opts^.output) of
-    [""] -> putStrLn "No output file given."
-    ps | last ps `elem` ["svg"] -> do
-           let szSpec = fromIntegral <$> mkSizeSpec2D (opts^.width) (opts^.height)
-           if isPretty pretty
-             then renderPretty (opts^.output) szSpec d
-             else renderSVG (opts^.output) szSpec d
-       | otherwise -> putStrLn $ "Unknown file type: " ++ last ps
+-- chooseRender :: DiagramOpts -> PrettyOpt -> QDiagram SVG V2 n Any -> IO ()
+-- chooseRender opts pretty d =
+--   case splitOn "." (opts^.output) of
+--     [""] -> putStrLn "No output file given."
+--     ps | last ps `elem` ["svg"] -> do
+--            let szSpec = fromIntegral <$> mkSizeSpec2D (opts^.width) (opts^.height)
+--            if isPretty pretty
+--              then renderPretty (opts^.output) szSpec d
+--              else renderSVG (opts^.output) szSpec d
+--        | otherwise -> putStrLn $ "Unknown file type: " ++ last ps
 
 -- | @multiMain@ is like 'defaultMain', except instead of a single
 --   diagram it takes a list of diagrams paired with names as input.
@@ -192,11 +192,11 @@ chooseRender opts pretty d =
 -- $ ./MultiTest --selection bar -o Bar.eps -w 200
 -- @
 
-multiMain :: SVGFloat n => [(String, QDiagram SVG V2 n Any)] -> IO ()
-multiMain = mainWith
+-- multiMain :: SVGFloat n => [(String, QDiagram SVG V2 n Any)] -> IO ()
+-- multiMain = mainWith
 
-instance SVGFloat n => Mainable [(String,QDiagram SVG V2 n Any)] where
-    type MainOpts [(String,QDiagram SVG V2 n Any)]
-        = (MainOpts (QDiagram SVG V2 n Any), DiagramMultiOpts)
+-- instance SVGFloat n => Mainable [(String,QDiagram SVG V2 n Any)] where
+--     type MainOpts [(String,QDiagram SVG V2 n Any)]
+--         = (MainOpts (QDiagram SVG V2 n Any), DiagramMultiOpts)
 
-    mainRender = defaultMultiMainRender
+--     mainRender = defaultMultiMainRender

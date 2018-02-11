@@ -1,7 +1,10 @@
 > {-# LANGUAGE NoMonomorphismRestriction, FlexibleContexts, TypeFamilies #-}
+> module Main where
 > import Diagrams.Prelude
 > import qualified Data.Colour as C
-> import Diagrams.Backend.SVG.CmdLine
+> import Diagrams.Backend.SVG
+> import Diagrams.Backend
+> import Geometry
 
 We can use the [`colour`
 library](http://hackage.haskell.org/package/colour) to generate
@@ -31,6 +34,6 @@ An order-4 pentaflake looks nice.  Of course there's an exponential
 blowup in the number of primitives, so generating higher-order
 pentaflakes can take a long time!
 
-> example :: Diagram B
+> example :: Diagram V2
 > example = pad 1.1 $ pentaflake' 4
-> main = defaultMain (pad 1.1 example)
+> main = mainWith SVG (pad 1.1 example)
