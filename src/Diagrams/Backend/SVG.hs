@@ -1,4 +1,5 @@
 {-# LANGUAGE CPP                        #-}
+{-# LANGUAGE RankNTypes                 #-}
 {-# LANGUAGE TypeApplications           #-}
 {-# LANGUAGE LambdaCase                 #-}
 {-# LANGUAGE ConstraintKinds            #-}
@@ -110,8 +111,9 @@ module Diagrams.Backend.SVG
   , loadImageSVG
   ) where
 
+import qualified Data.Foldable as F
 -- from JuicyPixels
-import           Codec.Picture
+import           Codec.Picture hiding (Traversal)
 import           Codec.Picture.Types      (dynamicMap)
 -- import qualified Data.Foldable as F
 
@@ -160,7 +162,8 @@ import Diagrams.Backend.Compile
 
 -- from svg-builder
 -- import           Graphics.Svg             hiding ((<>))
-import           Graphics.Svg             (Element, Attribute, g_, renderBS)
+import           Graphics.Svg             (Element, Attribute, g_, a_, renderBS, (<<-))
+import qualified Graphics.Svg             as S
 
 -- from this package
 -- import           Graphics.Rendering.SVG   (SVGFloat)
@@ -217,25 +220,6 @@ instance Semigroup R where
 instance Monoid R where
   mempty  = R $ return mempty
   mappend = (<>)
-
--- Handle clip attributes.
---
--- renderSvgWithClipping :: T.Text
---                       -> Element     -- ^ Input SVG
---                       -> Attributes  -- ^ Styles
---                       -> SvgRenderM  -- ^ Resulting svg
-
--- renderSvgWithClipping prefix svg s =
---   case op Clip <$> getAttr s of
---     Nothing    -> return svg
---     Just paths -> renderClips paths
---   where
---     renderClips :: [Path V2 Double] -> SvgRenderM
---     renderClips []     = return svg
---     renderClips (p:ps) = do
---       clipPathId += 1
---       ident <- use clipPathId
---       R.renderClip p prefix ident <$> renderClips ps
 
 -- | Create a new texture defs svg element using the style and the current
 --   id number, then increment the gradient id number.
@@ -301,22 +285,15 @@ instance Backend SVG where
     }
 
   backendInfo _ = svgInfo
-  -- renderDiaT
-  renderDiaT opts dia = (b, t2 <> reflectionY) where
-  -- adjustDia c opts d = ( sz, t <> reflectionY, d' ) where
-  --   (sz, t, d') = adjustDia2D sizeSpec c opts (d # reflectY)
+  renderDiaT opts dia = (sz, t2 <> reflectionY, b) where
     (sz, t2, dia') = adjustSize2D (opts^.sizeSpec) (default2DAttrs dia # reflectY)
-    -- b = P.renderWith (opts^.surface) (opts^.readable) (opts^.standalone) sz r
     b = runRenderM (opts ^.idPrefix) $ do
-      let R r = toRender t2 dia'
+      let R r    = toRender t2 dia'
           V2 w h = fromIntegral <$> specToSize 100 (opts^.sizeSpec)
       svg <- r
       return $ R.svgHeader w h (opts^.svgDefinitions)
                                (opts^.svgAttributes)
                                (opts^.generateDoctype) svg
-
--- toRender :: T2 Double -> Diagram V2 -> SvgRenderM
---     r = toRender t2 dia'
 
 -- | Lens onto the size of the svg options.
 svgSizeSpec :: Lens' (Options SVG) (SizeSpec V2 Int)
@@ -372,18 +349,6 @@ instance Default (Options SVG) where
   -- adjustDia c opts d = ( sz, t <> reflectionY, d' ) where
   --   (sz, t, d') = adjustDia2D sizeSpec c opts (d # reflectY)
 
--- optionsParser :: OP.Parser (Options PGF)
--- optionsParser = PGFOptions <$> surfaceParser <*> sizeParser <*> readParser <*> standaloneParser
---     where
---       standaloneParser = OP.switch $ mconcat
---         [ OP.long "standalone", OP.short 'a'
---         , OP.help "Produce standalone .tex output (no effect on .pdf output)"
---         ]
---       readParser = OP.switch $ mconcat
---         [ OP.long "readable", OP.short 'r'
---         , OP.help "Indent lines for .tex (no effect on .pdf output)"
---         ]
-
 -- newtype OptionsParser = PrettyOpt {isPretty :: Bool}
 
 -- prettyOpt :: OP.Parser PrettyOpt
@@ -395,7 +360,6 @@ instance Default (Options SVG) where
 instance RenderOutcome SVG (Diagram V2) where
   type MainOpts SVG (Diagram V2) = (FilePath, SizeSpec V2 Int)
 
-  -- resultParser _ _ = (,) <$> outputParser <*> optionsParser
   resultParser _ _ = (,) <$> outputParser <*> sizeParser
   renderOutcome _ (path, sz) = saveDiagram' path (mkOptions @ SVG sz)
 
@@ -407,14 +371,29 @@ renderPrimitive t2 attrs = \case
   Prim _     -> Nothing
 
 renderAnnot :: Annotation V2 Double -> R -> R
-renderAnnot a
-  -- | Just x <- getAnnot _GroupOpacity a = P.opacityGroup x
-  -- | Just p <- getAnnot _Clip         a = clip (F.toList p)
-  | otherwise                          = id
+renderAnnot = \case
+  GroupOpacity_ o -> \(R r) -> R $ g_ [S.Opacity_ <<- S.toText o] <$> r
+  Clip_ p         -> \(R r) -> R $ r >>= renderSvgWithClipping (F.toList p)
+  HRef_ uri       -> \(R r) -> R $ a_ [S.XlinkHref_ <<- T.pack uri] <$> r
+  _                         -> id
 
+renderSvgWithClipping
+  :: [Path V2 Double]
+  -> Element     -- ^ Input SVG
+  -> SvgRenderM  -- ^ Resulting svg
+
+renderSvgWithClipping path svg = do
+  Environment _ prefix <- ask
+  let renderClips :: [Path V2 Double] -> SvgRenderM
+      renderClips []     = return svg
+      renderClips (p:ps) = do
+        clipPathId += 1
+        ident <- use clipPathId
+        R.renderClip p prefix ident <$> renderClips ps
+
+  renderClips path
 
 instance BackendBuild SVG where
-  -- saveDiagram' outPath opts d = renderSVG'
   saveDiagram' = renderSVG'
 
   mkOptions sz = def & sizeSpec .~ sz
@@ -429,34 +408,50 @@ toRender = foldDia renderPrim renderAnnot
         Just (R r) -> R $ local (attributes .~ attrs) r
         Nothing    -> error $ "Unknown primitive"
 
--- rtree :: SVGFloat n => RTree SVG V2 n Annotation -> Render SVG V2 n
--- rtree (Node n rs) = case n of
---   RPrim p                 -> render SVG p
---   RStyle sty              -> R $ local (over style (<> sty)) r
---   RAnnot (OpacityGroup o) -> R $ g_ [Opacity_ <<- toText o] <$> r
---   RAnnot (Href uri)       -> R $ a_ [XlinkHref_ <<- T.pack uri] <$> r
---   _                       -> R r
---   where
---     R r = foldMap rtree rs
-
 -- paths ---------------------------------------------------------------
 
-attributedRender :: Element -> R -- SvgRenderM
-attributedRender svg = R $ do
+attributedRender :: Bool -> Element -> R -- SvgRenderM
+attributedRender shouldFill svg = R $ do
   SvgRenderState _idClip idFill idLine <- get
   Environment sty preT <- ask
-  -- clippedSvg   <- renderSvgWithClipping preT svg sty
   lineGradDefs <- lineTextureDefs sty
-  fillGradDefs <- fillTextureDefs sty
-  return $ do
-    let gDefs = mappend fillGradDefs lineGradDefs
-    gDefs `mappend` g_ (R.renderStyles idFill idLine sty) svg
-    -- g_ (R.renderStyles idFill idLine sty) svg
+  if shouldFill
+     then do fillGradDefs <- fillTextureDefs sty
+             let gDefs = mappend fillGradDefs lineGradDefs
+             return $ gDefs `mappend` g_ (R.renderStyles idFill idLine sty) svg
+     else return $ lineGradDefs `mappend` g_ (R.renderStyles idFill idLine sty) svg
 
--- instance SVGFloat n => Renderable (Path V2 n) SVG where
---   render _ = R . attributedRender . R.renderPath
 renderPath :: Attributes -> Path V2 Double -> R -- SvgRenderM
-renderPath attrs = attributedRender . R.renderPath
+renderPath attrs =
+  foldMap (either (attributedRender False . R.renderLines)
+                  (attributedRender True . R.renderLoops))
+  . collateTrails
+
+collateTrails :: Path V2 Double -> [Either [Located (Line V2 Double)] [Located (Loop V2 Double)]]
+collateTrails = collate . toListOf (each . _LocTrail)
+
+mappingLoc
+  :: (SameSpace s a, SameSpace t b)
+  => AnIso s t a b
+  -> Iso (Located s) (Located t) (Located a) (Located b)
+mappingLoc k = withIso k $ \sa bt -> iso (over located sa) (over located bt)
+
+-- group together consecutive as and bs
+collate :: [Either a b] -> [Either [a] [b]]
+collate = \case
+  []           -> []
+  Left a : es  -> goL (a:) es
+  Right b : es -> goR (b:) es
+  where
+    goL f = \case
+      []           -> [Left (f [])]
+      Left a : es  -> goL (f . (a:)) es
+      Right b : es -> Left (f []) : goR (b:) es
+    goR f = \case
+      []           -> [Right (f [])]
+      Left a : es  -> Right (f []) : goL (a:) es
+      Right b : es -> goR (f . (b:)) es
+
 
 -- instance SVGFloat n => Renderable (Text n) SVG where
 renderText :: T2 Double -> Attributes -> Text Double -> SvgRenderM
@@ -500,7 +495,7 @@ mkPrefix = T.filter isAlpha . T.pack . takeBaseName
 --   and using the backend options. The id prefix is derived from the
 --   basename of the output file.
 renderSVG' :: FilePath -> Options SVG -> Diagram V2 -> IO ()
-renderSVG' outFile opts = BS.writeFile outFile . renderBS . fst . renderDiaT opts
+renderSVG' outFile opts = BS.writeFile outFile . renderBS . view _3 . renderDiaT opts
 
 -- | Render a diagram as a pretty printed SVG to the specified output
 --   file and using the backend options. The id prefix is derived from the

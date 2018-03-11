@@ -24,6 +24,8 @@ module Graphics.Rendering.SVG
     , AttributeValue
     , svgHeader
     , renderPath
+    , renderLines
+    , renderLoops
     , renderClip
     , renderText
     , renderDImage
@@ -102,6 +104,24 @@ svgHeader w h defines attributes genDoctype s =
   where
     ds = fromMaybe mempty defines
     dt = if genDoctype then doctype else mempty
+
+renderLines :: [Located (Line V2 Double)] -> Element
+renderLines ts = path_ [D_ <<- foldMap renderLine ts]
+  where
+    renderLine (Loc (P (V2 x y)) t) = mA x y <> foldMapOf segments renderSeg t
+
+renderLoops :: [Located (Loop V2 Double)] -> Element
+renderLoops ts = path_ [D_ <<- foldMap renderLoop ts]
+  where
+    renderLoop :: Located (Loop V2 Double) -> AttributeValue
+    renderLoop (Loc (P (V2 x y)) loop@(Loop line closing)) =
+      mA x y <> case closing of
+        -- let z handle the last segment if it is linear
+        LinearClosing -> foldMapOf segments renderSeg line <> z
+
+        -- otherwise we have to emit it explicitly (segments returns the
+        -- closing segment as a normal segment for loops)
+        _ -> foldMapOf segments renderSeg loop
 
 renderPath :: Path V2 Double -> Element
 renderPath trs = if makePath == T.empty then mempty else path_ [D_ <<- makePath]
