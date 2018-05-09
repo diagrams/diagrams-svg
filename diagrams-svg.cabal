@@ -12,7 +12,7 @@ Stability:           Experimental
 Category:            Graphics
 Build-type:          Simple
 Cabal-version:       >=1.10
-Tested-with:         GHC == 7.6.3, GHC == 7.8.4, GHC == 7.10.3, GHC == 8.0.2, GHC == 8.2.1
+Tested-with:         GHC == 7.8.4, GHC == 7.10.3, GHC == 8.0.2, GHC == 8.2.2, GHC == 8.4.2
 Description:         This package provides a modular backend for rendering
                      diagrams created with the diagrams EDSL to SVG
                      files.  It uses @lucid-svg@ to be a native
