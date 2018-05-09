@@ -1,6 +1,11 @@
-## [v1.4.1.1](https://github.com/diagrams/diagrams-svg/tree/v1.4.1) (2017-08-23)
+## [v1.4.2](https://github.com/diagrams/diagrams-svg/tree/v1.4.2) (2018-05-09)
 
-- Allow base-4.10 and optparse-applicative-0.14
+- Allow `base-4.11` (GHC 8.4) and `lens-4.16`
+- Add `Semigroup (Render SVG V2 n)` instance
+
+## [v1.4.1.1](https://github.com/diagrams/diagrams-svg/tree/v1.4.1.1) (2017-08-23)
+
+- Allow `base-4.10` and `optparse-applicative-0.14`
 - Fix gradients applied to text ([#98](https://github.com/diagrams/diagrams-svg/issues/98))
 
 ## [v1.4.1](https://github.com/diagrams/diagrams-svg/tree/v1.4.1) (2016-10-26)
