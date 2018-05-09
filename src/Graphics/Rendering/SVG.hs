@@ -45,7 +45,9 @@ import           Data.Foldable               (foldMap)
 #endif
 
 import           Data.Maybe                  (fromMaybe)
+#if !MIN_VERSION_base(4,11,0)
 import           Data.Monoid
+#endif
 
 -- from diagrams-core
 import           Diagrams.Core.Transform     (matrixHomRep)
