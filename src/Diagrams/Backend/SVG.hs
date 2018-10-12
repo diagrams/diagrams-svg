@@ -106,8 +106,6 @@ module Diagrams.Backend.SVG
 
   , renderSVG
   , renderSVG'
-  -- , renderPretty
-  -- , renderPretty'
   , loadImageSVG
   ) where
 
@@ -115,7 +113,6 @@ import qualified Data.Foldable as F
 -- from JuicyPixels
 import           Codec.Picture hiding (Traversal)
 import           Codec.Picture.Types      (dynamicMap)
--- import qualified Data.Foldable as F
 
 #if __GLASGOW_HASKELL__ < 710
 import           Data.Foldable            as F (foldMap)
@@ -133,7 +130,6 @@ import           Data.Typeable
 
 -- from hashable
 import           Data.Hashable            (Hashable (), hashWithSalt)
--- import qualified Options.Applicative          as OP
 
 -- from bytestring
 import qualified Data.ByteString          as SBS
@@ -142,23 +138,13 @@ import qualified Data.ByteString.Lazy     as BS
 -- from lens
 import           Control.Lens             hiding (transform, ( # ))
 
--- from diagrams-core
--- import           Diagrams.Core.Compile
--- import           Diagrams.Core.Types      (Annotation (..))
-
 -- from diagrams-lib
 import           Diagrams.Types               hiding (local)
 import           Diagrams.TwoD.Text
 import           Diagrams.TwoD.Image
 import Geometry
 import Diagrams.Prelude hiding (local)
-import Diagrams.Backend
 import Diagrams.Backend.Compile
--- import           Diagrams.Prelude         hiding (Attribute, size, view, local)
--- import           Diagrams.TwoD.Adjust     (adjustDia2D)
--- import           Diagrams.TwoD.Attributes (FillTexture, splitTextureFills)
--- import           Diagrams.TwoD.Path       (Clip (Clip))
--- import           Diagrams.TwoD.Text
 
 -- from svg-builder
 -- import           Graphics.Svg             hiding ((<>))
@@ -413,7 +399,7 @@ toRender = foldDia renderPrim renderAnnot
 attributedRender :: Bool -> Element -> R -- SvgRenderM
 attributedRender shouldFill svg = R $ do
   SvgRenderState _idClip idFill idLine <- get
-  Environment sty preT <- ask
+  Environment sty _preT <- ask
   lineGradDefs <- lineTextureDefs sty
   if shouldFill
      then do fillGradDefs <- fillTextureDefs sty
