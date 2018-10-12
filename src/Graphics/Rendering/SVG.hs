@@ -151,10 +151,6 @@ renderSeg (Cubic  (V2 x0 y0)
                   (V2 x1 y1)
                   (V2 x2 y2)) = cR x0 y0 x1 y1 x2 y2
 
--- naughty temporary orphan instance
-instance Semigroup Element where
-  (<>) = mappend
-
 renderClip :: Path V2 Double -> T.Text -> Int -> Element -> Element
 renderClip p prefix ident svg = do
      defs_ [] $ clipPath_ [Id_ <<- (clipPathId ident)] (renderPath p)
