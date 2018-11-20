@@ -1,19 +1,5 @@
-# Example executables
-examples/Explode
-examples/LineStyles
-examples/Pentaflake
-examples/AttrTest
-examples/FillRule
-examples/Temp
-examples/Opacity
-examples/Clipping
-examples/Text
-examples/TextScaling
-examples/TextSize
-# This is just used as scratch space
-examples/Temp.hs
-
 dist
+dist-newstyle
 cabal-dev
 *.o
 *.hi
@@ -25,5 +11,9 @@ cabal-dev
 dist_*
 history
 TAGS
-.cabal-sandbox
+cabal.project.local
+.cabal-sandbox/
 cabal.sandbox.config
+.stack-work/
+codex.tags
+.ghc.environment.*
