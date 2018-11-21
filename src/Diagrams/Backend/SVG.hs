@@ -99,7 +99,7 @@ module Diagrams.Backend.SVG
   ( SVG(..) -- rendering token
   , B
     -- for rendering options specific to SVG
-  , Options(..), sizeSpec, svgDefinitions, idPrefix, svgAttributes, generateDoctype
+  , Options(..), sizeSpec, svgDefinitions, idPrefix, svgAttributes, generateDoctype, svgClass, svgId
   , SVGFloat
 
   , renderSVG
@@ -139,10 +139,10 @@ import           Control.Lens             hiding (transform, ( # ))
 
 -- from diagrams-core
 import           Diagrams.Core.Compile
-import           Diagrams.Core.Types      (Annotation (..))
+import           Diagrams.Core.Types      (Annotation (..), keyVal)
 
 -- from diagrams-lib
-import           Diagrams.Prelude         hiding (Attribute, size, view, local)
+import           Diagrams.Prelude         hiding (Attribute, size, view, local, with)
 import           Diagrams.TwoD.Adjust     (adjustDia2D)
 import           Diagrams.TwoD.Attributes (FillTexture, splitTextureFills)
 import           Diagrams.TwoD.Path       (Clip (Clip))
@@ -270,13 +270,23 @@ instance SVGFloat n => Backend SVG V2 n where
 
 rtree :: SVGFloat n => RTree SVG V2 n Annotation -> Render SVG V2 n
 rtree (Node n rs) = case n of
-  RPrim p                 -> render SVG p
-  RStyle sty              -> R $ local (over style (<> sty)) r
-  RAnnot (OpacityGroup o) -> R $ g_ [Opacity_ <<- toText o] <$> r
-  RAnnot (Href uri)       -> R $ a_ [XlinkHref_ <<- T.pack uri] <$> r
-  _                       -> R r
+  RPrim p                       -> render SVG p
+  RStyle sty                    -> R $ local (over style (<> sty)) r
+  RAnnot (OpacityGroup o)       -> R $ g_ [Opacity_ <<- toText o] <$> r
+  RAnnot (Href uri)             -> R $ a_ [XlinkHref_ <<- T.pack uri] <$> r
+  RAnnot (KeyVal ("class",v))   -> R $ with <$> r <*> pure [Class_ <<- T.pack v]
+  RAnnot (KeyVal ("id",v))      -> R $ with <$> r <*> pure [Id_ <<- T.pack v]
+  _                             -> R r
   where
     R r = foldMap rtree rs
+
+-- | Set the id for a particular SVG diagram
+svgId :: SVGFloat n => String -> QDiagram SVG V2 n Any -> QDiagram SVG V2 n Any
+svgId = curry keyVal "id"
+
+-- | Set the class for a particular SVG diagram
+svgClass :: SVGFloat n => String -> QDiagram SVG V2 n Any -> QDiagram SVG V2 n Any
+svgClass = curry keyVal "class"
 
 -- | Lens onto the size of the svg options.
 sizeSpec :: Lens' (Options SVG V2 n) (SizeSpec V2 n)
