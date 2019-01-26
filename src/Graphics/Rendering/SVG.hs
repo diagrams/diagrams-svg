@@ -261,16 +261,16 @@ renderLineTexture ident s = case getAttr _LineTexture s of
 dataUri :: String -> BS8.ByteString -> AttributeValue
 dataUri mime dat = pack $ "data:"++mime++";base64," ++ BS8.unpack (BS64.encode dat)
 
-renderDImageEmb :: T2 Double -> DImage Double Embedded -> Element
-renderDImageEmb t2 di@(DImage _ _ (ImageRaster dImg)) =
+renderDImageEmb :: T2 Double -> DImage Embedded -> Element
+renderDImageEmb t2 di@(ImageEmbedded dImg) =
   renderDImage t2 di $ dataUri "image/png" img
   where
     img = case encodeDynamicPng dImg of
             Left str   -> error str
             Right img' -> img'
 
-renderDImage :: T2 Double -> DImage Double any -> AttributeValue -> Element
-renderDImage tr (DImage w h _) uridata =
+renderDImage :: T2 Double -> DImage t -> AttributeValue -> Element
+renderDImage tr (dimageSize -> (V2 w h)) uridata =
   image_
     [ Transform_ <<- transformMatrix
     , Width_ <<-  (pack . show $ w)
