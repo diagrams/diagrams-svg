@@ -499,7 +499,7 @@ loadImageSVG fp = do
     let dat = BS.fromChunks [raw]
         w = dynamicMap imageWidth dyn
         h = dynamicMap imageHeight dyn
-    let pic t d = return $ image (ImageNative (V2 w h) (Img t d))
+    let pic t d = return $ dimage (ImageNative (V2 w h) (Img t d))
     if | pngHeader `SBS.isPrefixOf` raw -> pic 'P' dat
        | jpgHeader `SBS.isPrefixOf` raw -> pic 'J' dat
        | otherwise -> case dyn of
