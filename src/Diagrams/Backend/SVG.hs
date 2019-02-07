@@ -99,7 +99,8 @@ module Diagrams.Backend.SVG
   ( SVG(..) -- rendering token
   , B
     -- for rendering options specific to SVG
-  , Options(..), sizeSpec, svgDefinitions, idPrefix, svgAttributes, generateDoctype, svgClass, svgId
+  , Options(..), sizeSpec, svgDefinitions, idPrefix, svgAttributes, generateDoctype
+  , svgClass, svgId, svgTitle
   , SVGFloat
 
   , renderSVG
@@ -276,6 +277,9 @@ rtree (Node n rs) = case n of
   RAnnot (Href uri)             -> R $ a_ [XlinkHref_ <<- T.pack uri] <$> r
   RAnnot (KeyVal ("class",v))   -> R $ with <$> r <*> pure [Class_ <<- T.pack v]
   RAnnot (KeyVal ("id",v))      -> R $ with <$> r <*> pure [Id_ <<- T.pack v]
+  RAnnot (KeyVal ("title",v))   -> R $ do
+    e <- r
+    pure $ g_ [] $ e <> title_ [] (toElement v)
   _                             -> R r
   where
     R r = foldMap rtree rs
@@ -287,6 +291,10 @@ svgId = curry keyVal "id"
 -- | Set the class for a particular SVG diagram
 svgClass :: SVGFloat n => String -> QDiagram SVG V2 n Any -> QDiagram SVG V2 n Any
 svgClass = curry keyVal "class"
+
+-- | Set the title text for a particular SVG diagram
+svgTitle :: SVGFloat n => String -> QDiagram SVG V2 n Any -> QDiagram SVG V2 n Any
+svgTitle = curry keyVal "title"
 
 -- | Lens onto the size of the svg options.
 sizeSpec :: Lens' (Options SVG V2 n) (SizeSpec V2 n)
