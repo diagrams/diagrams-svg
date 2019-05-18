@@ -40,7 +40,7 @@ Library
                        Diagrams.Backend.SVG.CmdLine
   Other-modules:       Graphics.Rendering.SVG
   Hs-source-dirs:      src
-  Build-depends:       base                 >= 4.3   && < 4.13
+  Build-depends:       base                 >= 4.3   && < 4.14
                      , filepath
                      , mtl                  >= 1     && < 2.3
                      , bytestring           >= 0.9   && < 1.0
@@ -57,7 +57,7 @@ Library
                      , lens                 >= 4.0   && < 4.18
                      , hashable             >= 1.1   && < 1.3
                      , optparse-applicative >= 0.13  && < 0.15
-                     , semigroups           >= 0.13  && < 0.19
+                     , semigroups           >= 0.13  && < 0.20
   if impl(ghc < 7.6)
     build-depends:     ghc-prim
 
