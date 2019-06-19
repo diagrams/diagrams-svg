@@ -92,7 +92,7 @@ svgHeader w h defines attributes genDoctype s =
     ([ Width_ <<- toText w
      , Height_ <<- toText h
      , Font_size_ <<- "1"
-     , ViewBox_ <<- (pack . unwords $ map show ([0, 0, round w, round h] :: [Int]))
+     , ViewBox_ <<- (pack . unwords $ map show [0, 0, w, h])
      , Stroke_ <<- "rgb(0,0,0)"
      , Stroke_opacity_ <<- "1" ]
      ++ attributes )
