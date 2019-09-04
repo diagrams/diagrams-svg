@@ -65,7 +65,7 @@
 -- >                          --   section of the output.
 -- >    , _idPrefix        :: T.Text
 -- >    , _svgAttributes   :: [Attribute]
--- >                          -- ^ Attriubtes to apply to the entire svg element.
+-- >                          -- ^ Attributes to apply to the entire svg element.
 -- >    , _generateDoctype :: Bool
 -- >    }
 --
