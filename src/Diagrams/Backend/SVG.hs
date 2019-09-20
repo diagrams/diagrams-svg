@@ -415,7 +415,7 @@ instance SVGFloat n => Renderable (DImage n (Native Img)) SVG where
     mime <- case t of
           'J' -> return "image/jpeg"
           'P' -> return "image/png"
-          _   -> fail   "Unknown mime type while rendering image"
+          _   -> error  "Unknown mime type while rendering image"
     return $ R.renderDImage di $ R.dataUri mime d
 
 instance Hashable n => Hashable (Options SVG V2 n) where
