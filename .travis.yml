@@ -2,15 +2,15 @@ language: haskell
 
 env:
   matrix:
-    - GHCVER=7.8.4 CABALVER=1.18
     - GHCVER=7.10.3 CABALVER=1.22
     - GHCVER=8.0.2 CABALVER=1.24
     - GHCVER=8.2.2 CABALVER=2.0
     - GHCVER=8.4.3 CABALVER=2.2
-    - GHCVER=8.6.1 CABALVER=2.4
+    - GHCVER=8.6.5 CABALVER=2.4
+    - GHCVER=8.8.1 CABALVER=3.0
     - GHCVER=head CABALVER=head
   global:
-    - HEAD_DEPS="diagrams-core diagrams-lib diagrams-solve active monoid-extras dual-tree svg-builder"
+    - HEAD_DEPS="diagrams-core diagrams-lib diagrams-solve monoid-extras dual-tree svg-builder"
 
 matrix:
   allow_failures:
