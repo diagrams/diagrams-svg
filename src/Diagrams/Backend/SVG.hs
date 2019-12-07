@@ -143,7 +143,8 @@ import           Diagrams.Core.Compile
 import           Diagrams.Core.Types      (Annotation (..), keyVal)
 
 -- from diagrams-lib
-import           Diagrams.Prelude         hiding (Attribute, size, view, local, with)
+import           Diagrams.Prelude         hiding (Attribute, local, size, view,
+                                           with)
 import           Diagrams.TwoD.Adjust     (adjustDia2D)
 import           Diagrams.TwoD.Attributes (FillTexture, splitTextureFills)
 import           Diagrams.TwoD.Path       (Clip (Clip))
@@ -168,7 +169,7 @@ type instance N SVG = Double
 
 data Environment n = Environment
   { _style :: Style V2 n
-  , __pre :: T.Text
+  , __pre  :: T.Text
   }
 
 makeLenses ''Environment
