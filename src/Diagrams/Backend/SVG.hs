@@ -16,8 +16,6 @@
 {-# LANGUAGE TemplateHaskell            #-}
 {-# LANGUAGE TypeFamilies               #-}
 {-# LANGUAGE TypeSynonymInstances       #-}
-{-# LANGUAGE UndecidableInstances       #-}
-  -- UndecidableInstances needed for ghc < 707
 
 ----------------------------------------------------------------------------
 -- |
