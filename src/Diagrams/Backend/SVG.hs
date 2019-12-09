@@ -109,8 +109,9 @@ module Diagrams.Backend.SVG
   ) where
 
 -- from JuicyPixels
-import           Codec.Picture
-import           Codec.Picture.Types      (dynamicMap)
+import           Codec.Picture            (decodeImage, encodeDynamicPng)
+import           Codec.Picture.Types      (DynamicImage (ImageYCbCr8),
+                                           dynamicMap, imageHeight, imageWidth)
 
 #if __GLASGOW_HASKELL__ < 710
 import           Data.Foldable            as F (foldMap)
