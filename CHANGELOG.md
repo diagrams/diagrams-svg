@@ -1,3 +1,12 @@
+## [v1.4.3](https://github.com/diagrams/diagrams-svg/tree/v1.4.3) (2019-12-10)
+
+- Allow `base-4.13` (GHC 8.8), `lens-4.18`, `semigroups-0.19`,
+  `hashable-1.3`, `optparse-applicative-0.15`
+- Stop rounding the coordinates of the viewbox
+  ([#109](https://github.com/diagrams/diagrams-svg/issues/109))
+- New `svgClass`, `svgId`, and `svgTitle` functions for setting SVG
+  attributes via annotations
+
 ## [v1.4.2](https://github.com/diagrams/diagrams-svg/tree/v1.4.2) (2018-05-09)
 
 - Allow `base-4.11` (GHC 8.4) and `lens-4.16`
