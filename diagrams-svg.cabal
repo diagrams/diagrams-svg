@@ -40,7 +40,7 @@ Library
                        Diagrams.Backend.SVG.CmdLine
   Other-modules:       Graphics.Rendering.SVG
   Hs-source-dirs:      src
-  Build-depends:       base                 >= 4.7   && < 4.14
+  Build-depends:       base                 >= 4.7   && < 4.15
                      , filepath
                      , mtl                  >= 1     && < 2.3
                      , bytestring           >= 0.9   && < 1.0
