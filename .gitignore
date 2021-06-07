@@ -23,6 +23,7 @@ cabal-dev
 *~
 .hsenv_*
 dist_*
+dist-newstyle/
 history
 TAGS
 .cabal-sandbox
