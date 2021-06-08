@@ -1,3 +1,14 @@
+## [v1.4.3-r3](https://github.com/diagrams/diagrams-svg/tree/v1.4.3-r3) (2021-06-08)
+
+Dependency upper bounds updates, to allow:
+
+- `base-4.15` (GHC 9.0)
+- `base64-bytestring-1.2`
+- `diagrams-core-1.5`
+- `monoid-extras-0.6`
+- `lens-5.0`
+- `optparse-applicative-0.16`
+
 ## [v1.4.3](https://github.com/diagrams/diagrams-svg/tree/v1.4.3) (2019-12-10)
 
 - Allow `base-4.13` (GHC 8.8), `lens-4.18`, `semigroups-0.19`,
