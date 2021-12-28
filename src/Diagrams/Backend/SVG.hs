@@ -17,6 +17,8 @@
 {-# LANGUAGE TypeFamilies               #-}
 {-# LANGUAGE TypeSynonymInstances       #-}
 
+{-# OPTIONS_GHC -fno-warn-orphans #-}
+
 ----------------------------------------------------------------------------
 -- |
 -- Module      :  Diagrams.Backend.SVG
@@ -125,6 +127,7 @@ import           System.FilePath
 import           Control.Monad.Reader
 import           Control.Monad.State
 import           Data.Char
+import           Data.Function            (on)
 import           Data.Typeable
 
 -- from hashable
@@ -254,6 +257,7 @@ instance SVGFloat n => Backend SVG V2 n where
                           -- ^ Attriubtes to apply to the entire svg element.
     , _generateDoctype :: Bool
     }
+    deriving Eq
 
   renderRTree :: SVG -> Options SVG V2 n -> RTree SVG V2 n Annotation -> Result SVG V2 n
   renderRTree _ opts rt = runRenderM (opts ^.idPrefix) svgOutput
@@ -427,3 +431,12 @@ instance Hashable n => Hashable (Options SVG V2 n) where
     sa `hashWithSalt`
     gd
       where ds = fmap renderBS defs
+
+-- This is an orphan instance.  Since Element is defined as a newtype
+-- of (HashMap Text Text -> Builder), it doesn't really make sense to
+-- define an Eq instance for it in general.  However, as of
+-- hashable-1.4 an Eq superclass was added to Hashable, so in order to
+-- have a Hashable instance for Options SVG, we need to have a
+-- matching Eq instance.
+instance Eq Element where
+  (==) = (==) `on` renderBS
