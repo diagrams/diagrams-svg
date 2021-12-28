@@ -1,3 +1,12 @@
+## [v1.4.3.1](https://github.com/diagrams/diagrams-svg/tree/v1.4.3.1) (2021-12-28)
+
+- Dependency upper bounds updates to allow:
+    - `base-4.16` (GHC 9.2)
+    - `lens-5.1`
+    - `hashable-1.4`
+    - `semigroups-0.20`
+- Add `Eq` instance for `Options SVG` and (orphan) `Eq` instance for `Element`
+
 ## [v1.4.3-r3](https://github.com/diagrams/diagrams-svg/tree/v1.4.3-r3) (2021-06-08)
 
 Dependency upper bounds updates, to allow:
