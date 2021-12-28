@@ -12,7 +12,7 @@ Stability:           Experimental
 Category:            Graphics
 Build-type:          Simple
 Cabal-version:       >=1.10
-Tested-with:         GHC ==8.4.4 || ==8.6.5 || ==8.8.4 || ==8.10.4 || ==9.0.1
+Tested-with:         GHC ==8.4.4 || ==8.6.5 || ==8.8.4 || ==8.10.4 || ==9.0.1 || ==9.2.1
 Description:         This package provides a modular backend for rendering
                      diagrams created with the diagrams EDSL to SVG
                      files.  It uses @lucid-svg@ to be a native
@@ -40,7 +40,7 @@ Library
                        Diagrams.Backend.SVG.CmdLine
   Other-modules:       Graphics.Rendering.SVG
   Hs-source-dirs:      src
-  Build-depends:       base                 >= 4.7   && < 4.16
+  Build-depends:       base                 >= 4.7   && < 4.17
                      , filepath
                      , mtl                  >= 1     && < 2.3
                      , bytestring           >= 0.9   && < 1.0
@@ -54,12 +54,10 @@ Library
                      , JuicyPixels          >= 3.1.5 && < 3.4
                      , split                >= 0.1.2 && < 0.3
                      , containers           >= 0.3   && < 0.7
-                     , lens                 >= 4.0   && < 5.1
-                     , hashable             >= 1.1   && < 1.4
+                     , lens                 >= 4.0   && < 5.2
+                     , hashable             >= 1.1   && < 1.5
                      , optparse-applicative >= 0.13  && < 0.17
-                     , semigroups           >= 0.13  && < 0.20
-  if impl(ghc < 7.6)
-    build-depends:     ghc-prim
+                     , semigroups           >= 0.13  && < 0.21
 
   Ghc-options:         -Wall
 
