@@ -47,7 +47,7 @@ Library
                      , base64-bytestring    >= 1     && < 1.3
                      , colour
                      , diagrams-core        >= 1.4   && < 1.6
-                     , diagrams-lib         >= 1.4   && < 1.5
+                     , diagrams-lib         >= 1.4.5 && < 1.5
                      , monoid-extras        >= 0.3   && < 0.7
                      , svg-builder          >= 0.1   && < 0.2
                      , text                 >= 0.11  && < 1.3
