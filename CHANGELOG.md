@@ -1,4 +1,4 @@
-## [v1.4.3.1-r1](https://github.com/diagrams/diagrams-svg/tree/v1.4.3.1-r1) (2022-01-10)
+## [v1.4.3.1-r2](https://github.com/diagrams/diagrams-svg/tree/v1.4.3.1-r2) (2022-01-10)
 
 - Allow `text-2.0`.
 
