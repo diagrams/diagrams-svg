@@ -1,3 +1,7 @@
+## [v1.4.3.1-r1](https://github.com/diagrams/diagrams-svg/tree/v1.4.3.1-r1) (2022-01-10)
+
+- Allow `text-2.0`.
+
 ## [v1.4.3.1](https://github.com/diagrams/diagrams-svg/tree/v1.4.3.1) (2021-12-28)
 
 - Dependency upper bounds updates to allow:
