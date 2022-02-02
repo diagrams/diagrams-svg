@@ -1,3 +1,7 @@
+## [v1.4.3.1-r3](https://github.com/diagrams/diagrams-svg/tree/v1.4.3.1-r3) (2022-02-02)
+
+- Allow `optparse-applicative-0.17`.
+
 ## [v1.4.3.1-r2](https://github.com/diagrams/diagrams-svg/tree/v1.4.3.1-r2) (2022-01-10)
 
 - Allow `text-2.0`.
