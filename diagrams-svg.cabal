@@ -12,7 +12,7 @@ Stability:           Experimental
 Category:            Graphics
 Build-type:          Simple
 Cabal-version:       >=1.10
-Tested-with:         GHC ==8.4.4 || ==8.6.5 || ==8.8.4 || ==8.10.7 || ==9.0.2 || ==9.2.4 || ==9.4.1
+Tested-with:         GHC ==8.4.4 || ==8.6.5 || ==8.8.4 || ==8.10.7 || ==9.0.2 || ==9.2.4 || ==9.4.1 || ==9.6.1
 Description:         This package provides a modular backend for rendering
                      diagrams created with the diagrams EDSL to SVG
                      files.  It uses @svg-builder@ to be a native
