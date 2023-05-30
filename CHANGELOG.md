@@ -1,3 +1,7 @@
+## [v1.4.3.1-r5](https://github.com/diagrams/diagrams-svg/tree/v1.4.3.1-r5) (2023-05-30)
+
+- Allow `base-4.18`, `mtl-2.3`, `optparse-applicative-0.18`, and test on GHC 9.6
+
 ## [v1.4.3.1-r4](https://github.com/diagrams/diagrams-svg/tree/v1.4.3.1-r4) (2022-09-05)
 
 - Allow `base-4.17`, `lens-5.2`, and test on GHC 9.4
