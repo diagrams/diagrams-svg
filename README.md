@@ -1,4 +1,4 @@
-diagrams-svg [![Hackage](https://img.shields.io/hackage/v/diagrams-svg.svg?style=flat)](https://hackage.haskell.org/package/diagrams-svg) [![Build Status](https://travis-ci.org/diagrams/diagrams-svg.svg?branch=master)](http://travis-ci.org/diagrams/diagrams-svg)
+diagrams-svg [![Hackage](https://img.shields.io/hackage/v/diagrams-svg.svg?style=flat)](https://hackage.haskell.org/package/diagrams-svg) [![Build Status](https://github.com/diagrams/diagrams-svg/actions/workflows/haskell-ci.yml/badge.svg))](https://github.com/diagrams/diagrams-svg/actions/workflows/haskell-ci.yml)
 ------------
 
 
