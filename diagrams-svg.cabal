@@ -12,7 +12,7 @@ Stability:           Experimental
 Category:            Graphics
 Build-type:          Simple
 Cabal-version:       >=1.10
-Tested-with:         GHC ==8.4.4 || ==8.6.5 || ==8.8.4 || ==8.10.7 || ==9.0.2 || ==9.2.8 || ==9.4.8 || ==9.6.3 || ==9.8.1
+Tested-with:         GHC ==8.4.4 || ==8.6.5 || ==8.8.4 || ==8.10.7 || ==9.0.2 || ==9.2.8 || ==9.4.8 || ==9.6.5 || ==9.8.2 || ==9.10.1
 Description:         This package provides a modular backend for rendering
                      diagrams created with the diagrams EDSL to SVG
                      files.  It uses @svg-builder@ to be a native
@@ -40,12 +40,12 @@ Library
                        Diagrams.Backend.SVG.CmdLine
   Other-modules:       Graphics.Rendering.SVG
   Hs-source-dirs:      src
-  Build-depends:       base                 >= 4.7   && < 4.20
-                     , filepath
+  Build-depends:       base                 >= 4.7   && < 4.21
+                     , filepath             >= 1.4   && < 1.6
                      , mtl                  >= 1     && < 2.4
                      , bytestring           >= 0.9   && < 1.0
                      , base64-bytestring    >= 1     && < 1.3
-                     , colour
+                     , colour               >= 2.3   && < 2.4
                      , diagrams-core        >= 1.4   && < 1.6
                      , diagrams-lib         >= 1.4.5 && < 1.5
                      , monoid-extras        >= 0.3   && < 0.7
@@ -53,8 +53,8 @@ Library
                      , text                 >= 0.11  && < 2.2
                      , JuicyPixels          >= 3.1.5 && < 3.4
                      , split                >= 0.1.2 && < 0.3
-                     , containers           >= 0.3   && < 0.7
-                     , lens                 >= 4.0   && < 5.3
+                     , containers           >= 0.3   && < 0.8
+                     , lens                 >= 4.0   && < 5.4
                      , hashable             >= 1.1   && < 1.5
                      , optparse-applicative >= 0.13  && < 0.19
                      , semigroups           >= 0.13  && < 0.21
