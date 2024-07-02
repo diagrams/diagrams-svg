@@ -1,3 +1,8 @@
+## [v1.4.3.1-r7](https://github.com/diagrams/diagrams-svg/tree/v1.4.3.1-r7) (2024-07-02)
+
+- Allow `filepath-1.5`, `containers-0.7`, and `lens-5.3`
+- Test on GHC 9.10
+
 ## [v1.4.3.1-r6](https://github.com/diagrams/diagrams-svg/tree/v1.4.3.1-r6) (2024-01-20)
 
 - Allow `base-4.19` and `text-2.1`
