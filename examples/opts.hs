@@ -8,7 +8,7 @@ svgOpt = SVGOptions {
   _size = mkSizeSpec $ V2 (Just 400) (Just 400),
   _idPrefix = T.empty,
   _svgDefinitions = Nothing,
-  _svgAttributes = [LST.preserveAspectRatio_ $ T.pack "xMinYMin"],
+  _svgAttributes = [],
   _generateDoctype = True
 }
 
