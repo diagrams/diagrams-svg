@@ -1,6 +1,7 @@
-## [v1.4.3.1-r8](https://github.com/diagrams/diagrams-svg/tree/v1.4.3.1-r8) (2024-08-27)
+## [v1.4.3.2](https://github.com/diagrams/diagrams-svg/tree/v1.4.3.2) (2024-08-27)
 
 - Allow `hashable-1.5`
+- Fix `examples/opts.hs` (thanks to @PiotrJustyna)
 
 ## [v1.4.3.1-r7](https://github.com/diagrams/diagrams-svg/tree/v1.4.3.1-r7) (2024-07-02)
 
