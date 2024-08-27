@@ -1,3 +1,7 @@
+## [v1.4.3.1-r8](https://github.com/diagrams/diagrams-svg/tree/v1.4.3.1-r8) (2024-08-27)
+
+- Allow `hashable-1.5`
+
 ## [v1.4.3.1-r7](https://github.com/diagrams/diagrams-svg/tree/v1.4.3.1-r7) (2024-07-02)
 
 - Allow `filepath-1.5`, `containers-0.7`, and `lens-5.3`
