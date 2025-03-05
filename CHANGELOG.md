@@ -1,3 +1,8 @@
+## [v1.4.4](https://github.com/diagrams/diagrams-svg/tree/v1.4.4) (2025-03-05)
+
+- New `svgAttr` function, for adding arbitrary attribute/value pairs
+  to nodes.  Thanks to @Chobbes for the [PR](https://github.com/diagrams/diagrams-svg/pull/124).
+
 ## [v1.4.3.2](https://github.com/diagrams/diagrams-svg/tree/v1.4.3.2) (2024-08-27)
 
 - Allow `hashable-1.5`
