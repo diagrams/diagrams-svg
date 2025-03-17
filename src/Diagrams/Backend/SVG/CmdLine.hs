@@ -72,7 +72,8 @@ module Diagrams.Backend.SVG.CmdLine
        , B
        ) where
 
-import           Diagrams.Backend.CmdLine
+import           Diagrams.Backend.SVG.Combat (defaultLoopRender, DiagramLoopOpts)
+import           Diagrams.Backend.CmdLine hiding (defaultLoopRender, DiagramLoopOpts)
 import           Diagrams.Backend.SVG
 import           Diagrams.Prelude         hiding (height, interval, output,
                                            width)

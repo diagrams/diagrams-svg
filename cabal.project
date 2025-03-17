@@ -1,0 +1,8 @@
+packages:
+      ./
+
+-- todo remove this after https://github.com/diagrams/svg-builder/pull/21 is merged
+source-repository-package
+  type: git
+  location: https://github.com/soulomoon/svg-builder.git
+  tag: 4d4aad5cc8a6f79a6fa31da385c7ca50b05c0c66
