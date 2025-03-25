@@ -1,3 +1,9 @@
+## [v1.5](https://github.com/diagrams/diagrams-svg/tree/v1.5) (2025-03-25)
+
+- Allow `base-4.21` and test on GHC 9.12
+- Allow `diagrams-lib-1.5` and remove `DiagramLoopOpts` which is no
+  longer supported
+
 ## [v1.4.4](https://github.com/diagrams/diagrams-svg/tree/v1.4.4) (2025-03-05)
 
 - New `svgAttr` function, for adding arbitrary attribute/value pairs
