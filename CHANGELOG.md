@@ -1,3 +1,7 @@
+## [v1.5-r2](https://github.com/diagrams/diagrams-svg/tree/v1.5-r2) (2025-06-13)
+
+- Allow `optparse-applicative-0.19`
+
 ## [v1.5-r1](https://github.com/diagrams/diagrams-svg/tree/v1.5-r1) (2025-06-02)
 
 - Allow `monoid-extras-0.7`
