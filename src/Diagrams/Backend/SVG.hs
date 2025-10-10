@@ -108,6 +108,8 @@ module Diagrams.Backend.SVG
   , renderPretty
   , renderPretty'
   , loadImageSVG
+
+  , elementToDiagram
   ) where
 
 -- from JuicyPixels
@@ -142,6 +144,7 @@ import           Control.Lens             hiding (transform, ( # ))
 
 -- from diagrams-core
 import           Diagrams.Core.Compile
+import           Diagrams.Core.Transform  (matrixHomRep)
 import           Diagrams.Core.Types      (Annotation (..), keyVal)
 
 -- from diagrams-lib
@@ -193,6 +196,19 @@ initialSvgRenderState = SvgRenderState 0 0 1
 
 -- | Monad to keep track of environment and state when rendering an SVG.
 type SvgRenderM n = ReaderT (Environment n) (State SvgRenderState) Element
+
+type instance V Element = V2
+type instance N Element = Double
+instance Transformable Element where
+  transform t = flip with [Transform_ <<- transformMatrix]
+   where
+    [[a,b],[c,d],[e,f]] = matrixHomRep t
+    transformMatrix     = matrix a b c d e f
+instance Renderable Element B where
+    render SVG = R . pure
+
+elementToDiagram :: Element -> Diagram B
+elementToDiagram e = mkQD (Prim e) mempty mempty mempty mempty
 
 runRenderM :: SVGFloat n => T.Text -> SvgRenderM n -> Element
 runRenderM o s = flip evalState initialSvgRenderState
