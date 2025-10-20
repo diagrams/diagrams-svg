@@ -14,6 +14,7 @@
 {-# LANGUAGE ScopedTypeVariables        #-}
 {-# LANGUAGE StandaloneDeriving         #-}
 {-# LANGUAGE TemplateHaskell            #-}
+{-# LANGUAGE TypeApplications           #-}
 {-# LANGUAGE TypeFamilies               #-}
 {-# LANGUAGE TypeSynonymInstances       #-}
 
@@ -108,6 +109,11 @@ module Diagrams.Backend.SVG
   , renderPretty
   , renderPretty'
   , loadImageSVG
+
+  , animate
+  , TransformAnimation (..)
+  , TransformAnimationType (..)
+  , TransformAnimationAttribute (..)
   ) where
 
 -- from JuicyPixels
@@ -127,6 +133,7 @@ import           System.FilePath
 import           Control.Monad.Reader
 import           Control.Monad.State
 import           Data.Char
+import           Data.Fixed
 import           Data.Function            (on)
 import           Data.Typeable
 
@@ -339,9 +346,54 @@ attributedRender svg = do
   clippedSvg   <- renderSvgWithClipping preT svg sty
   lineGradDefs <- lineTextureDefs sty
   fillGradDefs <- fillTextureDefs sty
+  let (transOriginAttr, transElement) = case getAttr sty of
+        Nothing -> ([], mempty)
+        Just (TransformAnimationAttribute animations t) ->
+          ( pure . makeAttribute "transform-origin" . (\(P (V2 x y)) -> showNum x <> " " <> showNum y) $ transform t 1
+          , flip foldMap animations $ \(TransformAnimation dur rep animation) -> animateTransform_ $
+              [ AttributeName_ <<- "transform"
+              , Additive_ <<- "sum"
+              , Dur_ <<- T.show dur <> "s"
+              , RepeatCount_ <<- maybe "indefinite" T.show rep
+              ] <> case animation of
+                ScaleAnimation values ->
+                  [ Type_ <<- "scale"
+                  , Values_ <<- T.intercalate ";" (map (\(V2 x y) -> showNum x <> "," <> showNum y) values)
+                  ]
+                TranslateAnimation values ->
+                  [ Type_ <<- "translate"
+                  , Values_ <<- T.intercalate ";" (map ((\(V2 x y) -> showNum x <> "," <> showNum y) . apply t) values)
+                  ]
+            )
   return $ do
     let gDefs = mappend fillGradDefs lineGradDefs
-    gDefs `mappend` g_ (R.renderStyles idFill idLine sty) clippedSvg
+    gDefs `mappend` g_ (transOriginAttr <> R.renderStyles idFill idLine sty) (transElement <> clippedSvg)
+  where
+    showNum = T.pack . showFixed @E3 True . realToFrac
+
+data TransformAnimationAttribute = TransformAnimationAttribute
+  [TransformAnimation]
+  (Transformation V2 Double)
+data TransformAnimation = TransformAnimation
+  Int -- ^ duration (seconds)
+  (Maybe Double) -- ^ repeat count - `Nothing` to repeat indefinitely
+  TransformAnimationType
+data TransformAnimationType
+  = ScaleAnimation [V2 Double]
+  | TranslateAnimation [V2 Double]
+
+instance AttributeClass TransformAnimationAttribute
+type instance V TransformAnimationAttribute = V2
+type instance N TransformAnimationAttribute = Double
+instance Semigroup TransformAnimationAttribute where
+  TransformAnimationAttribute xs tx <> TransformAnimationAttribute ys ty =
+    TransformAnimationAttribute (xs <> ys) (tx <> ty)
+instance Transformable TransformAnimationAttribute where
+  transform t (TransformAnimationAttribute a t0) =
+    TransformAnimationAttribute a (t <> t0)
+
+animate :: (HasStyle d, V d ~ V2, N d ~ Double) => TransformAnimation -> d -> d
+animate a = applyTAttr $ TransformAnimationAttribute [a] mempty
 
 instance SVGFloat n => Renderable (Path V2 n) SVG where
   render _ = R . attributedRender . R.renderPath
