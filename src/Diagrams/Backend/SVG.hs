@@ -362,7 +362,7 @@ attributedRender svg = do
                   ]
                 TranslateAnimation values ->
                   [ Type_ <<- "translate"
-                  , Values_ <<- T.intercalate ";" (map (\(V2 x y) -> showNum x <> "," <> showNum y) values)
+                  , Values_ <<- T.intercalate ";" (map ((\(V2 x y) -> showNum x <> "," <> showNum y) . apply t) values)
                   ]
             )
   return $ do
