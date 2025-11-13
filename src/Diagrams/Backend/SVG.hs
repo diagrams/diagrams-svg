@@ -132,6 +132,7 @@ import           System.FilePath
 -- from base
 import           Control.Monad.Reader
 import           Control.Monad.State
+import           Data.Bifunctor
 import           Data.Char
 import           Data.Fixed
 import           Data.Function            (on)
@@ -364,6 +365,10 @@ attributedRender svg = do
                   [ Type_ <<- "translate"
                   , Values_ <<- T.intercalate ";" (map ((\(V2 x y) -> showNum x <> "," <> showNum y) . apply t) values)
                   ]
+                RotateAnimation values ->
+                  [ Type_ <<- "rotate"
+                  , Values_ <<- T.intercalate ";" (map ((\(a, p) -> showNum (a ^. deg) <> maybe mempty (\(P (V2 x y)) -> "," <> showNum x <> "," <> showNum y) p) . second (fmap (papply t))) values)
+                  ]
             )
   return $ do
     let gDefs = mappend fillGradDefs lineGradDefs
@@ -381,6 +386,7 @@ data TransformAnimation = TransformAnimation
 data TransformAnimationType
   = ScaleAnimation [V2 Double]
   | TranslateAnimation [V2 Double]
+  | RotateAnimation [(Angle Double, Maybe (P2 Double))]
 
 instance AttributeClass TransformAnimationAttribute
 type instance V TransformAnimationAttribute = V2
