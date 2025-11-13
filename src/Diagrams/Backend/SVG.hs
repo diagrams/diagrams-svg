@@ -349,7 +349,7 @@ attributedRender svg = do
   let (transOriginAttr, transElement) = case getAttr sty of
         Nothing -> ([], mempty)
         Just (TransformAnimationAttribute animations t) ->
-          ( pure . makeAttribute "transform-origin" . (\(P (V2 x y)) -> showNum x <> " " <> showNum y) $ transform t 1
+          ( pure . makeAttribute "transform-origin" . (\(P (V2 x y)) -> showNum x <> " " <> showNum y) $ transform t 0
           , flip foldMap animations $ \(TransformAnimation dur rep animation) -> animateTransform_ $
               [ AttributeName_ <<- "transform"
               , Additive_ <<- "sum"
