@@ -379,7 +379,7 @@ renderDashing s = renderTextAttr Stroke_dasharray_ arr <>
 renderFontSize :: Attributes -> [Attribute]
 renderFontSize s = renderTextAttr Font_size_ fs
  where
-  fs = pack . (++ "px") . show <$> getAttr (_FontSize @ Double) s
+  fs = pack . (++ "px") . show <$> getAttr (_FontSize @Double) s
 
 renderFontSlant :: Attributes -> [Attribute]
 renderFontSlant s = renderTextAttr Font_style_ fs

@@ -311,6 +311,18 @@ generateDoctype f opts =
 
 deriving instance Show (Options SVG)
 
+-- | 'Element' wraps a 'HashMap Text Text -> Builder' function and has no
+--   natural notion of equality, so we compare (and hash, see the
+--   'Hashable' instance below) via the rendered 'ByteString' output
+--   instead, mirroring the approach already used for hashing.
+instance Eq (Options SVG) where
+  SVGOptions sz1 defs1 ia1 sa1 gd1 == SVGOptions sz2 defs2 ia2 sa2 gd2 =
+       sz1 == sz2
+    && fmap renderBS defs1 == fmap renderBS defs2
+    && ia1 == ia2
+    && sa1 == sa2
+    && gd1 == gd2
+
 
 instance Default (Options SVG) where
   def = SVGOptions
@@ -347,7 +359,7 @@ instance RenderOutcome SVG (Diagram V2) where
   type MainOpts SVG (Diagram V2) = (FilePath, SizeSpec V2 Int)
 
   resultParser _ _ = (,) <$> outputParser <*> sizeParser
-  renderOutcome _ (path, sz) = saveDiagram' path (mkOptions @ SVG sz)
+  renderOutcome _ (path, sz) = saveDiagram' path (mkOptions @SVG sz)
 
 renderPrimitive
   :: T2 Double -> Attributes -> Prim V2 Double -> Maybe R -- SvgRenderM
