@@ -68,7 +68,7 @@
 -- >                          --   section of the output.
 -- >    , _idPrefix        :: T.Text
 -- >    , _svgAttributes   :: [Attribute]
--- >                          -- ^ Attriubtes to apply to the entire svg element.
+-- >                          -- ^ Attributes to apply to the entire svg element.
 -- >    , _generateDoctype :: Bool
 -- >    }
 --
@@ -230,7 +230,7 @@ lineTextureDefs s = do
 --     , _svgSizeSpec :: SizeSpec V2 Int -- ^ The requested size.
 --     , _idPrefix        :: T.Text
 --     , _svgAttributes   :: [Attribute]
---                           -- ^ Attriubtes to apply to the entire svg element.
+--                           -- ^ Attributes to apply to the entire svg element.
 --     , _generateDoctype :: Bool
 --     -- , _readable    :: Bool            -- ^ Indented lines for @.tex@ output.
 --     }
@@ -266,7 +266,7 @@ instance Backend SVG where
                           --   section of the output.
     , _idPrefix        :: T.Text
     , _svgAttributes   :: [Attribute]
-                          -- ^ Attriubtes to apply to the entire svg element.
+                          -- ^ Attributes to apply to the entire svg element.
     , _generateDoctype :: Bool
     }
 

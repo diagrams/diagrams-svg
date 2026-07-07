@@ -62,7 +62,7 @@ import Geometry
 import           Data.Text                   (pack)
 import qualified Data.Text                   as T
 
--- from lucid-svg
+-- from svg-builder
 import           Graphics.Svg                hiding (renderText, (<>))
 import Diagrams.TwoD.Attributes
 import Diagrams.TwoD.Image
