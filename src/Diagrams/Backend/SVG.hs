@@ -1,6 +1,9 @@
 {-# LANGUAGE CPP                        #-}
+{-# LANGUAGE DataKinds                  #-}
+{-# LANGUAGE PatternSynonyms            #-}
 {-# LANGUAGE RankNTypes                 #-}
 {-# LANGUAGE TypeApplications           #-}
+{-# LANGUAGE ViewPatterns               #-}
 {-# LANGUAGE LambdaCase                 #-}
 {-# LANGUAGE ConstraintKinds            #-}
 {-# LANGUAGE DeriveDataTypeable         #-}
@@ -103,6 +106,7 @@ module Diagrams.Backend.SVG
   , B
     -- for rendering options specific to SVG
   , Options(..), sizeSpec, svgDefinitions, idPrefix, svgAttributes, generateDoctype
+  , svgClass, svgId, svgTitle, svgAttr
 
   , renderSVG
   , renderSVG'
@@ -370,10 +374,49 @@ renderPrimitive t2 attrs = \case
 
 renderAnnot :: Annotation V2 Double -> R -> R
 renderAnnot = \case
-  GroupOpacity_ o -> \(R r) -> R $ g_ [S.Opacity_ <<- S.toText o] <$> r
-  Clip_ p         -> \(R r) -> R $ r >>= renderSvgWithClipping (F.toList p)
-  HRef_ uri       -> \(R r) -> R $ a_ [S.XlinkHref_ <<- T.pack uri] <$> r
-  _                         -> id
+  GroupOpacity_ o      -> \(R r) -> R $ g_ [S.Opacity_ <<- S.toText o] <$> r
+  Clip_ p              -> \(R r) -> R $ r >>= renderSvgWithClipping (F.toList p)
+  HRef_ uri            -> \(R r) -> R $ a_ [S.XlinkHref_ <<- T.pack uri] <$> r
+  SVGAttr_ "title" v   -> \(R r) -> R $ (\e -> g_ [] (e <> S.title_ [] (S.toElement v))) <$> r
+  SVGAttr_ attr v      -> \(R r) -> R $ (`S.with` [S.makeAttribute (T.pack attr) (T.pack v)]) <$> r
+  _                    -> id
+
+-- Key-value annotations ------------------------------------------------
+
+-- | An SVG-specific annotation holding a key-value attribute pair,
+--   attached to the rendered element for the annotated subdiagram.
+--   Applied with 'svgAttr' and friends.
+--
+-- TODO(docs, human): expand if needed.
+newtype SVGAttr = SVGAttr (String, String)
+  deriving (Show, Typeable)
+
+instance AnnotationClass SVGAttr where
+  type AnnotType SVGAttr = 'IAnnot
+
+_SVGAttr :: Iso' SVGAttr (String, String)
+_SVGAttr = coerced
+{-# INLINE _SVGAttr #-}
+
+pattern SVGAttr_ :: String -> String -> Annotation V2 Double
+pattern SVGAttr_ k v <- (getAnnot _SVGAttr -> Just (k, v)) where
+  SVGAttr_ k v = mkAnnot _SVGAttr (k, v)
+
+-- | Set the id for a particular SVG diagram
+svgId :: String -> Diagram V2 -> Diagram V2
+svgId = svgAttr "id"
+
+-- | Set the class for a particular SVG diagram
+svgClass :: String -> Diagram V2 -> Diagram V2
+svgClass = svgAttr "class"
+
+-- | Set the title text for a particular SVG diagram
+svgTitle :: String -> Diagram V2 -> Diagram V2
+svgTitle = svgAttr "title"
+
+-- | Set an arbitrary attribute for a particular SVG diagram
+svgAttr :: String -> String -> Diagram V2 -> Diagram V2
+svgAttr attr v = applyAnnot _SVGAttr (attr, v)
 
 renderSvgWithClipping
   :: [Path V2 Double]
