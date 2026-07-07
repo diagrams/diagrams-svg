@@ -110,6 +110,8 @@ module Diagrams.Backend.SVG
 
   , renderSVG
   , renderSVG'
+  , renderPretty
+  , renderPretty'
   , loadImageSVG
 
   , elementToDiagram
@@ -124,7 +126,7 @@ import           Codec.Picture.Types      (dynamicMap)
 import           Data.Foldable            as F (foldMap)
 #endif
 import qualified Data.Text                as T
--- import           Data.Text.Lazy.IO        as LT
+import qualified Data.Text.Lazy.IO        as LT
 -- import           Data.Tree
 import           System.FilePath
 
@@ -370,10 +372,12 @@ instance RenderOutcome SVG (Diagram V2) where
 renderPrimitive
   :: T2 Double -> Attributes -> Prim V2 Double -> Maybe R -- SvgRenderM
 renderPrimitive t2 attrs = \case
-  Path_ path    -> Just $ renderPath attrs (path # transform t2)
-  Text_ t       -> Just . R $ renderText t2 attrs t
-  SVGElement_ e -> Just . R . pure $ getSVGElement (transform t2 (SVGElement e))
-  Prim _        -> Nothing
+  Path_ path         -> Just $ renderPath attrs (path # transform t2)
+  Text_ t            -> Just . R $ renderText t2 attrs t
+  EmbeddedImage_ img -> Just . R . pure $ R.renderDImageEmb t2 (ImageEmbedded img)
+  NativeImage_ di    -> Just . R . pure $ renderDImageNative t2 di
+  SVGElement_ e      -> Just . R . pure $ getSVGElement (transform t2 (SVGElement e))
+  Prim _             -> Nothing
 
 -- Raw SVG elements -----------------------------------------------------
 
@@ -544,17 +548,14 @@ renderText tTxt attrs t = do
     -- fillGradDefs `mappend` g_ (R.renderStyles idFill idLine sty) clippedSvg
     g_ (R.renderStyles idFill idLine sty) svg
 
--- instance SVGFloat n => Renderable (DImage n Embedded) SVG where
---   render _ = R . return . R.renderDImageEmb
-
 -- | Render a diagram as an SVG, writing to the specified output file
 --   and using the requested size.
 renderSVG :: FilePath -> SizeSpec V2 Int -> Diagram V2 -> IO ()
 renderSVG outFile spec = renderSVG' outFile (SVGOptions spec Nothing (mkPrefix outFile) [] True)
 
 -- | Render a diagram as a pretty printed SVG.
--- renderPretty :: FilePath -> SizeSpec V2 Int -> Diagram V2 -> IO ()
--- renderPretty outFile spec = renderPretty' outFile (SVGOptions spec Nothing (mkPrefix outFile)[] True)
+renderPretty :: FilePath -> SizeSpec V2 Int -> Diagram V2 -> IO ()
+renderPretty outFile spec = renderPretty' outFile (SVGOptions spec Nothing (mkPrefix outFile) [] True)
 
 -- Create a prefile using the basename of the output file. Only standard
 -- letters are considered.
@@ -570,8 +571,8 @@ renderSVG' outFile opts = BS.writeFile outFile . renderBS . view _3 . renderDiaT
 -- | Render a diagram as a pretty printed SVG to the specified output
 --   file and using the backend options. The id prefix is derived from the
 --   basename of the output file.
--- renderPretty' :: FilePath -> Options SVG -> Diagram V2 -> IO ()
--- renderPretty' outFile opts = LT.writeFile outFile . prettyText . renderDia SVG opts
+renderPretty' :: FilePath -> Options SVG -> Diagram V2 -> IO ()
+renderPretty' outFile opts = LT.writeFile outFile . S.prettyText . view _3 . renderDiaT opts
 
 data Img = Img !Char !BS.ByteString deriving Typeable
 
@@ -596,13 +597,18 @@ loadImageSVG fp = do
         eIO :: Either String a -> IO a
         eIO = either fail return
 
--- instance SVGFloat n => Renderable (DImage n (Native Img)) SVG where
---   render _ di@(DImage (ImageNative (Img t d)) _ _ _) = R $ do
---     mime <- case t of
---           'J' -> return "image/jpeg"
---           'P' -> return "image/png"
---           _   -> fail   "Unknown mime type while rendering image"
---     return $ R.renderDImage di $ R.dataUri mime d
+pattern NativeImage_ :: DImage (Native Img) -> Prim V2 Double
+pattern NativeImage_ di <- (preview _Prim -> Just di) where
+  NativeImage_ di = Prim di
+
+renderDImageNative :: T2 Double -> DImage (Native Img) -> Element
+renderDImageNative t2 di@(ImageNative _ (Img t d)) =
+  R.renderDImage t2 di $ R.dataUri mime d
+  where
+    mime = case t of
+      'J' -> "image/jpeg"
+      'P' -> "image/png"
+      _   -> error "Unknown mime type while rendering image"
 
 instance Hashable (Options SVG) where
   hashWithSalt s  (SVGOptions sz defs ia sa gd) =
