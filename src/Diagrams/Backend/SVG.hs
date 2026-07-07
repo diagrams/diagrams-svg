@@ -375,6 +375,8 @@ renderPrimitive t2 attrs = \case
   Path_ path         -> Just $ renderPath attrs (path # transform t2)
   Text_ t            -> Just . R $ renderText t2 attrs t
   EmbeddedImage_ img -> Just . R . pure $ R.renderDImageEmb t2 (ImageEmbedded img)
+  ExternalImage_ w h path
+                     -> Just . R . pure $ R.renderDImage t2 (ImageExternal (V2 w h) path) (T.pack path)
   NativeImage_ di    -> Just . R . pure $ renderDImageNative t2 di
   SVGElement_ e      -> Just . R . pure $ getSVGElement (transform t2 (SVGElement e))
   Prim _             -> Nothing
