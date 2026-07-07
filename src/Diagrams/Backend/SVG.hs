@@ -493,7 +493,7 @@ attributedRender shouldFill svg = R $ do
      then do fillGradDefs <- fillTextureDefs sty
              let gDefs = mappend fillGradDefs lineGradDefs
              return $ gDefs `mappend` g_ (R.renderStyles idFill idLine sty) svg
-     else return $ lineGradDefs `mappend` g_ (R.renderStyles idFill idLine sty) svg
+     else return $ lineGradDefs `mappend` g_ (R.renderStylesNoFill idLine sty) svg
 
 renderPath :: Attributes -> Path V2 Double -> R -- SvgRenderM
 renderPath attrs =

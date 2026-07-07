@@ -31,6 +31,7 @@ module Graphics.Rendering.SVG
     , renderDImage
     , renderDImageEmb
     , renderStyles
+    , renderStylesNoFill
     , renderMiterLimit
     , renderFillTextureDefs
     , renderFillTexture
@@ -309,9 +310,19 @@ renderText tt (Text tAlign str) =
   transformMatrix     = matrix a b c d e f
 
 renderStyles :: Int -> Int -> Attributes -> [Attribute]
-renderStyles fillId lineId s = concatMap ($ s) $
+renderStyles fillId lineId s =
+  renderFillTexture fillId s <> renderNonFillStyles lineId s
+
+-- | Styles for groups of lines (open trails), which must never be
+--   filled: the fill texture is suppressed and an explicit
+--   @fill="none"@ emitted (otherwise SVG would fill open paths as if
+--   they were closed).
+renderStylesNoFill :: Int -> Attributes -> [Attribute]
+renderStylesNoFill lineId s = (Fill_ <<- "none") : renderNonFillStyles lineId s
+
+renderNonFillStyles :: Int -> Attributes -> [Attribute]
+renderNonFillStyles lineId s = concatMap ($ s) $
   [ renderLineTexture lineId
-  , renderFillTexture fillId
   , renderLineWidth
   , renderLineCap
   , renderLineJoin
