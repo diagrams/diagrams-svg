@@ -111,6 +111,8 @@ module Diagrams.Backend.SVG
   , renderSVG
   , renderSVG'
   , loadImageSVG
+
+  , elementToDiagram
   ) where
 
 import qualified Data.Foldable as F
@@ -368,9 +370,36 @@ instance RenderOutcome SVG (Diagram V2) where
 renderPrimitive
   :: T2 Double -> Attributes -> Prim V2 Double -> Maybe R -- SvgRenderM
 renderPrimitive t2 attrs = \case
-  Path_ path -> Just $ renderPath attrs (path # transform t2)
-  Text_ t    -> Just . R $ renderText t2 attrs t
-  Prim _     -> Nothing
+  Path_ path    -> Just $ renderPath attrs (path # transform t2)
+  Text_ t       -> Just . R $ renderText t2 attrs t
+  SVGElement_ e -> Just . R . pure $ getSVGElement (transform t2 (SVGElement e))
+  Prim _        -> Nothing
+
+-- Raw SVG elements -----------------------------------------------------
+
+-- | A primitive wrapping a raw svg-builder 'Element'.
+--
+-- TODO(docs, human): expand if needed.
+newtype SVGElement = SVGElement { getSVGElement :: Element }
+  deriving Typeable
+
+type instance V SVGElement = V2
+type instance N SVGElement = Double
+
+instance Transformable SVGElement where
+  transform t (SVGElement e) = SVGElement $ S.with e [S.Transform_ <<- transformMatrix]
+   where
+    [[a,b],[c,d],[e',f]] = matrixHomRep t
+    transformMatrix      = S.matrix a b c d e' f
+
+pattern SVGElement_ :: Element -> Prim V2 Double
+pattern SVGElement_ e <- (preview _Prim -> Just (SVGElement e)) where
+  SVGElement_ e = Prim (SVGElement e)
+
+-- TODO(docs, human): upstream (diagrams-svg #126) has no haddock for
+-- elementToDiagram.
+elementToDiagram :: Element -> Diagram V2
+elementToDiagram e = mkQD (Prim (SVGElement e)) mempty mempty mempty
 
 renderAnnot :: Annotation V2 Double -> R -> R
 renderAnnot = \case
