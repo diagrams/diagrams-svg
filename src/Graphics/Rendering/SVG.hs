@@ -307,7 +307,13 @@ renderText tt (Text tAlign str) =
                w' | w' <= 0.25 -> "start"
                w' | w' >= 0.75 -> "end"
                _ -> "middle"
-  t                   = tt `mappend` reflectionY
+  -- All text scaling comes from the (already resolved) 'FontSize'
+  -- attribute, which is rendered separately as the SVG @font-size@
+  -- (see 'renderFontSize').  The accumulated transform therefore has
+  -- its average scale normalised out here, keeping only rotation,
+  -- translation and any non-uniform residue; using the raw transform
+  -- as well would apply the scale twice.
+  t                   = tt `mappend` scaling (1 / avgScale tt) `mappend` reflectionY
   [[a,b],[c,d],[e,f]] = matrixHomRep t
   transformMatrix     = matrix a b c d e f
 
