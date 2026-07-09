@@ -258,12 +258,6 @@ lineTextureDefs s = do
 --                                  (opts^.svgAttributes)
 --                                  (opts^.generateDoctype) svg
 
-default2DAttrs :: Diagram V2 -> Diagram V2
-default2DAttrs
-  = lineWidth medium
-  . lineTexture black
-  . fillTexture transparent
-
 instance Backend SVG where
   -- newtype Render  SVG V2 n = R (SvgRenderM n)
   type    Result  SVG = Element
@@ -280,7 +274,10 @@ instance Backend SVG where
 
   backendInfo _ = svgInfo
   renderDiaT opts dia = (sz, t2 <> reflectionY, b) where
-    (sz, t2, dia') = adjustSize2D (opts^.sizeSpec) (default2DAttrs dia # reflectY)
+    -- The standard 2D defaults are applied as backup attributes
+    -- ('backupDefault2DAttrs') so they do not override backup
+    -- attributes applied inside the diagram.
+    (sz, t2, dia') = adjustSize2D (opts^.sizeSpec) (backupDefault2DAttrs dia # reflectY)
     b = runRenderM (opts ^.idPrefix) $ do
       let R r    = toRender t2 dia'
           V2 w h = fromIntegral <$> specToSize 100 (opts^.sizeSpec)

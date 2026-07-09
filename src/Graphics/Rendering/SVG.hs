@@ -226,7 +226,6 @@ renderFillTextureDefs i s =
 
 -- Render the gradient using the id set up in renderFillTextureDefs.
 renderFillTexture :: Int -> Attributes -> [Attribute]
--- renderFillTexture ident s = case getAttr getFillTexture s of
 renderFillTexture ident s = case getAttr _FillTexture s of
   Just (SC (SomeColor c)) -> renderTextAttr Fill_ fillColorRgb <>
                              renderAttr Fill_opacity_ fillColorOpacity
@@ -237,7 +236,10 @@ renderFillTexture ident s = case getAttr _FillTexture s of
                                              <> ")"), Fill_opacity_ <<- "1"]
   Just (RG _) -> [Fill_ <<- ("url(#gradient" <> (pack . show $ ident)
                                              <> ")"), Fill_opacity_ <<- "1"]
-  Nothing     -> []
+  -- If no fill texture resolves at all we must still emit an explicit
+  -- @fill="none"@: SVG's initial value for @fill@ is black, so leaving
+  -- the attribute out would fill the path.
+  Nothing     -> [Fill_ <<- "none"]
 
 renderLineTextureDefs :: Int -> Attributes -> Element
 renderLineTextureDefs i s =
