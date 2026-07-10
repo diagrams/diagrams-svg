@@ -1,21 +1,24 @@
 {-# LANGUAGE NoMonomorphismRestriction, FlexibleContexts, TypeFamilies #-}
 
-import Diagrams.Prelude
-import Diagrams.Backend.SVG.CmdLine
+module Main where
 
-stops = mkStops [(gray, 0, 1), (white, 0.5, 1), (purple, 1, 1)]
-gradient = mkLinearGradient stops ((-0.5) ^& 0) (0.5 ^& 0) GradPad
+import Diagrams.Prelude
+import Diagrams.Backend
+import Diagrams.Backend.SVG
+
+stops = [(gray, 0), (white, 0.5), (purple, 1)]
+gradient = mkLinearGradient stops (P2 (-0.5) 0) (P2 0.5 0)
 sq1 = square 1 # fillTexture  gradient
-sq2 = square 1 # lineTexture (gradient & _LG . lGradSpreadMethod .~ GradRepeat
-                                       & _LG . lGradStart        .~ (-0.1) ^& 0
-                                       & _LG . lGradEnd          .~ 0.1 ^& 0
+sq2 = square 1 # lineTexture (gradient & gradientSpreadMethod .~ GradRepeat
+                                       & gradientStart        .~ P2 (-0.1) 0
+                                       & gradientEnd          .~ P2 0.1 0
                              ) # lw ultraThick
-sq3 = square 1 # fillTexture (gradient & _LG . lGradSpreadMethod .~ GradReflect
-                                       & _LG . lGradStart        .~ (-0.1) ^& 0
-                                       & _LG . lGradEnd          .~ 0.1 ^& 0
+sq3 = square 1 # fillTexture (gradient & gradientSpreadMethod .~ GradReflect
+                                       & gradientStart        .~ P2 (-0.1) 0
+                                       & gradientEnd          .~ P2 0.1 0
                              )
 
-example :: Diagram B
+example :: Diagram V2
 example = hsep 0.25 [sq1, sq2, sq3]
 
-main = mainWith $ example # frame 0.2
+main = mainWith SVG $ example # frame 0.2

@@ -1,4 +1,5 @@
 {-# LANGUAGE CPP               #-}
+{-# LANGUAGE TypeApplications               #-}
 {-# LANGUAGE ConstraintKinds   #-}
 {-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE GADTs             #-}
@@ -19,23 +20,25 @@
 -----------------------------------------------------------------------------
 
 module Graphics.Rendering.SVG
-    ( SVGFloat
-    , Element
+    ( Element
     , AttributeValue
     , svgHeader
     , renderPath
+    , renderLines
+    , renderLoops
     , renderClip
     , renderText
     , renderDImage
     , renderDImageEmb
     , renderStyles
+    , renderStylesNoFill
     , renderMiterLimit
     , renderFillTextureDefs
     , renderFillTexture
     , renderLineTextureDefs
     , renderLineTexture
     , dataUri
-    , getNumAttr
+    -- , getNumAttr
     ) where
 
 -- from base
@@ -45,24 +48,27 @@ import           Data.Foldable               (foldMap)
 #endif
 
 import           Data.Maybe                  (fromMaybe)
-#if !MIN_VERSION_base(4,11,0)
-import           Data.Monoid
-#endif
+-- import           Data.Monoid
 
 -- from diagrams-core
-import           Diagrams.Core.Transform     (matrixHomRep)
+-- import           Diagrams.Core.Transform     (matrixHomRep)
 
 -- from diagrams-lib
-import           Diagrams.Prelude            hiding (Attribute, Render, with, (<>))
-import           Diagrams.TwoD.Path          (getFillRule)
-import           Diagrams.TwoD.Text
+import Geometry
+-- import           Diagrams.Prelude            hiding (Attribute, Render, with, (<>))
+-- import           Diagrams.TwoD.Path          (getFillRule)
+-- import           Diagrams.TwoD.Text
 
 -- from text
 import           Data.Text                   (pack)
 import qualified Data.Text                   as T
 
 -- from svg-builder
-import           Graphics.Svg                hiding (renderText)
+import           Graphics.Svg                hiding (renderText, (<>))
+import Diagrams.TwoD.Attributes
+import Diagrams.TwoD.Image
+import Diagrams.TwoD.Text
+import Diagrams.Prelude hiding (with)
 
 -- from base64-bytestring, bytestring
 import qualified Data.ByteString.Base64.Lazy as BS64
@@ -73,26 +79,26 @@ import           Codec.Picture
 
 -- | Constaint on number type that diagrams-svg can use to render an SVG. This
 --   includes the common number types: Double, Float
-type SVGFloat n = (Show n, TypeableFloat n)
+-- type SVGFloat n = (Show n, TypeableFloat n)
 -- Could we change Text.Blaze.SVG to use
 --   showFFloat :: RealFloat a => Maybe Int -> a -> ShowS
 -- or something similar for all numbers so we need TypeableFloat constraint.
 
 type AttributeValue = T.Text
 
-getNumAttr :: AttributeClass (a n) => (a n -> t) -> Style v n -> Maybe t
-getNumAttr f = (f <$>) . getAttr
+-- getNumAttr :: AttributeClass (a n) => (a n -> t) -> Attributes -> Maybe t
+-- getNumAttr f = (f <$>) . getAttr
 
 -- | @svgHeader w h defs s@: @w@ width, @h@ height,
 --   @defs@ global definitions for defs sections, @s@ actual SVG content.
-svgHeader :: SVGFloat n => n -> n -> Maybe Element -> [Attribute] -> Bool
+svgHeader :: Double -> Double -> Maybe Element -> [Attribute] -> Bool
                         -> Element -> Element
 svgHeader w h defines attributes genDoctype s =
   dt <> with (svg11_ (defs_ [] ds <> s))
     ([ Width_ <<- toText w
      , Height_ <<- toText h
      , Font_size_ <<- "1"
-     , ViewBox_ <<- (pack . unwords $ map show [0, 0, w, h])
+     , ViewBox_ <<- (pack . unwords $ map show ([0, 0, round w, round h] :: [Int]))
      , Stroke_ <<- "rgb(0,0,0)"
      , Stroke_opacity_ <<- "1" ]
      ++ attributes )
@@ -100,52 +106,71 @@ svgHeader w h defines attributes genDoctype s =
     ds = fromMaybe mempty defines
     dt = if genDoctype then doctype else mempty
 
-renderPath :: SVGFloat n => Path V2 n -> Element
+renderLines :: [Located (Line V2 Double)] -> Element
+renderLines ts = path_ [D_ <<- foldMap renderLine ts]
+  where
+    renderLine (Loc (P (V2 x y)) t) = mA x y <> foldMapOf segments renderSeg t
+
+renderLoops :: [Located (Loop V2 Double)] -> Element
+renderLoops ts = path_ [D_ <<- foldMap renderLoop ts]
+  where
+    renderLoop :: Located (Loop V2 Double) -> AttributeValue
+    renderLoop (Loc (P (V2 x y)) loop@(Loop line closing)) =
+      mA x y <> case closing of
+        -- let z handle the last segment if it is linear
+        LinearClosing -> foldMapOf segments renderSeg line <> z
+
+        -- otherwise we have to emit it explicitly (segments returns the
+        -- closing segment as a normal segment for loops)
+        _ -> foldMapOf segments renderSeg loop
+
+renderPath :: Path V2 Double -> Element
 renderPath trs = if makePath == T.empty then mempty else path_ [D_ <<- makePath]
   where
-    makePath = foldMap renderTrail (op Path trs)
+    makePath :: AttributeValue
+    makePath = foldMapOf each renderTrail trs -- (op Path trs)
 
-renderTrail :: SVGFloat n => Located (Trail V2 n) -> AttributeValue
+renderTrail :: Located (Trail V2 Double) -> AttributeValue
 renderTrail (viewLoc -> (P (V2 x y), t)) =
   mA x y <> withTrail renderLine renderLoop t
   where
-    renderLine = foldMap renderSeg . lineSegments
-    renderLoop lp =
-      case loopSegments lp of
+    renderLine = foldMapOf segments renderSeg --  . lineSegments
+    renderLoop loop@(Loop line closing) =
+      case closing of
         -- let z handle the last segment if it is linear
-        (segs, Linear _) -> foldMap renderSeg segs
+        LinearClosing -> foldMapOf segments renderSeg line <> z
 
-        -- otherwise we have to emit it explicitly
-        _ -> foldMap renderSeg (lineSegments . cutLoop $ lp)
-      <> z
+        -- otherwise we have to emit it explicitly (segments returns the
+        -- closing segment as a normal segment for loops)
+        _ -> foldMapOf segments renderSeg loop
 
-renderSeg :: SVGFloat n => Segment Closed V2 n -> AttributeValue
-renderSeg (Linear (OffsetClosed (V2 x 0))) = hR x
-renderSeg (Linear (OffsetClosed (V2 0 y))) = vR y
-renderSeg (Linear (OffsetClosed (V2 x y))) = lR x y
+renderSeg :: Segment V2 Double -> AttributeValue
+renderSeg (Linear (V2 x 0)) = hR x
+renderSeg (Linear (V2 0 y)) = vR y
+renderSeg (Linear (V2 x y)) = lR x y
 renderSeg (Cubic  (V2 x0 y0)
                   (V2 x1 y1)
-                  (OffsetClosed (V2 x2 y2))) = cR x0 y0 x1 y1 x2 y2
+                  (V2 x2 y2)) = cR x0 y0 x1 y1 x2 y2
 
-renderClip :: SVGFloat n => Path V2 n -> T.Text -> Int -> Element -> Element
+renderClip :: Path V2 Double -> T.Text -> Int -> Element -> Element
 renderClip p prefix ident svg = do
      defs_ [] $ clipPath_ [Id_ <<- (clipPathId ident)] (renderPath p)
   <> g_  [Clip_path_ <<- ("url(#" <> clipPathId ident <> ")")] svg
     where
       clipPathId i = prefix <> "myClip" <> (pack . show $ i)
 
-renderStop :: SVGFloat n => GradientStop n -> Element
+renderStop :: GradientStop -> Element
 renderStop (GradientStop c v)
   = stop_ [ Stop_color_ <<- (colorToRgbText c)
           , Offset_ <<- (toText v)
           , Stop_opacity_ <<- (toText $ colorToOpacity c) ]
 
 spreadMethodText :: SpreadMethod -> AttributeValue
-spreadMethodText GradPad      = "pad"
-spreadMethodText GradReflect  = "reflect"
-spreadMethodText GradRepeat   = "repeat"
+spreadMethodText GradPad     = "pad"
+spreadMethodText GradReflect = "reflect"
+spreadMethodText GradRepeat  = "repeat"
 
-renderLinearGradient :: SVGFloat n => LGradient n -> Int -> Element
+renderLinearGradient :: LGradient -> Int -> Element
 renderLinearGradient g i = linearGradient_
     [ Id_ <<- (pack $ "gradient" ++ show i)
     , X1_ <<- toText x1
@@ -154,54 +179,54 @@ renderLinearGradient g i = linearGradient_
     , Y2_ <<- toText y2
     , GradientTransform_ <<- mx
     , GradientUnits_ <<- "userSpaceOnUse"
-    , SpreadMethod_ <<- spreadMethodText (g ^. lGradSpreadMethod) ]
-    $ foldMap renderStop (g^.lGradStops)
+    , SpreadMethod_ <<- spreadMethodText (g ^. gradientSpreadMethod) ]
+    $ foldMap renderStop (g^.gradientStops)
   where
     mx = matrix a1 a2 b1 b2 c1 c2
-    [[a1, a2], [b1, b2], [c1, c2]] = matrixHomRep (g ^. lGradTrans)
-    P (V2 x1 y1) = g ^. lGradStart
-    P (V2 x2 y2) = g ^. lGradEnd
+    [[a1, a2], [b1, b2], [c1, c2]] = matrixHomRep (g ^. gradientTransform)
+    P (V2 x1 y1) = g ^. gradientStart
+    P (V2 x2 y2) = g ^. gradientEnd
 
-renderRadialGradient :: SVGFloat n => RGradient n -> Int -> Element
+renderRadialGradient :: RGradient -> Int -> Element
 renderRadialGradient g i = radialGradient_
     [ Id_ <<- (pack $ "gradient" ++ show i)
-    , R_  <<- toText (g ^. rGradRadius1)
+    , R_  <<- toText (g ^. gradientRadius1)
     , Cx_ <<- toText cx
     , Cy_ <<- toText cy
     , Fx_ <<- toText fx
     , Fy_ <<- toText fy
     , GradientTransform_ <<- mx
     , GradientUnits_ <<- "userSpaceOnUse"
-    , SpreadMethod_ <<- spreadMethodText (g ^. rGradSpreadMethod) ]
+    , SpreadMethod_ <<- spreadMethodText (g ^. gradientSpreadMethod) ]
     ( foldMap renderStop ss )
   where
     mx = matrix a1 a2 b1 b2 c1 c2
-    [[a1, a2], [b1, b2], [c1, c2]] = matrixHomRep (g ^.rGradTrans)
-    P (V2 cx cy) = g ^. rGradCenter1
-    P (V2 fx fy) = g ^. rGradCenter0 -- SVGs focal point is our inner center.
+    [[a1, a2], [b1, b2], [c1, c2]] = matrixHomRep (g ^. gradientTransform)
+    P (V2 cx cy) = g ^. gradientCenter1
+    P (V2 fx fy) = g ^. gradientCenter0 -- SVGs focal point is our inner center.
 
     -- Adjust the stops so that the gradient begins at the perimeter of
     -- the inner circle (center0, radius0) and ends at the outer circle.
-    r0 = g ^. rGradRadius0
-    r1 = g ^. rGradRadius1
+    r0 = g ^. gradientRadius0
+    r1 = g ^. gradientRadius1
     stopFracs = r0 / r1 : map (\s -> (r0 + (s ^. stopFraction) * (r1 - r0)) / r1)
-                (g ^. rGradStops)
-    gradStops = case g ^. rGradStops of
+                (g ^. gradientStops)
+    gradStops = case g ^. gradientStops of
       []       -> []
       xs@(x:_) -> x : xs
     ss = zipWith (\gs sf -> gs & stopFraction .~ sf ) gradStops stopFracs
 
 -- Create a gradient element so that it can be used as an attribute value for fill.
-renderFillTextureDefs :: SVGFloat n => Int -> Style v n -> Element
+renderFillTextureDefs :: Int -> Attributes -> Element
 renderFillTextureDefs i s =
-  case getNumAttr getFillTexture s of
+  case getAttr _FillTexture s of
     Just (LG g) -> defs_ [] $ renderLinearGradient g i
     Just (RG g) -> defs_ [] $ renderRadialGradient g i
     _           -> mempty
 
 -- Render the gradient using the id set up in renderFillTextureDefs.
-renderFillTexture :: SVGFloat n => Int -> Style v n -> [Attribute]
-renderFillTexture ident s = case getNumAttr getFillTexture s of
+renderFillTexture :: Int -> Attributes -> [Attribute]
+renderFillTexture ident s = case getAttr _FillTexture s of
   Just (SC (SomeColor c)) -> renderTextAttr Fill_ fillColorRgb <>
                              renderAttr Fill_opacity_ fillColorOpacity
     where
@@ -211,17 +236,20 @@ renderFillTexture ident s = case getNumAttr getFillTexture s of
                                              <> ")"), Fill_opacity_ <<- "1"]
   Just (RG _) -> [Fill_ <<- ("url(#gradient" <> (pack . show $ ident)
                                              <> ")"), Fill_opacity_ <<- "1"]
-  Nothing     -> []
+  -- If no fill texture resolves at all we must still emit an explicit
+  -- @fill="none"@: SVG's initial value for @fill@ is black, so leaving
+  -- the attribute out would fill the path.
+  Nothing     -> [Fill_ <<- "none"]
 
-renderLineTextureDefs :: SVGFloat n => Int -> Style v n -> Element
+renderLineTextureDefs :: Int -> Attributes -> Element
 renderLineTextureDefs i s =
-  case getNumAttr getLineTexture s of
+  case getAttr _LineTexture s of
     Just (LG g) -> defs_ [] $ renderLinearGradient g i
     Just (RG g) -> defs_ [] $ renderRadialGradient g i
     _           -> mempty
 
-renderLineTexture :: SVGFloat n => Int -> Style v n -> [Attribute]
-renderLineTexture ident s = case getNumAttr getLineTexture s of
+renderLineTexture :: Int -> Attributes -> [Attribute]
+renderLineTexture ident s = case getAttr _LineTexture s of
   Just (SC (SomeColor c)) -> renderTextAttr Stroke_ lineColorRgb <>
                              renderAttr Stroke_opacity_ lineColorOpacity
     where
@@ -236,16 +264,16 @@ renderLineTexture ident s = case getNumAttr getLineTexture s of
 dataUri :: String -> BS8.ByteString -> AttributeValue
 dataUri mime dat = pack $ "data:"++mime++";base64," ++ BS8.unpack (BS64.encode dat)
 
-renderDImageEmb :: SVGFloat n => DImage n Embedded -> Element
-renderDImageEmb di@(DImage (ImageRaster dImg) _ _ _) =
-  renderDImage di $ dataUri "image/png" img
+renderDImageEmb :: T2 Double -> DImage Embedded -> Element
+renderDImageEmb t2 di@(ImageEmbedded dImg) =
+  renderDImage t2 di $ dataUri "image/png" img
   where
     img = case encodeDynamicPng dImg of
             Left str   -> error str
             Right img' -> img'
 
-renderDImage :: SVGFloat n => DImage n any -> AttributeValue -> Element
-renderDImage (DImage _ w h tr) uridata =
+renderDImage :: T2 Double -> DImage t -> AttributeValue -> Element
+renderDImage tr (dimageSize -> (V2 w h)) uridata =
   image_
     [ Transform_ <<- transformMatrix
     , Width_ <<-  (pack . show $ w)
@@ -258,8 +286,8 @@ renderDImage (DImage _ w h tr) uridata =
     tX = translationX $ fromIntegral (-w)/2
     tY = translationY $ fromIntegral (-h)/2
 
-renderText :: SVGFloat n => Text n -> Element
-renderText (Text tt tAlign str) =
+renderText :: T2 Double -> Text Double -> Element
+renderText tt (Text tAlign str) =
   text_
     [ Transform_ <<- transformMatrix
     , Dominant_baseline_ <<- vAlign
@@ -279,14 +307,30 @@ renderText (Text tt tAlign str) =
                w' | w' <= 0.25 -> "start"
                w' | w' >= 0.75 -> "end"
                _ -> "middle"
-  t                   = tt `mappend` reflectionY
+  -- All text scaling comes from the (already resolved) 'FontSize'
+  -- attribute, which is rendered separately as the SVG @font-size@
+  -- (see 'renderFontSize').  The accumulated transform therefore has
+  -- its average scale normalised out here, keeping only rotation,
+  -- translation and any non-uniform residue; using the raw transform
+  -- as well would apply the scale twice.
+  t                   = tt `mappend` scaling (1 / avgScale tt) `mappend` reflectionY
   [[a,b],[c,d],[e,f]] = matrixHomRep t
   transformMatrix     = matrix a b c d e f
 
-renderStyles :: SVGFloat n => Int -> Int -> Style v n -> [Attribute]
-renderStyles fillId lineId s = concatMap ($ s) $
+renderStyles :: Int -> Int -> Attributes -> [Attribute]
+renderStyles fillId lineId s =
+  renderFillTexture fillId s <> renderNonFillStyles lineId s
+
+-- | Styles for groups of lines (open trails), which must never be
+--   filled: the fill texture is suppressed and an explicit
+--   @fill="none"@ emitted (otherwise SVG would fill open paths as if
+--   they were closed).
+renderStylesNoFill :: Int -> Attributes -> [Attribute]
+renderStylesNoFill lineId s = (Fill_ <<- "none") : renderNonFillStyles lineId s
+
+renderNonFillStyles :: Int -> Attributes -> [Attribute]
+renderNonFillStyles lineId s = concatMap ($ s) $
   [ renderLineTexture lineId
-  , renderFillTexture fillId
   , renderLineWidth
   , renderLineCap
   , renderLineJoin
@@ -296,45 +340,47 @@ renderStyles fillId lineId s = concatMap ($ s) $
   , renderFontSize
   , renderFontSlant
   , renderFontWeight
-  , renderFontFamily
-  , renderMiterLimit ]
+  , renderFontFamily ]
+  -- , renderMiterLimit ]
 
-renderMiterLimit :: Style v n -> [Attribute]
+renderMiterLimit :: Attributes -> [Attribute]
 renderMiterLimit s = renderAttr Stroke_miterlimit_ miterLimit
- where miterLimit = getLineMiterLimit <$> getAttr s
+  where miterLimit = getAttr _LineMiterLimit s
 
-renderOpacity :: Style v n -> [Attribute]
+renderOpacity :: Attributes -> [Attribute]
 renderOpacity s = renderAttr Opacity_ o
- where o = getOpacity <$> getAttr s
+  where o = getAttr _Opacity s
 
-renderFillRule :: Style v n -> [Attribute]
+renderFillRule :: Attributes -> [Attribute]
 renderFillRule s = renderTextAttr Fill_rule_ fr
-  where fr = (fillRuleToText . getFillRule) <$> getAttr s
+  where fr = fillRuleToText <$> getAttr _FillRule s
         fillRuleToText :: FillRule -> AttributeValue
         fillRuleToText Winding = "nonzero"
         fillRuleToText EvenOdd = "evenodd"
 
-renderLineWidth :: SVGFloat n => Style v n -> [Attribute]
+renderLineWidth :: Attributes -> [Attribute]
 renderLineWidth s = renderAttr Stroke_width_ lWidth
-  where lWidth = getNumAttr getLineWidth s
+  where
+    lWidth :: Maybe Double
+    lWidth = getAttr _LineWidth s
 
-renderLineCap :: Style v n -> [Attribute]
+renderLineCap :: Attributes -> [Attribute]
 renderLineCap s = renderTextAttr Stroke_linecap_ lCap
-  where lCap = (lineCapToText . getLineCap) <$> getAttr s
+  where lCap = lineCapToText <$> getAttr _LineCap s
         lineCapToText :: LineCap -> AttributeValue
         lineCapToText LineCapButt   = "butt"
         lineCapToText LineCapRound  = "round"
         lineCapToText LineCapSquare = "square"
 
-renderLineJoin :: Style v n -> [Attribute]
+renderLineJoin :: Attributes -> [Attribute]
 renderLineJoin s = renderTextAttr Stroke_linejoin_ lj
-  where lj = (lineJoinToText . getLineJoin) <$> getAttr s
+  where lj = lineJoinToText <$> getAttr _LineJoin s
         lineJoinToText :: LineJoin -> AttributeValue
         lineJoinToText LineJoinMiter = "miter"
         lineJoinToText LineJoinRound = "round"
         lineJoinToText LineJoinBevel = "bevel"
 
-renderDashing :: SVGFloat n => Style v n -> [Attribute]
+renderDashing :: Attributes -> [Attribute]
 renderDashing s = renderTextAttr Stroke_dasharray_ arr <>
                   renderAttr Stroke_dashoffset_ dOffset
  where
@@ -344,28 +390,29 @@ renderDashing s = renderTextAttr Stroke_dasharray_ arr <>
   -- Ignore dashing if dashing array is empty
   checkEmpty (Just (Dashing [] _)) = Nothing
   checkEmpty other = other
-  dashing' = checkEmpty $ getNumAttr getDashing s
+  dashing' :: Maybe (Dashing Double)
+  dashing' = checkEmpty $ getAttr _Dashing s
   arr = (pack . dashArrayToStr . getDasharray) <$> dashing'
   dOffset = getDashoffset <$> dashing'
 
-renderFontSize :: SVGFloat n => Style v n -> [Attribute]
+renderFontSize :: Attributes -> [Attribute]
 renderFontSize s = renderTextAttr Font_size_ fs
  where
-  fs = pack <$> getNumAttr ((++ "px") . show . getFontSize) s
+  fs = pack . (++ "px") . show <$> getAttr (_FontSize @Double) s
 
-renderFontSlant :: Style v n -> [Attribute]
+renderFontSlant :: Attributes -> [Attribute]
 renderFontSlant s = renderTextAttr Font_style_ fs
  where
-  fs = (fontSlantAttr . getFontSlant) <$> getAttr s
+  fs = fontSlantAttr <$> getAttr _FontSlant s
   fontSlantAttr :: FontSlant -> AttributeValue
   fontSlantAttr FontSlantItalic  = "italic"
   fontSlantAttr FontSlantOblique = "oblique"
   fontSlantAttr FontSlantNormal  = "normal"
 
-renderFontWeight :: Style v n -> [Attribute]
+renderFontWeight :: Attributes -> [Attribute]
 renderFontWeight s = renderTextAttr Font_weight_ fw
  where
-  fw = (fontWeightAttr . getFontWeight) <$> getAttr s
+  fw = fontWeightAttr <$> getAttr _FontWeight s
   fontWeightAttr :: FontWeight -> AttributeValue
   fontWeightAttr FontWeightNormal = "normal"
   fontWeightAttr FontWeightBold   = "bold"
@@ -380,10 +427,10 @@ renderFontWeight s = renderTextAttr Font_weight_ fw
   fontWeightAttr FontWeightHeavy = "900"
 
 
-renderFontFamily :: Style v n -> [Attribute]
+renderFontFamily :: Attributes -> [Attribute]
 renderFontFamily s = renderTextAttr Font_family_ ff
  where
-  ff = (pack . getFont) <$> getAttr s
+   ff = pack <$> getAttr _Font s
 
 -- | Render a style attribute if available, empty otherwise.
 renderAttr :: Show s => AttrTag -> Maybe s -> [Attribute]
