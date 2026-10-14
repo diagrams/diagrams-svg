@@ -1,5 +1,5 @@
 Name:                diagrams-svg
-Version:             1.5
+Version:             1.5.1
 Synopsis:            SVG backend for diagrams drawing EDSL.
 Homepage:            https://diagrams.github.io/
 License:             BSD3
