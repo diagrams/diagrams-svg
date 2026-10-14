@@ -1,3 +1,11 @@
+## [v1.5.1](https://github.com/diagrams/diagrams-svg/tree/v1.5.1) (2026-10-14)
+
+- Allow embedding SVG elements as primitives, via new
+  `elementToDiagram` function ([#126](https://github.com/diagrams/diagrams-svg/pull/126); thanks to George Thomas)
+
+- Allow `base-4.22` (GHC 9.14), `containers-0.8`, `diagrams-lib-1.6`
+- Remove some unneeded dependencies (`monoid-extras`, `colour`, `semigroups`)
+
 ## [v1.5-r2](https://github.com/diagrams/diagrams-svg/tree/v1.5-r2) (2025-06-13)
 
 - Allow `optparse-applicative-0.19`
